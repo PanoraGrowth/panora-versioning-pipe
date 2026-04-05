@@ -13,6 +13,9 @@ on:
       - 'examples/**'
       - 'LICENSE'
 
+permissions:
+  contents: write
+
 jobs:
   versioning:
     uses: ./.github/workflows/run-versioning.yml
