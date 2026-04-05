@@ -1,0 +1,23 @@
+# Pipe Metadata
+name: Versioning Pipe
+image: public.ecr.aws/panoragrowth/versioning-pipe:latest
+description: Automated versioning, changelog generation, and version file updates
+
+repository: https://github.com/PanoraGrowth/panora-versioning-pipe
+
+maintainer:
+  name: Panora Growth
+  email: oss@panoragrowth.com
+
+tags:
+  - versioning
+  - changelog
+  - ci-cd
+  - automation
+
+variables:
+  - name: TEAMS_WEBHOOK_URL
+    type: string
+    required: false
+    secured: true
+    description: "Microsoft Teams webhook URL for notifications (optional)"

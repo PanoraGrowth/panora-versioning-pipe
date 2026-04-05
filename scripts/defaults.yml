@@ -1,0 +1,219 @@
+# =============================================================================
+# defaults.yml - Default values for versioning system (v1.4)
+# =============================================================================
+# This file contains ALL default values used by the versioning system.
+# Projects can override any value in their .versioning.yml file.
+# =============================================================================
+
+# Commit format: "ticket" (AM-XXXX - type: msg) or "conventional" (type(scope): msg)
+commits:
+  format: "ticket"
+
+tickets:
+  prefixes: []
+  required: false
+  url: ""
+
+version:
+  components:
+    period:
+      enabled: false
+      initial: 0
+    major:
+      enabled: true
+      initial: 0
+    minor:
+      enabled: true
+      initial: 0
+    patch:
+      enabled: false
+      initial: 0
+    timestamp:
+      enabled: true
+      format: "%Y%m%d%H%M%S"
+      timezone: "UTC"
+
+  separators:
+    version: "."
+    timestamp: "."
+    suffix: ""
+
+commit_types:
+  - name: "major"
+    description: "Breaking changes"
+    bump: "major"
+    emoji: "💥"
+    changelog_group: "Breaking Changes"
+
+  - name: "minor"
+    description: "Minor release"
+    bump: "minor"
+    emoji: "📦"
+    changelog_group: "Release"
+
+  - name: "feat"
+    description: "New feature"
+    bump: "none"
+    emoji: "🚀"
+    changelog_group: "Features"
+
+  - name: "feature"
+    description: "New feature (alias for feat)"
+    bump: "none"
+    emoji: "🚀"
+    changelog_group: "Features"
+
+  - name: "fix"
+    description: "Bug fix"
+    bump: "none"
+    emoji: "🐛"
+    changelog_group: "Bug Fixes"
+
+  - name: "hotfix"
+    description: "Urgent fix"
+    bump: "none"
+    emoji: "🚑"
+    changelog_group: "Hotfixes"
+
+  - name: "security"
+    description: "Security fix"
+    bump: "none"
+    emoji: "🔒"
+    changelog_group: "Security"
+
+  - name: "breaking"
+    description: "Breaking changes (no auto bump)"
+    bump: "none"
+    emoji: "💥"
+    changelog_group: "Breaking Changes"
+
+  - name: "refactor"
+    description: "Code refactoring"
+    bump: "none"
+    emoji: "🔨"
+    changelog_group: "Refactoring"
+
+  - name: "perf"
+    description: "Performance improvements"
+    bump: "none"
+    emoji: "⚡"
+    changelog_group: "Performance"
+
+  - name: "docs"
+    description: "Documentation"
+    bump: "none"
+    emoji: "📚"
+    changelog_group: "Documentation"
+
+  - name: "test"
+    description: "Tests"
+    bump: "none"
+    emoji: "🧪"
+    changelog_group: "Testing"
+
+  - name: "chore"
+    description: "Maintenance"
+    bump: "none"
+    emoji: "🔧"
+    changelog_group: "Chores"
+
+  - name: "build"
+    description: "Build system"
+    bump: "none"
+    emoji: "🏗️"
+    changelog_group: "Build"
+
+  - name: "ci"
+    description: "CI/CD"
+    bump: "none"
+    emoji: "⚙️"
+    changelog_group: "CI/CD"
+
+  - name: "revert"
+    description: "Revert changes"
+    bump: "none"
+    emoji: "⏪"
+    changelog_group: "Reverts"
+
+  - name: "style"
+    description: "Code style"
+    bump: "none"
+    emoji: "🎨"
+    changelog_group: "Style"
+
+changelog:
+  file: "CHANGELOG.md"
+  title: "Changelog"
+  format: "minimal"
+  use_emojis: false
+  include_commit_link: true
+  include_ticket_link: true
+  include_author: true
+  commit_url: ""
+  ticket_link_label: "View ticket"  # Label for ticket links in changelogs
+
+  # Per-folder changelogs (for monorepos with scoped commits)
+  # Requires commits.format: "conventional"
+  per_folder:
+    enabled: false
+    root_folders: []            # Folders to search for scope matching (e.g. ["backend", "frontend"])
+    folder_pattern: ""          # Regex to filter subfolders (e.g. "^[0-9]{3}-" for numbered folders)
+    scope_matching: "suffix"    # "suffix" (cluster-ecs -> 001-cluster-ecs) or "exact" (folder name = scope)
+
+validation:
+  require_ticket_prefix: false
+  require_type_in_last_commit: true
+  allow_untyped_intermediate_commits: true
+  ignore_patterns:
+    - "^Merge"
+    - "^Revert"
+    - "^fixup!"
+    - "^squash!"
+    - "^chore\\(release\\)"
+    - "^chore\\(hotfix\\)"
+
+hotfix:
+  branch_prefix: "hotfix/"
+  validate_commits: true
+  update_changelog_on_main: true
+  update_changelog_on_preprod: true
+  changelog_header: "HOTFIX"
+
+branches:
+  development: "development"
+  pre_production: "pre-production"
+  production: "main"
+  tag_on: "development"      # Branch where tags are created (development | main)
+
+version_file:
+  enabled: false
+  type: "yaml"              # yaml | json | regex
+  file: "version.yaml"      # For yaml/json types
+  key: "version"            # For yaml/json types
+  files: []                 # For regex type: list of files to update (legacy, use groups for monorepos)
+  pattern: ""               # For regex type: pattern to match
+  replacement: ""           # For regex type: replacement (use {{VERSION}})
+
+  # Groups for monorepo support (optional)
+  # When groups are defined, only files in matched groups are updated
+  # If no groups are defined, all files in 'files' array are updated (legacy behavior)
+  groups: []
+  # Example group structure:
+  # groups:
+  #   - name: "app-name"           # Identifier for logging
+  #     trigger_paths:             # Glob patterns - if changed files match, this group is triggered
+  #       - "projects/app/**"
+  #     files:                     # Files to update when this group is triggered
+  #       - "projects/app/src/environments/environment.dev.ts"
+  #     update_all: false          # If true, when this group triggers, ALL groups are updated
+
+  # Fallback behavior when a changed file doesn't match any trigger_paths
+  # Options: "update_all" (safe default) | "update_none" | "error"
+  unmatched_files_behavior: "update_all"
+
+notifications:
+  teams:
+    enabled: true
+    on_success: false
+    on_failure: true
+    # payload_template auto-detected based on environment (Docker vs local)

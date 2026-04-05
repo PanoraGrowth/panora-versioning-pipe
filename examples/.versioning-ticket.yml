@@ -1,0 +1,48 @@
+# .versioning-ticket.yml
+#
+# Demonstrates: Full ticket-prefix mode with Jira (or any tracker) integration.
+# Shows:
+#   - Enforced ticket prefixes (commits without them are rejected)
+#   - Ticket URL for clickable links in the changelog
+#   - All changelog link types enabled
+#   - Custom ticket link label
+#   - Version format with period, major, minor, and timestamp components
+#
+# Replace "your-org.atlassian.net" with your actual Jira instance hostname.
+# Replace "your-org/your-repo" with your actual repository path.
+
+commits:
+  format: "ticket"
+
+tickets:
+  prefixes:
+    - "PROJ"
+    - "TEAM"
+  required: true
+  url: "https://your-org.atlassian.net/browse"
+
+version:
+  components:
+    period:
+      enabled: true
+      initial: 1
+    major:
+      enabled: true
+      initial: 0
+    minor:
+      enabled: true
+      initial: 0
+    timestamp:
+      enabled: true
+      format: "%Y%m%d%H%M%S"
+      timezone: "UTC"
+
+changelog:
+  file: "CHANGELOG.md"
+  title: "Changelog"
+  use_emojis: false
+  include_commit_link: true
+  include_ticket_link: true
+  include_author: true
+  commit_url: "https://github.com/your-org/your-repo/commit"
+  ticket_link_label: "View in Jira"

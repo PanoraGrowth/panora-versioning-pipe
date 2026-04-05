@@ -1,0 +1,15 @@
+# .versioning-minimal.yml
+#
+# Demonstrates: Bare minimum configuration.
+# This is all you need to get started — panora-versioning-pipe works
+# entirely on defaults. Every key shown here is optional.
+#
+# Defaults applied when this file is used:
+#   - Ticket format: PROJ-123 - feat: message
+#   - Version: MAJOR.MINOR.TIMESTAMP (e.g. 1.3.20240115143022)
+#   - Changelog: CHANGELOG.md, no emojis, no ticket links (no URL set)
+#   - Branch model: development -> pre-production -> main
+#   - Tag created on: development branch
+
+commits:
+  format: "ticket"

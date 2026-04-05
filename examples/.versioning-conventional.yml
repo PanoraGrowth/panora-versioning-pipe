@@ -1,0 +1,28 @@
+# .versioning-conventional.yml
+#
+# Demonstrates: Conventional commits format.
+# Shows:
+#   - Commit format: feat(scope): message / fix(api): message
+#   - Emojis enabled in the changelog (each commit type gets its emoji)
+#   - Commit links in changelog entries
+#   - Per-folder changelogs disabled (default — single repo mode)
+#
+# With conventional commits, the scope in feat(scope) is optional
+# but enables per-folder changelog grouping when per_folder is enabled.
+#
+# Replace "your-org/your-repo" with your actual repository path.
+
+commits:
+  format: "conventional"
+
+changelog:
+  file: "CHANGELOG.md"
+  title: "Changelog"
+  use_emojis: true
+  include_commit_link: true
+  include_ticket_link: false
+  include_author: true
+  commit_url: "https://github.com/your-org/your-repo/commit"
+
+  per_folder:
+    enabled: false

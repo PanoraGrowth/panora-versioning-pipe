@@ -1,0 +1,71 @@
+# .versioning-monorepo.yml
+#
+# Demonstrates: Monorepo support with per-folder changelogs and grouped version files.
+# Shows:
+#   - Per-folder changelogs: each subfolder matching the pattern gets its own CHANGELOG.md
+#   - version_file.groups: each group watches specific paths and updates its own version files
+#   - scope_matching "suffix": commit scope "service-api" matches folder "001-service-api"
+#     (the folder name ends with the scope)
+#   - scope_matching "exact" (alternative): commit scope must match the folder name exactly
+#   - unmatched_files_behavior: what to do when a changed file doesn't match any group
+#
+# Requires: commits.format = "conventional" for per_folder to work.
+# Scoped commits (e.g. feat(service-api): add endpoint) drive the per-folder grouping.
+
+commits:
+  format: "conventional"
+
+changelog:
+  file: "CHANGELOG.md"
+  use_emojis: false
+  include_commit_link: true
+  include_author: true
+
+  # Per-folder changelogs: generates a CHANGELOG.md inside each matched subfolder.
+  # Requires conventional commits with scoped messages: feat(scope): message
+  per_folder:
+    enabled: true
+    root_folders:
+      - "projects"         # Look for subfolders inside projects/
+    folder_pattern: "^[0-9]{3}-"  # Only match numbered folders: 001-service-api, 002-web
+    # scope_matching options:
+    #   "suffix" — folder "001-service-api" matches scope "service-api" (folder ends with scope)
+    #   "exact"  — folder name must exactly equal the commit scope
+    scope_matching: "suffix"
+
+version_file:
+  enabled: true
+  type: "regex"
+  pattern: "version: '.*'"
+  replacement: "version: '{{VERSION}}'"
+
+  # Groups: each group watches specific file paths (globs).
+  # When files in trigger_paths change, only that group's version files are updated.
+  # Use update_all: true on a group to force ALL groups to update when that group triggers.
+  groups:
+    - name: "service-api"
+      trigger_paths:
+        - "projects/001-service-api/**"
+      files:
+        - "projects/001-service-api/src/version.ts"
+        - "projects/001-service-api/helm/Chart.yaml"
+
+    - name: "service-web"
+      trigger_paths:
+        - "projects/002-service-web/**"
+      files:
+        - "projects/002-service-web/src/version.ts"
+
+    - name: "shared-lib"
+      trigger_paths:
+        - "libs/shared/**"
+      files:
+        - "libs/shared/package.json"
+      # When shared-lib changes, bump ALL groups (shared code affects everything)
+      update_all: false
+
+  # What to do when a changed file doesn't match any trigger_paths:
+  #   "update_all"  — safe default: update every group's version files
+  #   "update_none" — skip version file updates for unmatched files
+  #   "error"       — fail the pipeline if an unmatched file is found
+  unmatched_files_behavior: "update_all"
