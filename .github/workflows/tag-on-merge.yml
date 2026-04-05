@@ -1,0 +1,24 @@
+# Tag on merge — create version tag when PR merges to main
+# The tag triggers publish.yml (Docker build + push)
+
+name: Main - Create Version Tag
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - '*.md'
+      - 'docs/**'
+      - 'examples/**'
+      - 'LICENSE'
+
+permissions:
+  contents: write
+
+jobs:
+  versioning:
+    uses: ./.github/workflows/run-versioning.yml
+    with:
+      branch: main
+      commit: ${{ github.sha }}

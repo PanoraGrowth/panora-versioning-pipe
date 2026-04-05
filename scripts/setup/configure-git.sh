@@ -12,6 +12,9 @@ set -e
 
 echo "Configuring git..."
 
+# Mark workspace as safe (required when running in Docker with different user)
+git config --global --add safe.directory "$(pwd)"
+
 # Set git identity for commits (configurable via environment variables)
 GIT_USER_NAME="${GIT_USER_NAME:-"CI Pipeline"}"
 GIT_USER_EMAIL="${GIT_USER_EMAIL:-"ci@panora-versioning-pipe.noreply"}"

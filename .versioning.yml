@@ -1,0 +1,36 @@
+# .versioning.yml - panora-versioning-pipe self-versioning
+# This tool versions itself using its own pipe
+
+commits:
+  format: "conventional"
+
+tickets:
+  required: false
+
+version:
+  components:
+    period:
+      enabled: false
+    major:
+      enabled: true
+      initial: 1
+    minor:
+      enabled: true
+      initial: 0
+    patch:
+      enabled: false
+    timestamp:
+      enabled: false
+
+changelog:
+  title: "Changelog"
+  commit_url: "https://github.com/PanoraGrowth/panora-versioning-pipe/commit"
+  ticket_link_label: "View issue"
+
+branches:
+  production: "main"
+  tag_on: "main"
+
+notifications:
+  teams:
+    enabled: false
