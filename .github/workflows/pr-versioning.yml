@@ -1,0 +1,39 @@
+# PR Versioning — validate commits and generate CHANGELOG
+# The pipe versions itself using its own published Docker image
+
+name: PR - Versioning
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  versioning:
+    name: Validate & Generate CHANGELOG
+    runs-on: ubuntu-latest
+    container:
+      image: public.ecr.aws/k5n8p2t3/panora-versioning-pipe:latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run versioning pipe
+        env:
+          VERSIONING_PR_ID: ${{ github.event.pull_request.number }}
+          VERSIONING_BRANCH: ${{ github.head_ref }}
+          VERSIONING_TARGET_BRANCH: ${{ github.base_ref }}
+          VERSIONING_COMMIT: ${{ github.event.pull_request.head.sha }}
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git fetch origin "$VERSIONING_TARGET_BRANCH:$VERSIONING_TARGET_BRANCH" || true
+          git checkout "$VERSIONING_BRANCH"
+          /pipe/pipe.sh

@@ -1,0 +1,39 @@
+# Tag on merge — create version tag when PR merges to main
+# The tag triggers the publish.yml workflow (build + push Docker image)
+
+name: Main - Create Version Tag
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - '*.md'
+      - 'docs/**'
+      - 'examples/**'
+      - 'LICENSE'
+
+permissions:
+  contents: write
+
+jobs:
+  versioning:
+    name: Create Version Tag
+    runs-on: ubuntu-latest
+    container:
+      image: public.ecr.aws/k5n8p2t3/panora-versioning-pipe:latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run versioning pipe
+        env:
+          VERSIONING_BRANCH: main
+          VERSIONING_COMMIT: ${{ github.sha }}
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          /pipe/pipe.sh
