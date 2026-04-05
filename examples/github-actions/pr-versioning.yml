@@ -1,0 +1,22 @@
+# PR Versioning — validate commits and generate CHANGELOG
+# Copy this to .github/workflows/pr-versioning.yml
+
+name: PR - Versioning
+
+on:
+  pull_request:
+    branches:
+      - main            # Change to your target branch (e.g., development)
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  versioning:
+    uses: ./.github/workflows/run-versioning.yml
+    with:
+      pr_id: ${{ github.event.pull_request.number }}
+      branch: ${{ github.head_ref }}
+      target_branch: ${{ github.base_ref }}
+      commit: ${{ github.event.pull_request.head.sha }}
