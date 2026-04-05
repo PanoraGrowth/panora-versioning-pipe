@@ -1,0 +1,51 @@
+# Reusable versioning workflow
+# Runs panora-versioning-pipe Docker image with the provided context
+
+name: Run Versioning Pipe
+
+on:
+  workflow_call:
+    inputs:
+      pr_id:
+        description: "Pull request ID (empty for branch pipeline)"
+        required: false
+        type: string
+        default: ""
+      branch:
+        description: "Current branch name"
+        required: true
+        type: string
+      target_branch:
+        description: "PR target branch (required for PR pipeline)"
+        required: false
+        type: string
+        default: ""
+      commit:
+        description: "Commit SHA"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  versioning:
+    name: Versioning Pipe
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ inputs.branch }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run versioning pipe
+        uses: docker://public.ecr.aws/k5n8p2t3/panora-versioning-pipe:latest
+        env:
+          VERSIONING_PR_ID: ${{ inputs.pr_id }}
+          VERSIONING_BRANCH: ${{ inputs.branch }}
+          VERSIONING_TARGET_BRANCH: ${{ inputs.target_branch }}
+          VERSIONING_COMMIT: ${{ inputs.commit }}
