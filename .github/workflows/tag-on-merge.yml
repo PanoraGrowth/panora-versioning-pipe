@@ -34,6 +34,8 @@ jobs:
         env:
           VERSIONING_BRANCH: main
           VERSIONING_COMMIT: ${{ github.sha }}
+          GIT_USER_NAME: "github-actions[bot]"
+          GIT_USER_EMAIL: "github-actions[bot]@users.noreply.github.com"
         run: |
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
           /pipe/pipe.sh
