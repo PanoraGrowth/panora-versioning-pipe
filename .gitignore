@@ -7,11 +7,3 @@ Thumbs.db
 .vscode/
 *.swp
 *.swo
-
-# Docker
-.docker/
-
-# Terraform (if running infra locally)
-.terraform/
-*.tfstate
-*.tfstate.backup
