@@ -1,0 +1,11 @@
+.git
+.github
+.gitignore
+.dockerignore
+.versioning.yml
+CHANGELOG.md
+CONTRIBUTING.md
+LICENSE
+Makefile
+README.md
+examples/

@@ -1,0 +1,54 @@
+# Bitbucket Pipelines example for panora-versioning-pipe
+# Copy this to your repository root as bitbucket-pipelines.yml
+#
+# Prerequisites:
+#   - .versioning.yml in your repository root
+#   - SSH key with write access (for pushing changelog commits and tags)
+#   - (Optional) TEAMS_WEBHOOK_URL secured variable for failure notifications
+
+image: alpine:3.19
+
+definitions:
+  steps:
+    - step: &pr-versioning
+        name: Versioning (PR)
+        script:
+          # Install dependencies
+          - apk add --no-cache bash git curl jq coreutils tzdata gettext
+          - curl -sSL https://github.com/mikefarah/yq/releases/download/v4.35.1/yq_linux_amd64 -o /usr/local/bin/yq && chmod +x /usr/local/bin/yq
+
+          # Map Bitbucket vars to VERSIONING_* (platform-agnostic interface)
+          - export VERSIONING_PR_ID="$BITBUCKET_PR_ID"
+          - export VERSIONING_BRANCH="$BITBUCKET_BRANCH"
+          - export VERSIONING_TARGET_BRANCH="$BITBUCKET_PR_DESTINATION_BRANCH"
+          - export VERSIONING_COMMIT="$BITBUCKET_COMMIT"
+
+          # Run the versioning pipe
+          - bash versioning/pipe.sh
+
+        # Optional: report build status for branch restrictions
+        # after-script:
+        #   - versioning/scripts/reporting/adapters/bitbucket-build-status.sh
+
+    - step: &branch-versioning
+        name: Versioning (Tag)
+        script:
+          - apk add --no-cache bash git curl jq coreutils tzdata gettext
+          - curl -sSL https://github.com/mikefarah/yq/releases/download/v4.35.1/yq_linux_amd64 -o /usr/local/bin/yq && chmod +x /usr/local/bin/yq
+
+          - export VERSIONING_BRANCH="$BITBUCKET_BRANCH"
+          - export VERSIONING_COMMIT="$BITBUCKET_COMMIT"
+
+          - bash versioning/pipe.sh
+
+pipelines:
+  pull-requests:
+    '**':
+      - step: *pr-versioning
+
+  branches:
+    development:        # Change to your tag branch (must match .versioning.yml branches.tag_on)
+      - step: *branch-versioning
+
+options:
+  max-time: 10
