@@ -16,6 +16,9 @@ set -e
 
 SCRIPTS_DIR="/pipe"
 
+# Mark workspace as safe (required when running as Docker action with different user)
+git config --global --add safe.directory "$(pwd)" 2>/dev/null || true
+
 # Validate required variables
 if [ -z "${VERSIONING_BRANCH:-}" ] && [ -z "${VERSIONING_PR_ID:-}" ]; then
     echo "ERROR: Cannot determine pipeline type"
