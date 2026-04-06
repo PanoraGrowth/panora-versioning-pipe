@@ -39,7 +39,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Run versioning pipe
-        uses: docker://public.ecr.aws/k5n8p2t3/panora-versioning-pipe:latest
+        uses: docker://ghcr.io/panoragrowth/panora-versioning-pipe:latest
         env:
           VERSIONING_PR_ID: ${{ inputs.pr_id }}
           VERSIONING_BRANCH: ${{ inputs.branch }}

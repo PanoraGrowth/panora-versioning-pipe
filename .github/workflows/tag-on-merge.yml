@@ -1,5 +1,5 @@
-# Tag on merge — create version tag when PR merges to main
-# The tag triggers publish.yml (Docker build + push)
+# Tag on merge — create version tag + CHANGELOG when PR merges to main
+# Uses GitHub App token for pushing commits to protected branches
 
 name: Main - Create Version Tag
 
@@ -18,7 +18,24 @@ permissions:
 
 jobs:
   versioning:
-    uses: ./.github/workflows/run-versioning.yml
-    with:
-      branch: main
-      commit: ${{ github.sha }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate CI token
+        id: ci-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.CI_APP_ID }}
+          private-key: ${{ secrets.CI_APP_PRIVATE_KEY }}
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: main
+          token: ${{ steps.ci-token.outputs.token }}
+
+      - name: Run versioning pipe
+        uses: docker://ghcr.io/panoragrowth/panora-versioning-pipe:latest
+        env:
+          VERSIONING_BRANCH: main
+          VERSIONING_COMMIT: ${{ github.sha }}
