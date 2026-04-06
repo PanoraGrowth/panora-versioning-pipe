@@ -55,3 +55,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: ae06a2a](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/ae06a2a93990c51be407361bd606524f3d6e29ea)
 
 
+## v0.1.0-4 - 2026-04-06
+
+- fix: clean up auth workaround and align bump mappings to semver
+  - _agustin.manessi_
+  - [Commit: 5824a69](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/5824a69897f3735b7811108d75fc73b110d0c736)
+
+
