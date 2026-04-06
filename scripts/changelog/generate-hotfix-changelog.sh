@@ -36,13 +36,20 @@ IGNORE_PATTERN=$(get_ignore_patterns_regex)
 # =============================================================================
 # Get last commit info
 # =============================================================================
+if [ -z "${CHANGELOG_BASE_REF:-}" ]; then
+    log_info "No base ref set (first run) — using all commits"
+    GIT_RANGE="HEAD"
+else
+    GIT_RANGE="${CHANGELOG_BASE_REF}..HEAD"
+fi
+
 if [ -n "$IGNORE_PATTERN" ]; then
-    COMMITS=$(git log origin/${VERSIONING_TARGET_BRANCH}..HEAD \
+    COMMITS=$(git log $GIT_RANGE \
         --no-merges \
         --pretty=format:"%s" | \
         grep -vE "$IGNORE_PATTERN" || true)
 else
-    COMMITS=$(git log origin/${VERSIONING_TARGET_BRANCH}..HEAD \
+    COMMITS=$(git log $GIT_RANGE \
         --no-merges \
         --pretty=format:"%s")
 fi

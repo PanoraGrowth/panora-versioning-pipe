@@ -7,3 +7,6 @@ Thumbs.db
 .vscode/
 *.swp
 *.swo
+
+# Local working files
+temp/

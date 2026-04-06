@@ -43,13 +43,20 @@ echo ""
 # =============================================================================
 # Get LAST commit (excluding ignored patterns)
 # =============================================================================
+if [ -z "${CHANGELOG_BASE_REF:-}" ]; then
+    log_info "No base ref set (first run) — using all commits"
+    GIT_RANGE="HEAD"
+else
+    GIT_RANGE="${CHANGELOG_BASE_REF}..HEAD"
+fi
+
 if [ -n "$IGNORE_PATTERN" ]; then
-    COMMITS=$(git log origin/${VERSIONING_TARGET_BRANCH}..HEAD \
+    COMMITS=$(git log $GIT_RANGE \
         --no-merges \
         --pretty=format:"%s" | \
         grep -vE "$IGNORE_PATTERN" || true)
 else
-    COMMITS=$(git log origin/${VERSIONING_TARGET_BRANCH}..HEAD \
+    COMMITS=$(git log $GIT_RANGE \
         --no-merges \
         --pretty=format:"%s")
 fi
@@ -64,7 +71,7 @@ fi
 # =============================================================================
 # Extract commit metadata
 # =============================================================================
-LAST_COMMIT_HASH=$(git log origin/${VERSIONING_TARGET_BRANCH}..HEAD \
+LAST_COMMIT_HASH=$(git log $GIT_RANGE \
     --no-merges \
     --pretty=format:"%H" | head -n 1)
 
