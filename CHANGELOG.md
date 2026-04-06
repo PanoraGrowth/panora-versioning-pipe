@@ -48,3 +48,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: 84fb3a5](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/84fb3a5875bcebf34cd4f2fb9a9f8a083b853b6b)
 
 
+## v0.1.0-3 - 2026-04-06
+
+- fix: remove CI_GITHUB_TOKEN from container env to prevent remote override
+  - _agustin.manessi_
+  - [Commit: ae06a2a](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/ae06a2a93990c51be407361bd606524f3d6e29ea)
+
+
