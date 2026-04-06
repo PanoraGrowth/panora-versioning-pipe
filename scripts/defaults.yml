@@ -33,6 +33,8 @@ version:
       format: "%Y%m%d%H%M%S"
       timezone: "UTC"
 
+  tag_prefix_v: false
+
   separators:
     version: "."
     timestamp: "."

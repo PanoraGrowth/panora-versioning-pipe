@@ -149,6 +149,17 @@ get_tag_suffix() {
     config_get "version.separators.suffix" ""
 }
 
+use_tag_prefix_v() {
+    local enabled=$(config_get "version.tag_prefix_v" "false")
+    [ "$enabled" = "true" ]
+}
+
+get_tag_prefix() {
+    if use_tag_prefix_v; then
+        echo "v"
+    fi
+}
+
 # =============================================================================
 # COMMIT TYPES CONFIGURATION
 # =============================================================================
@@ -391,8 +402,11 @@ get_enabled_component_count() {
 }
 
 # Get tag version pattern for filtering git tags
-# Dynamically built based on enabled components and timestamp
+# Dynamically built based on enabled components, timestamp, and prefix
 get_tag_pattern() {
+    local prefix=""
+    use_tag_prefix_v && prefix="v"
+
     local parts=$(get_enabled_component_count)
     # Build base pattern: [0-9]+ repeated for each enabled component
     local base="[0-9]+"
@@ -403,9 +417,9 @@ get_tag_pattern() {
     done
 
     if is_component_enabled "timestamp"; then
-        echo "^${base}\.[0-9]{12,14}(-[0-9]+)?\$"
+        echo "^${prefix}${base}\.[0-9]{12,14}(-[0-9]+)?\$"
     else
-        echo "^${base}\$"
+        echo "^${prefix}${base}\$"
     fi
 }
 
@@ -430,17 +444,20 @@ build_version_string() {
     echo "$version"
 }
 
-# Strip timestamp from a tag to get the version string
+# Strip prefix and timestamp from a tag to get the version string
 parse_tag_to_version() {
     local tag="$1"
+    # Strip v prefix if present
+    local stripped="${tag#v}"
+
     if is_component_enabled "timestamp"; then
-        echo "$tag" | sed -E 's/\.[0-9]{12,14}(-[0-9]+)?$//'
+        echo "$stripped" | sed -E 's/\.[0-9]{12,14}(-[0-9]+)?$//'
     else
         local suffix=$(get_tag_suffix)
         if [ -n "$suffix" ]; then
-            echo "$tag" | sed "s/${suffix}\$//"
+            echo "$stripped" | sed "s/${suffix}\$//"
         else
-            echo "$tag"
+            echo "$stripped"
         fi
     fi
 }
@@ -472,9 +489,10 @@ parse_version_components() {
     fi
 }
 
-# Build full tag: version + timestamp (if enabled) + suffix
+# Build full tag: prefix + version + timestamp (if enabled) + suffix
 build_full_tag() {
     local version="$1"
+    local prefix=$(get_tag_prefix)
     local suffix=$(get_tag_suffix)
 
     if is_component_enabled "timestamp"; then
@@ -483,9 +501,9 @@ build_full_tag() {
         local fmt=$(get_timestamp_format)
         export TZ="$tz"
         local timestamp=$(date +"$fmt")
-        echo "${version}${ts_sep}${timestamp}${suffix}"
+        echo "${prefix}${version}${ts_sep}${timestamp}${suffix}"
     else
-        echo "${version}${suffix}"
+        echo "${prefix}${version}${suffix}"
     fi
 }
 
