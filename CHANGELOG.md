@@ -34,3 +34,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: 9b959bd](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/9b959bde1eb3c90adb148914c0f3c536594004cf)
 
 
+## v0.1.0 - 2026-04-06
+
+- test: test ci
+  - _agustin.manessi_
+  - [Commit: eb65b48](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/eb65b48a68d164c9d2a67ad49fc7931272716678)
+
+
