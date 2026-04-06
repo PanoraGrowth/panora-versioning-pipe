@@ -23,14 +23,23 @@ git config --global user.name "$GIT_USER_NAME"
 git config --global user.email "$GIT_USER_EMAIL"
 
 # Configure service account credentials for pushing to protected branches
-# Bitbucket requires explicit credentials; GitHub Actions uses GITHUB_TOKEN automatically
-if [ -n "${CI_BOT_USERNAME:-}" ] && [ -n "${CI_BOT_APP_PASSWORD:-}" ]; then
-    echo "Configuring service account credentials for push access..."
+# GitHub: CI_GITHUB_TOKEN from GitHub App (passed via workflow env)
+# Bitbucket: CI_BOT_USERNAME + CI_BOT_APP_PASSWORD (pipeline variables)
+if [ -n "${CI_GITHUB_TOKEN:-}" ]; then
+    echo "Configuring GitHub App token for push access..."
+    CURRENT_URL=$(git remote get-url origin 2>/dev/null || echo "")
+    REPO_PATH=$(echo "$CURRENT_URL" | sed -E 's|.*github.com[:/](.*)\.git$|\1|' | sed 's|.*github.com[:/]||')
+    if [ -n "$REPO_PATH" ]; then
+        git remote set-url origin "https://x-access-token:${CI_GITHUB_TOKEN}@github.com/${REPO_PATH}.git"
+        echo "GitHub App token configured for push access"
+    fi
+elif [ -n "${CI_BOT_USERNAME:-}" ] && [ -n "${CI_BOT_APP_PASSWORD:-}" ]; then
+    echo "Configuring Bitbucket service account for push access..."
     CURRENT_URL=$(git remote get-url origin 2>/dev/null || echo "")
     if echo "$CURRENT_URL" | grep -q "bitbucket.org"; then
         REPO_PATH=$(echo "$CURRENT_URL" | sed -E 's|.*bitbucket.org[:/](.*)\.git$|\1|' | sed 's|.*bitbucket.org[:/]||')
         git remote set-url origin "https://${CI_BOT_USERNAME}:${CI_BOT_APP_PASSWORD}@bitbucket.org/${REPO_PATH}.git"
-        echo "Service account configured for Bitbucket"
+        echo "Bitbucket service account configured for push access"
     fi
 fi
 

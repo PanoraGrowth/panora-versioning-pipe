@@ -39,3 +39,4 @@ jobs:
         env:
           VERSIONING_BRANCH: main
           VERSIONING_COMMIT: ${{ github.sha }}
+          CI_GITHUB_TOKEN: ${{ steps.ci-token.outputs.token }}
