@@ -21,40 +21,31 @@ Runs as a Docker container step in your pipeline. Supports Bitbucket Pipelines n
 
 ## Quick Start
 
-Add this step to your `bitbucket-pipelines.yml`:
+Platform variables are auto-detected — no manual mapping needed.
+
+**Bitbucket Pipelines:**
 
 ```yaml
-pipelines:
-  pull-requests:
-    '**':
-      - step:
-          name: Versioning (PR)
-          image: public.ecr.aws/k5n8p2t3/panora-versioning-pipe:latest
-          # Alternative: ghcr.io/panoragrowth/panora-versioning-pipe:latest
-          variables:
-            VERSIONING_PR_ID: $BITBUCKET_PR_ID
-            VERSIONING_BRANCH: $BITBUCKET_BRANCH
-            VERSIONING_TARGET_BRANCH: $BITBUCKET_PR_DESTINATION_BRANCH
-            VERSIONING_COMMIT: $BITBUCKET_COMMIT
-          script:
-            - /pipe/pipe.sh
+- step:
+    name: Versioning
+    image: public.ecr.aws/k5n8p2t3/panora-versioning-pipe:latest
+    script:
+      - /pipe/pipe.sh
+```
 
-  branches:
-    development:
-      - step:
-          name: Versioning (Tag)
-          image: public.ecr.aws/k5n8p2t3/panora-versioning-pipe:latest
-          # Alternative: ghcr.io/panoragrowth/panora-versioning-pipe:latest
-          variables:
-            VERSIONING_BRANCH: $BITBUCKET_BRANCH
-            VERSIONING_COMMIT: $BITBUCKET_COMMIT
-          script:
-            - /pipe/pipe.sh
+**GitHub Actions:**
+
+```yaml
+- uses: docker://ghcr.io/panoragrowth/panora-versioning-pipe:latest
 ```
 
 Place a `.versioning.yml` in your repository root. If the file doesn't exist, all defaults apply.
 
-See [`examples/bitbucket/bitbucket-pipelines.yml`](examples/bitbucket/bitbucket-pipelines.yml) for a full example with optional variables.
+See [`examples/`](examples/) for full pipeline examples for both platforms.
+
+> **Why does Bitbucket need `script: - /pipe/pipe.sh` while GitHub Actions doesn't?**
+>
+> Bitbucket Pipelines always overrides the Docker ENTRYPOINT with `--entrypoint /bin/sh` and requires a `script:` block in every step. This is a Bitbucket platform limitation — the container's ENTRYPOINT never runs automatically. In GitHub Actions, `uses: docker://` respects the ENTRYPOINT, so the pipe runs with zero configuration. In both cases, platform variables (`BITBUCKET_*`, `GITHUB_*`) are auto-detected inside the container — no manual mapping needed.
 
 ## Installation
 
@@ -87,16 +78,16 @@ No installation is needed in your pipeline — the image is referenced directly 
 
 ## Environment Variables
 
-Set these four generic variables in your pipeline — map them from your CI platform's native variables:
+On Bitbucket Pipelines and GitHub Actions, these variables are **auto-detected** from the platform — you don't need to set them. For other CI systems, set them manually:
 
-| Variable | Description | Bitbucket | GitHub Actions |
-|----------|-------------|-----------|----------------|
-| `VERSIONING_PR_ID` | PR identifier — presence triggers the PR pipeline | `$BITBUCKET_PR_ID` | `${{ github.event.pull_request.number }}` |
-| `VERSIONING_BRANCH` | Current / source branch name | `$BITBUCKET_BRANCH` | `${{ github.head_ref }}` (PR) or `${{ github.ref_name }}` (push) |
-| `VERSIONING_TARGET_BRANCH` | PR target/destination branch | `$BITBUCKET_PR_DESTINATION_BRANCH` | `${{ github.base_ref }}` |
-| `VERSIONING_COMMIT` | Current commit SHA | `$BITBUCKET_COMMIT` | `${{ github.sha }}` |
+| Variable | Description | Auto-detected on |
+|----------|-------------|------------------|
+| `VERSIONING_PR_ID` | PR identifier — presence triggers the PR pipeline | Bitbucket, GitHub |
+| `VERSIONING_BRANCH` | Current / source branch name | Bitbucket, GitHub |
+| `VERSIONING_TARGET_BRANCH` | PR target/destination branch | Bitbucket, GitHub |
+| `VERSIONING_COMMIT` | Current commit SHA | Bitbucket, GitHub |
 
-Optional variables you can set in your pipeline:
+Optional variables:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
