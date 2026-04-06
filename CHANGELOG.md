@@ -27,3 +27,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: 9177a28](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/9177a281838e806d5f1d4b2fef6cc3171c4df0c5)
 
 
+## v1.0.0 - 2026-04-06
+
+- refactor: auto-detect CI platform vars and chain publish after tag creation
+  - _agustin.manessi_
+  - [Commit: 9b959bd](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/9b959bde1eb3c90adb148914c0f3c536594004cf)
+
+
