@@ -432,6 +432,38 @@ The [`examples/`](examples/) directory contains ready-to-use files:
 | [`examples/github-actions/pr-versioning.yml`](examples/github-actions/pr-versioning.yml) | PR trigger caller |
 | [`examples/github-actions/branch-versioning.yml`](examples/github-actions/branch-versioning.yml) | Branch/tag trigger caller |
 
+## CI/CD Architecture (for contributors and self-hosting)
+
+This repo uses its own pipe for self-versioning. Understanding the workflow chain is important if you fork or adapt this project.
+
+### Workflow chain
+
+```
+PR opened/updated
+    └── pr-versioning.yml → validates commits, generates CHANGELOG preview
+            │
+            ▼ (PR check must pass before merge is allowed)
+
+PR merged to main
+    └── tag-on-merge.yml → runs the pipe, creates a version tag (e.g. v0.3.0)
+            │
+            ▼ (workflow_run: waits for tag-on-merge to complete)
+
+    └── publish.yml → builds Docker image, tags it with the version, pushes to GHCR + ECR Public
+```
+
+### Why `workflow_run` instead of triggering on tag push?
+
+GitHub Actions does not trigger workflows from tags created by other workflows using `GITHUB_TOKEN` — this is an intentional limitation to prevent infinite loops. Instead of working around this with a Personal Access Token, the publish workflow uses `workflow_run` to chain after `tag-on-merge` completes. This keeps the workflows sequential (like Bitbucket Pipelines) without extra secrets.
+
+### Path filtering
+
+`tag-on-merge.yml` uses `paths-ignore` to skip documentation-only changes. Since `publish.yml` triggers via `workflow_run` (not on push), it inherits this filtering — if `tag-on-merge` doesn't run, `publish` doesn't run either.
+
+### Manual trigger
+
+`publish.yml` also supports `workflow_dispatch` for manual Docker image builds when needed.
+
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, code style, and the PR process.
