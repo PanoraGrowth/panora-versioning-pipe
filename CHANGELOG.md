@@ -41,3 +41,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: eb65b48](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/eb65b48a68d164c9d2a67ad49fc7931272716678)
 
 
+## v0.1.0 - 2026-04-06
+
+- chore: trigger CI
+  - _agustin.manessi_
+  - [Commit: 84fb3a5](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/84fb3a5875bcebf34cd4f2fb9a9f8a083b853b6b)
+
+
