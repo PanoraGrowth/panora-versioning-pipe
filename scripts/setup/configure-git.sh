@@ -22,6 +22,18 @@ GIT_USER_EMAIL="${GIT_USER_EMAIL:-"ci@panora-versioning-pipe.noreply"}"
 git config --global user.name "$GIT_USER_NAME"
 git config --global user.email "$GIT_USER_EMAIL"
 
+# Configure service account credentials for pushing to protected branches
+# Bitbucket requires explicit credentials; GitHub Actions uses GITHUB_TOKEN automatically
+if [ -n "${CI_BOT_USERNAME:-}" ] && [ -n "${CI_BOT_APP_PASSWORD:-}" ]; then
+    echo "Configuring service account credentials for push access..."
+    CURRENT_URL=$(git remote get-url origin 2>/dev/null || echo "")
+    if echo "$CURRENT_URL" | grep -q "bitbucket.org"; then
+        REPO_PATH=$(echo "$CURRENT_URL" | sed -E 's|.*bitbucket.org[:/](.*)\.git$|\1|' | sed 's|.*bitbucket.org[:/]||')
+        git remote set-url origin "https://${CI_BOT_USERNAME}:${CI_BOT_APP_PASSWORD}@bitbucket.org/${REPO_PATH}.git"
+        echo "Service account configured for Bitbucket"
+    fi
+fi
+
 # Fetch full history and tags
 echo "Fetching git refs..."
 git fetch --unshallow 2>/dev/null || true
