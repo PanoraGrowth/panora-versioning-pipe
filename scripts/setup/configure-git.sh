@@ -28,7 +28,7 @@ git config --global user.email "$GIT_USER_EMAIL"
 if [ -n "${CI_GITHUB_TOKEN:-}" ]; then
     echo "Configuring GitHub App token for push access..."
     CURRENT_URL=$(git remote get-url origin 2>/dev/null || echo "")
-    REPO_PATH=$(echo "$CURRENT_URL" | sed -E 's|.*github.com[:/](.*)\.git$|\1|' | sed 's|.*github.com[:/]||')
+    REPO_PATH=$(echo "$CURRENT_URL" | sed -E 's|\.git$||' | sed -E 's|.*github.com[:/]||')
     if [ -n "$REPO_PATH" ]; then
         git remote set-url origin "https://x-access-token:${CI_GITHUB_TOKEN}@github.com/${REPO_PATH}.git"
         echo "GitHub App token configured for push access"
