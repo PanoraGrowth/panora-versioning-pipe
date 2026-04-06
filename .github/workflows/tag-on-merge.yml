@@ -34,12 +34,9 @@ jobs:
           ref: main
           token: ${{ steps.ci-token.outputs.token }}
 
-      - name: Configure git remote with App token
-        run: |
-          git remote set-url origin "https://x-access-token:${{ steps.ci-token.outputs.token }}@github.com/${{ github.repository }}.git"
-
       - name: Run versioning pipe
         uses: docker://ghcr.io/panoragrowth/panora-versioning-pipe:latest
         env:
           VERSIONING_BRANCH: main
           VERSIONING_COMMIT: ${{ github.sha }}
+          CI_GITHUB_TOKEN: ${{ steps.ci-token.outputs.token }}

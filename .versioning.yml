@@ -19,8 +19,6 @@ version:
     minor:
       enabled: true
       initial: 0
-    patch:
-      enabled: false
     timestamp:
       enabled: false
 

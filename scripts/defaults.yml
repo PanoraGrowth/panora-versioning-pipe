@@ -25,9 +25,6 @@ version:
     minor:
       enabled: true
       initial: 0
-    patch:
-      enabled: false
-      initial: 0
     timestamp:
       enabled: true
       format: "%Y%m%d%H%M%S"
@@ -55,91 +52,91 @@ commit_types:
 
   - name: "feat"
     description: "New feature"
-    bump: "none"
+    bump: "major"
     emoji: "🚀"
     changelog_group: "Features"
 
   - name: "feature"
     description: "New feature (alias for feat)"
-    bump: "none"
+    bump: "major"
     emoji: "🚀"
     changelog_group: "Features"
 
   - name: "fix"
     description: "Bug fix"
-    bump: "none"
+    bump: "minor"
     emoji: "🐛"
     changelog_group: "Bug Fixes"
 
   - name: "hotfix"
     description: "Urgent fix"
-    bump: "none"
+    bump: "minor"
     emoji: "🚑"
     changelog_group: "Hotfixes"
 
   - name: "security"
     description: "Security fix"
-    bump: "none"
+    bump: "minor"
     emoji: "🔒"
     changelog_group: "Security"
 
   - name: "breaking"
-    description: "Breaking changes (no auto bump)"
-    bump: "none"
+    description: "Breaking changes"
+    bump: "major"
     emoji: "💥"
     changelog_group: "Breaking Changes"
 
   - name: "refactor"
     description: "Code refactoring"
-    bump: "none"
+    bump: "minor"
     emoji: "🔨"
     changelog_group: "Refactoring"
 
   - name: "perf"
     description: "Performance improvements"
-    bump: "none"
+    bump: "minor"
     emoji: "⚡"
     changelog_group: "Performance"
 
   - name: "docs"
     description: "Documentation"
-    bump: "none"
+    bump: "minor"
     emoji: "📚"
     changelog_group: "Documentation"
 
   - name: "test"
     description: "Tests"
-    bump: "none"
+    bump: "minor"
     emoji: "🧪"
     changelog_group: "Testing"
 
   - name: "chore"
     description: "Maintenance"
-    bump: "none"
+    bump: "minor"
     emoji: "🔧"
     changelog_group: "Chores"
 
   - name: "build"
     description: "Build system"
-    bump: "none"
+    bump: "minor"
     emoji: "🏗️"
     changelog_group: "Build"
 
   - name: "ci"
     description: "CI/CD"
-    bump: "none"
+    bump: "minor"
     emoji: "⚙️"
     changelog_group: "CI/CD"
 
   - name: "revert"
     description: "Revert changes"
-    bump: "none"
+    bump: "minor"
     emoji: "⏪"
     changelog_group: "Reverts"
 
   - name: "style"
     description: "Code style"
-    bump: "none"
+    bump: "minor"
     emoji: "🎨"
     changelog_group: "Style"
 
