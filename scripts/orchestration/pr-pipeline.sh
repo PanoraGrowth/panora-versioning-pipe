@@ -61,33 +61,8 @@ if [ "$SCENARIO" = "development_release" ]; then
     echo "=========================================="
     echo ""
 
-    # Step 1: Validate commits
+    # Validate commits (CHANGELOG + version calculation moved to branch pipeline)
     "${AUTOMATIONS_DIR}/validation/validate-commits.sh"
-
-    echo ""
-
-    # Step 2: Calculate next version with timestamp
-    "${AUTOMATIONS_DIR}/versioning/calculate-version.sh"
-
-    echo ""
-
-    # Step 3: Write version to file(s) if configured
-    "${AUTOMATIONS_DIR}/versioning/write-version-file.sh"
-
-    echo ""
-
-    # Step 4: Generate CHANGELOG (last commit only)
-    "${AUTOMATIONS_DIR}/changelog/generate-changelog-last-commit.sh"
-
-    echo ""
-
-    # Step 4b: Generate per-folder CHANGELOGs (if enabled)
-    "${AUTOMATIONS_DIR}/changelog/generate-changelog-per-folder.sh"
-
-    echo ""
-
-    # Step 5: Commit and push CHANGELOG + version files
-    "${AUTOMATIONS_DIR}/changelog/update-changelog.sh"
 
     echo ""
     echo "=========================================="
@@ -105,18 +80,8 @@ if [ "$SCENARIO" = "hotfix_to_main" ]; then
     echo "=========================================="
     echo ""
 
-    # Step 1: Validate commits
+    # Validate commits (CHANGELOG moved to branch pipeline)
     "${AUTOMATIONS_DIR}/validation/validate-commits.sh"
-
-    echo ""
-
-    # Step 2: Generate hotfix CHANGELOG entry
-    "${AUTOMATIONS_DIR}/changelog/generate-hotfix-changelog.sh"
-
-    echo ""
-
-    # Step 3: Commit and push CHANGELOG
-    "${AUTOMATIONS_DIR}/changelog/update-changelog.sh"
 
     echo ""
     echo "=========================================="
@@ -134,18 +99,8 @@ if [ "$SCENARIO" = "hotfix_to_preprod" ]; then
     echo "=========================================="
     echo ""
 
-    # Step 1: Validate commits
+    # Validate commits (CHANGELOG moved to branch pipeline)
     "${AUTOMATIONS_DIR}/validation/validate-commits.sh"
-
-    echo ""
-
-    # Step 2: Generate hotfix CHANGELOG entry
-    "${AUTOMATIONS_DIR}/changelog/generate-hotfix-changelog.sh"
-
-    echo ""
-
-    # Step 3: Commit and push CHANGELOG
-    "${AUTOMATIONS_DIR}/changelog/update-changelog.sh"
 
     echo ""
     echo "=========================================="

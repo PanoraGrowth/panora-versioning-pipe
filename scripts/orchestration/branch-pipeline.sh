@@ -135,7 +135,42 @@ if git rev-parse "$NEW_TAG" >/dev/null 2>&1; then
 fi
 
 # ============================================================================
-# Create and push tag
+# Generate CHANGELOG + version files (before tag creation)
+# ============================================================================
+
+# Set context for changelog scripts
+echo "SCENARIO=development_release" > /tmp/scenario.env
+export CHANGELOG_BASE_REF="${LATEST_TAG}"
+
+# Write version for changelog scripts
+write_state "/tmp/next_version.txt" "$NEW_TAG"
+write_state "/tmp/bump_type.txt" "$BUMP_TYPE"
+
+echo ""
+
+# Calculate version (writes /tmp/next_version.txt — already done above)
+# Write version to file(s) if configured
+"${AUTOMATIONS_DIR}/versioning/write-version-file.sh"
+
+echo ""
+
+# Generate CHANGELOG
+"${AUTOMATIONS_DIR}/changelog/generate-changelog-last-commit.sh"
+
+echo ""
+
+# Generate per-folder CHANGELOGs (if enabled)
+"${AUTOMATIONS_DIR}/changelog/generate-changelog-per-folder.sh"
+
+echo ""
+
+# Commit and push CHANGELOG + version files
+"${AUTOMATIONS_DIR}/changelog/update-changelog.sh"
+
+echo ""
+
+# ============================================================================
+# Create and push tag (on the CHANGELOG commit, not the merge commit)
 # ============================================================================
 
 echo "=========================================="
@@ -149,7 +184,7 @@ git tag -a "$NEW_TAG" \
     -m "" \
     -m "Automated by CI pipeline" \
     -m "Branch: $VERSIONING_BRANCH" \
-    -m "Commit: $VERSIONING_COMMIT" \
+    -m "Commit: $(git rev-parse HEAD)" \
     -m "Timestamp: $(date +"%Y-%m-%d %H:%M:%S %Z")"
 
 log_success "Tag created successfully"
@@ -167,5 +202,4 @@ echo "New Version:       $CURRENT_VERSION"
 echo "Bump Type:         $BUMP_TYPE"
 echo "New Tag:           $NEW_TAG"
 echo "Branch:            $VERSIONING_BRANCH"
-echo "Commit:            $VERSIONING_COMMIT"
 echo "=========================================="
