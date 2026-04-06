@@ -2,6 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Registry: ECR Public](https://img.shields.io/badge/Registry-ECR%20Public-orange.svg)](https://gallery.ecr.aws/panoragrowth/versioning-pipe)
+[![Registry: GHCR](https://img.shields.io/badge/Registry-GHCR-blue.svg)](https://github.com/PanoraGrowth/panora-versioning-pipe/pkgs/container/panora-versioning-pipe)
 
 Automated versioning, changelog generation, and version file updates for CI/CD pipelines.
 
@@ -28,7 +29,8 @@ pipelines:
     '**':
       - step:
           name: Versioning (PR)
-          image: public.ecr.aws/panoragrowth/versioning-pipe:latest
+          image: public.ecr.aws/k5n8p2t3/panora-versioning-pipe:latest
+          # Alternative: ghcr.io/panoragrowth/panora-versioning-pipe:latest
           variables:
             VERSIONING_PR_ID: $BITBUCKET_PR_ID
             VERSIONING_BRANCH: $BITBUCKET_BRANCH
@@ -41,7 +43,8 @@ pipelines:
     development:
       - step:
           name: Versioning (Tag)
-          image: public.ecr.aws/panoragrowth/versioning-pipe:latest
+          image: public.ecr.aws/k5n8p2t3/panora-versioning-pipe:latest
+          # Alternative: ghcr.io/panoragrowth/panora-versioning-pipe:latest
           variables:
             VERSIONING_BRANCH: $BITBUCKET_BRANCH
             VERSIONING_COMMIT: $BITBUCKET_COMMIT
@@ -51,14 +54,20 @@ pipelines:
 
 Place a `.versioning.yml` in your repository root. If the file doesn't exist, all defaults apply.
 
-See [`examples/bitbucket-pipelines.yml`](examples/bitbucket-pipelines.yml) for a full example with optional variables.
+See [`examples/bitbucket/bitbucket-pipelines.yml`](examples/bitbucket/bitbucket-pipelines.yml) for a full example with optional variables.
 
 ## Installation
 
 Pull the image from Amazon ECR Public:
 
 ```bash
-docker pull public.ecr.aws/panoragrowth/versioning-pipe:latest
+docker pull public.ecr.aws/k5n8p2t3/panora-versioning-pipe:latest
+```
+
+Or from GitHub Container Registry:
+
+```bash
+docker pull ghcr.io/panoragrowth/panora-versioning-pipe:latest
 ```
 
 No installation is needed in your pipeline — the image is referenced directly as the step runner.
@@ -128,6 +137,7 @@ tickets:
 
 ```yaml
 version:
+  tag_prefix_v: false  # When true, tags are prefixed with "v" (e.g. v0.1.0 instead of 0.1.0)
   components:
     period:
       enabled: false   # First component — manually bumped integer (e.g. 1 in 1.3.20240115)
@@ -273,17 +283,20 @@ Requires `TEAMS_WEBHOOK_URL` to be set as an environment variable or pipeline se
 
 ## Version Format
 
-The default version format is:
+The format depends on which components are enabled via `version.components.*.enabled`:
 
-```
-MAJOR.MINOR.TIMESTAMP
-```
+| Mode | Format | Example |
+|------|--------|---------|
+| Default (major + minor + timestamp) | `MAJOR.MINOR.TIMESTAMP` | `1.3.20240115143022` |
+| With period enabled | `PERIOD.MAJOR.MINOR.TIMESTAMP` | `0.1.3.20240115143022` |
+| Without timestamp | `PERIOD.MAJOR.MINOR` or `MAJOR.MINOR` | `0.1.0` / `1.3` |
+| With v prefix | Prepend `v` to any of the above | `v0.1.0` / `v1.3.20240115143022` |
 
-Examples:
-```
-1.3.20240115143022        # major=1, minor=3, timestamp=2024-01-15 14:30:22 UTC
-1.3.20240115143022-2      # collision suffix — second tag created in the same second
-```
+A collision suffix (e.g. `-2`) is appended automatically when two tags are created in the same second.
+
+Enable the `v` prefix by setting `version.tag_prefix_v: true` in your `.versioning.yml`.
+
+Toggle individual components on or off via `version.components.<component>.enabled`.
 
 ### Bump rules
 
@@ -292,8 +305,6 @@ Examples:
 | `major` | Increments Major, resets Minor to 0 |
 | `minor` | Increments Minor |
 | Any other type (`feat`, `fix`, `docs`, …) | Timestamp update only (Major and Minor unchanged) |
-
-When `version.components.period.enabled: true`, the format becomes `PERIOD.MAJOR.MINOR.TIMESTAMP`.
 
 ## Commit Formats
 
@@ -322,28 +333,73 @@ The scope (in parentheses) is optional. It is used for per-folder changelog grou
 
 ## GitHub Actions
 
-Map GitHub's native variables to the pipe's generic `VERSIONING_*` vars:
+The recommended approach uses a reusable workflow called by separate PR and branch trigger workflows. Map GitHub's native variables to the pipe's generic `VERSIONING_*` vars using the `docker://` action syntax:
 
 ```yaml
-# .github/workflows/versioning.yml
+# .github/workflows/run-versioning.yml (reusable workflow)
+on:
+  workflow_call:
+    inputs:
+      pr_id:
+        type: string
+        default: ""
+      branch:
+        type: string
+        required: true
+      target_branch:
+        type: string
+        default: ""
+      commit:
+        type: string
+        required: true
+
 jobs:
-  version:
+  versioning:
     runs-on: ubuntu-latest
-    container:
-      image: public.ecr.aws/panoragrowth/versioning-pipe:latest
-    env:
-      VERSIONING_PR_ID: ${{ github.event.pull_request.number }}
-      VERSIONING_BRANCH: ${{ github.head_ref }}
-      VERSIONING_TARGET_BRANCH: ${{ github.base_ref }}
-      VERSIONING_COMMIT: ${{ github.sha }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - run: /pipe/pipe.sh
+      - uses: docker://public.ecr.aws/k5n8p2t3/panora-versioning-pipe:latest
+        # Alternative: docker://ghcr.io/panoragrowth/panora-versioning-pipe:latest
+        env:
+          VERSIONING_PR_ID: ${{ inputs.pr_id }}
+          VERSIONING_BRANCH: ${{ inputs.branch }}
+          VERSIONING_TARGET_BRANCH: ${{ inputs.target_branch }}
+          VERSIONING_COMMIT: ${{ inputs.commit }}
 ```
 
-See [`examples/github-actions.yml`](examples/github-actions.yml) for a complete example with PR and branch pipeline jobs.
+```yaml
+# .github/workflows/pr-versioning.yml (PR caller)
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  versioning:
+    uses: ./.github/workflows/run-versioning.yml
+    with:
+      pr_id: ${{ github.event.pull_request.number }}
+      branch: ${{ github.head_ref }}
+      target_branch: ${{ github.base_ref }}
+      commit: ${{ github.sha }}
+```
+
+```yaml
+# .github/workflows/branch-versioning.yml (branch/tag caller)
+on:
+  push:
+    branches: [development]
+
+jobs:
+  versioning:
+    uses: ./.github/workflows/run-versioning.yml
+    with:
+      branch: ${{ github.ref_name }}
+      commit: ${{ github.sha }}
+```
+
+See [`examples/github-actions/`](examples/github-actions/) for ready-to-use versions of these files.
 
 ## Monorepo Support
 
@@ -353,7 +409,7 @@ For monorepos, enable `changelog.per_folder` and define `version_file.groups`:
 
 **Version file groups** let you define which version files to update when specific paths change. Each group has `trigger_paths` (glob patterns) and `files` (files to update). When a changed file matches a group's trigger paths, only that group's files are updated — unless `update_all: true` is set on the group.
 
-See [`examples/.versioning-monorepo.yml`](examples/.versioning-monorepo.yml) for a complete configuration.
+See [`examples/configs/versioning-monorepo.yml`](examples/configs/versioning-monorepo.yml) for a complete configuration.
 
 ## Local Development
 
@@ -376,12 +432,14 @@ The [`examples/`](examples/) directory contains ready-to-use files:
 
 | File | Description |
 |------|-------------|
-| [`.versioning-minimal.yml`](examples/.versioning-minimal.yml) | Bare minimum config — zero-config works |
-| [`.versioning-ticket.yml`](examples/.versioning-ticket.yml) | Ticket format with Jira integration |
-| [`.versioning-conventional.yml`](examples/.versioning-conventional.yml) | Conventional commits with emojis |
-| [`.versioning-monorepo.yml`](examples/.versioning-monorepo.yml) | Monorepo with per-folder changelogs and grouped version files |
-| [`bitbucket-pipelines.yml`](examples/bitbucket-pipelines.yml) | Full Bitbucket Pipelines example |
-| [`github-actions.yml`](examples/github-actions.yml) | GitHub Actions workflow with env var mapping |
+| [`examples/configs/versioning-minimal.yml`](examples/configs/versioning-minimal.yml) | Bare minimum config — zero-config works |
+| [`examples/configs/versioning-conventional.yml`](examples/configs/versioning-conventional.yml) | Conventional commits with emojis |
+| [`examples/configs/versioning-ticket.yml`](examples/configs/versioning-ticket.yml) | Ticket format with Jira integration |
+| [`examples/configs/versioning-monorepo.yml`](examples/configs/versioning-monorepo.yml) | Monorepo with per-folder changelogs and grouped version files |
+| [`examples/bitbucket/bitbucket-pipelines.yml`](examples/bitbucket/bitbucket-pipelines.yml) | Full Bitbucket Pipelines example |
+| [`examples/github-actions/run-versioning.yml`](examples/github-actions/run-versioning.yml) | Reusable workflow — core versioning logic |
+| [`examples/github-actions/pr-versioning.yml`](examples/github-actions/pr-versioning.yml) | PR trigger caller |
+| [`examples/github-actions/branch-versioning.yml`](examples/github-actions/branch-versioning.yml) | Branch/tag trigger caller |
 
 ## Contributing
 
