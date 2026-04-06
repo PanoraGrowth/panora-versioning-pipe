@@ -20,11 +20,7 @@ log_section "CALCULATING VERSION"
 # =============================================================================
 # Load configuration
 # =============================================================================
-TIMEZONE=$(get_timezone)
-TIMESTAMP_FORMAT=$(get_timestamp_format)
 VERSION_SEP=$(get_version_separator)
-TIMESTAMP_SEP=$(get_timestamp_separator)
-TAG_SUFFIX=$(get_tag_suffix)
 IGNORE_PATTERN=$(get_ignore_patterns_regex)
 
 # Get initial values from config
@@ -53,13 +49,15 @@ if [ -z "$LATEST_TAG" ]; then
 else
     log_info "Latest tag in ${VERSIONING_TARGET_BRANCH}: $LATEST_TAG"
 
-    # Parse Period.Major.Minor from tag (remove timestamp and suffix)
-    VERSION=$(echo "$LATEST_TAG" | sed -E 's/\.[0-9]{12,14}.*$//')
-    PERIOD=$(echo "$VERSION" | cut -d. -f1)
-    MAJOR=$(echo "$VERSION" | cut -d. -f2)
-    MINOR=$(echo "$VERSION" | cut -d. -f3)
+    # Parse components from tag using dynamic helpers
+    VERSION=$(parse_tag_to_version "$LATEST_TAG")
+    parse_version_components "$VERSION"
+    PERIOD=$PARSED_PERIOD
+    MAJOR=$PARSED_MAJOR
+    MINOR=$PARSED_MINOR
 
-    log_info "Current version: ${PERIOD}${VERSION_SEP}${MAJOR}${VERSION_SEP}${MINOR}"
+    CURRENT_VER=$(build_version_string "$PERIOD" "$MAJOR" "$MINOR")
+    log_info "Current version: ${CURRENT_VER}"
     echo ""
 fi
 
@@ -106,16 +104,15 @@ fi
 echo ""
 
 # =============================================================================
-# Add timestamp in configured timezone
+# Build the full version tag (with or without timestamp)
 # =============================================================================
-export TZ="$TIMEZONE"
-TIMESTAMP=$(date +"$TIMESTAMP_FORMAT")
-
-# Build the full version tag
-NEXT_VERSION="${PERIOD}${VERSION_SEP}${MAJOR}${VERSION_SEP}${MINOR}${TIMESTAMP_SEP}${TIMESTAMP}${TAG_SUFFIX}"
+CURRENT_VERSION=$(build_version_string "$PERIOD" "$MAJOR" "$MINOR")
+NEXT_VERSION=$(build_full_tag "$CURRENT_VERSION")
 
 log_info "Next version will be: $NEXT_VERSION"
-log_info "Timestamp: $TIMESTAMP ($TIMEZONE)"
+if is_component_enabled "timestamp"; then
+    log_info "Timestamp: $(date +"$(get_timestamp_format)") ($(get_timezone))"
+fi
 echo ""
 
 # =============================================================================

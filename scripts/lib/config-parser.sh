@@ -381,10 +381,112 @@ get_tag_branch() {
 # PATTERN BUILDERS
 # =============================================================================
 
+# Count enabled version components (period, major, minor)
+get_enabled_component_count() {
+    local count=0
+    is_component_enabled "period" && count=$((count + 1))
+    is_component_enabled "major" && count=$((count + 1))
+    is_component_enabled "minor" && count=$((count + 1))
+    echo "$count"
+}
+
 # Get tag version pattern for filtering git tags
-# Matches: X.Y.Z.TIMESTAMP or X.Y.Z.TIMESTAMP-N
+# Dynamically built based on enabled components and timestamp
 get_tag_pattern() {
-    echo '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]{12,14}(-[0-9]+)?$'
+    local parts=$(get_enabled_component_count)
+    # Build base pattern: [0-9]+ repeated for each enabled component
+    local base="[0-9]+"
+    local i=1
+    while [ "$i" -lt "$parts" ]; do
+        base="${base}\.[0-9]+"
+        i=$((i + 1))
+    done
+
+    if is_component_enabled "timestamp"; then
+        echo "^${base}\.[0-9]{12,14}(-[0-9]+)?\$"
+    else
+        echo "^${base}\$"
+    fi
+}
+
+# Build version string from period/major/minor based on enabled components
+build_version_string() {
+    local period="$1" major="$2" minor="$3"
+    local sep=$(get_version_separator)
+    local version=""
+
+    if is_component_enabled "period"; then
+        version="${period}"
+    fi
+    if is_component_enabled "major"; then
+        [ -n "$version" ] && version="${version}${sep}"
+        version="${version}${major}"
+    fi
+    if is_component_enabled "minor"; then
+        [ -n "$version" ] && version="${version}${sep}"
+        version="${version}${minor}"
+    fi
+
+    echo "$version"
+}
+
+# Strip timestamp from a tag to get the version string
+parse_tag_to_version() {
+    local tag="$1"
+    if is_component_enabled "timestamp"; then
+        echo "$tag" | sed -E 's/\.[0-9]{12,14}(-[0-9]+)?$//'
+    else
+        local suffix=$(get_tag_suffix)
+        if [ -n "$suffix" ]; then
+            echo "$tag" | sed "s/${suffix}\$//"
+        else
+            echo "$tag"
+        fi
+    fi
+}
+
+# Parse version string into PARSED_PERIOD, PARSED_MAJOR, PARSED_MINOR
+# Sets global variables — call after parse_tag_to_version
+parse_version_components() {
+    local version="$1"
+    local pos=1
+
+    if is_component_enabled "period"; then
+        PARSED_PERIOD=$(echo "$version" | cut -d. -f${pos})
+        pos=$((pos + 1))
+    else
+        PARSED_PERIOD="0"
+    fi
+
+    if is_component_enabled "major"; then
+        PARSED_MAJOR=$(echo "$version" | cut -d. -f${pos})
+        pos=$((pos + 1))
+    else
+        PARSED_MAJOR="0"
+    fi
+
+    if is_component_enabled "minor"; then
+        PARSED_MINOR=$(echo "$version" | cut -d. -f${pos})
+    else
+        PARSED_MINOR="0"
+    fi
+}
+
+# Build full tag: version + timestamp (if enabled) + suffix
+build_full_tag() {
+    local version="$1"
+    local suffix=$(get_tag_suffix)
+
+    if is_component_enabled "timestamp"; then
+        local ts_sep=$(get_timestamp_separator)
+        local tz=$(get_timezone)
+        local fmt=$(get_timestamp_format)
+        export TZ="$tz"
+        local timestamp=$(date +"$fmt")
+        echo "${version}${ts_sep}${timestamp}${suffix}"
+    else
+        echo "${version}${suffix}"
+    fi
 }
 
 # Build prefix pattern for validation
