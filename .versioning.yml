@@ -8,6 +8,7 @@ tickets:
   required: false
 
 version:
+  tag_prefix_v: true
   components:
     period:
       enabled: true
