@@ -1,10 +1,10 @@
 name: Release
 
 on:
-  push:
-    tags:
-      - "[0-9]*"
-      - "v[0-9]*"
+  workflow_run:
+    workflows: ["Main - Create Version Tag"]
+    types: [completed]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -17,17 +17,21 @@ jobs:
   docker:
     name: Build and Push Docker Image
     runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Extract version and set registry
+      - name: Read version from tag created by the pipe
         id: version
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
+          VERSION=$(git describe --tags --abbrev=0)
+          VERSION="${VERSION#v}"
           OWNER_LC="${GITHUB_REPOSITORY_OWNER,,}"
           echo "VERSION=$VERSION" >> "$GITHUB_OUTPUT"
           echo "OWNER_LC=$OWNER_LC" >> "$GITHUB_OUTPUT"
