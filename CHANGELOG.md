@@ -20,3 +20,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: 068d591](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/068d5911a1a23229fbe61f4a30fb3e81a9e33466)
 
 
+## 0.1.0 - 2026-04-06
+
+- feat: add tag_prefix_v option for v-prefixed version tags
+  - _agustin.manessi_
+  - [Commit: 9177a28](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/9177a281838e806d5f1d4b2fef6cc3171c4df0c5)
+
+
