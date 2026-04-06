@@ -62,3 +62,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: 5824a69](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/5824a69897f3735b7811108d75fc73b110d0c736)
 
 
+## v0.1.1 - 2026-04-06
+
+- fix: remove duplicate comment line in config-parser.sh
+  - _agustin.manessi_
+  - [Commit: 4f844d5](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/4f844d5318adabcdc011f4fcbb53caf42db5e782)
+
+
