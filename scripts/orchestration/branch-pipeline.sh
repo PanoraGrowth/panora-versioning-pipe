@@ -67,13 +67,13 @@ echo ""
 
 echo ""
 
-# Generate CHANGELOG
-"${AUTOMATIONS_DIR}/changelog/generate-changelog-last-commit.sh"
+# Generate per-folder CHANGELOGs (if enabled — runs first for exclusive routing)
+"${AUTOMATIONS_DIR}/changelog/generate-changelog-per-folder.sh"
 
 echo ""
 
-# Generate per-folder CHANGELOGs (if enabled)
-"${AUTOMATIONS_DIR}/changelog/generate-changelog-per-folder.sh"
+# Generate root CHANGELOG (excludes commits already routed to per-folder)
+"${AUTOMATIONS_DIR}/changelog/generate-changelog-last-commit.sh"
 
 echo ""
 

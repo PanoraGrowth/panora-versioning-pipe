@@ -1,7 +1,14 @@
 #!/bin/sh
 # =============================================================================
-# generate-changelog-last-commit.sh - Generate CHANGELOG entry for development
+# generate-changelog-last-commit.sh - Generate root CHANGELOG entry
 # =============================================================================
+# Supports two modes:
+#   - last_commit: only the last commit (default, backward compatible)
+#   - full: all commits since last tag
+# Excludes commits already routed to per-folder CHANGELOGs via /tmp/routed_commits.txt
+# =============================================================================
+
+set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 . "${SCRIPT_DIR}/../lib/common.sh"
@@ -15,18 +22,21 @@ if [ "$SCENARIO" != "development_release" ]; then
     exit 0
 fi
 
-log_section "GENERATING CHANGELOG (LAST COMMIT ONLY)"
+log_section "GENERATING CHANGELOG"
 
 # =============================================================================
 # Load configuration
 # =============================================================================
 CHANGELOG_FILE=$(get_changelog_file)
 CHANGELOG_TITLE=$(get_changelog_title)
+CHANGELOG_MODE=$(get_changelog_mode)
 TIMEZONE=$(get_timezone)
 COMMIT_URL_BASE=$(get_commit_url)
 TICKET_URL_BASE=$(get_ticket_url)
 TICKET_LINK_LABEL=$(get_ticket_link_label)
 IGNORE_PATTERN=$(get_ignore_patterns_regex)
+
+log_info "Mode: $CHANGELOG_MODE"
 
 # =============================================================================
 # Read calculated version
@@ -41,7 +51,7 @@ log_info "Version: $NEXT_VERSION"
 echo ""
 
 # =============================================================================
-# Get LAST commit (excluding ignored patterns)
+# Get commits (excluding ignored patterns)
 # =============================================================================
 if [ -z "${CHANGELOG_BASE_REF:-}" ]; then
     log_info "No base ref set (first run) — using all commits"
@@ -51,45 +61,58 @@ else
 fi
 
 if [ -n "$IGNORE_PATTERN" ]; then
-    COMMITS=$(git log $GIT_RANGE \
+    ALL_COMMITS=$(git log $GIT_RANGE \
         --no-merges \
-        --pretty=format:"%s" | \
+        --pretty=format:"%H|%an|%s" | \
         grep -vE "$IGNORE_PATTERN" || true)
 else
-    COMMITS=$(git log $GIT_RANGE \
+    ALL_COMMITS=$(git log $GIT_RANGE \
         --no-merges \
-        --pretty=format:"%s")
+        --pretty=format:"%H|%an|%s")
 fi
 
-LAST_COMMIT=$(echo "$COMMITS" | head -n 1)
-
-if [ -z "$LAST_COMMIT" ]; then
-    log_error "No valid commits found for CHANGELOG"
-    exit 1
+if [ -z "$ALL_COMMITS" ]; then
+    log_info "No valid commits found for CHANGELOG"
+    exit 0
 fi
 
 # =============================================================================
-# Extract commit metadata
+# Exclude routed commits (already in per-folder CHANGELOGs)
 # =============================================================================
-LAST_COMMIT_HASH=$(git log $GIT_RANGE \
-    --no-merges \
-    --pretty=format:"%H" | head -n 1)
+ROUTED_COMMITS=""
+if [ -f "/tmp/routed_commits.txt" ] && [ -s "/tmp/routed_commits.txt" ]; then
+    ROUTED_COMMITS=$(cat /tmp/routed_commits.txt)
+    ROUTED_COUNT=$(echo "$ROUTED_COMMITS" | wc -l | tr -d ' ')
+    log_info "Excluding $ROUTED_COUNT commit(s) already routed to per-folder CHANGELOGs"
+fi
 
-COMMIT_SHORT_HASH=$(git log -1 $LAST_COMMIT_HASH --pretty=format:"%h")
-COMMIT_AUTHOR=$(git log -1 $LAST_COMMIT_HASH --pretty=format:"%an")
-COMMIT_MESSAGE=$LAST_COMMIT
+# Filter out routed commits
+if [ -n "$ROUTED_COMMITS" ]; then
+    FILTERED_COMMITS=""
+    echo "$ALL_COMMITS" | while IFS='|' read -r hash author msg; do
+        if ! echo "$ROUTED_COMMITS" | grep -q "$hash"; then
+            echo "${hash}|${author}|${msg}"
+        fi
+    done > /tmp/filtered_commits.txt
+    FILTERED_COMMITS=$(cat /tmp/filtered_commits.txt 2>/dev/null || true)
+    rm -f /tmp/filtered_commits.txt
+else
+    FILTERED_COMMITS="$ALL_COMMITS"
+fi
 
-log_info "Last commit:"
-log_info "  Hash: $COMMIT_SHORT_HASH"
-log_info "  Author: $COMMIT_AUTHOR"
-log_info "  Message: $COMMIT_MESSAGE"
-echo ""
+# =============================================================================
+# Determine which commits to include based on mode
+# =============================================================================
+if [ "$CHANGELOG_MODE" = "full" ]; then
+    COMMITS_TO_INCLUDE="$FILTERED_COMMITS"
+else
+    # last_commit mode: only the last (most recent) commit
+    COMMITS_TO_INCLUDE=$(echo "$FILTERED_COMMITS" | head -n 1)
+fi
 
-# Extract ticket ID from commit message (if prefixes configured)
-TICKET_ID=""
-if has_ticket_prefixes; then
-    TICKET_PREFIXES=$(get_ticket_prefixes_pattern)
-    TICKET_ID=$(echo "$COMMIT_MESSAGE" | grep -oE "(${TICKET_PREFIXES})-[0-9]+" | head -1)
+if [ -z "$COMMITS_TO_INCLUDE" ]; then
+    log_info "All commits routed to per-folder CHANGELOGs — no root CHANGELOG entry needed"
+    exit 0
 fi
 
 # =============================================================================
@@ -105,35 +128,55 @@ CHANGELOG_ENTRY="## ${NEXT_VERSION} - ${CHANGELOG_DATE}
 
 "
 
-# Add commit line (with or without ticket)
-if [ -n "$TICKET_ID" ]; then
-    CHANGELOG_ENTRY="${CHANGELOG_ENTRY}- **${TICKET_ID}** - ${COMMIT_MESSAGE#*- }
-"
-else
-    CHANGELOG_ENTRY="${CHANGELOG_ENTRY}- ${COMMIT_MESSAGE}
-"
+echo "$COMMITS_TO_INCLUDE" | while IFS='|' read -r commit_hash commit_author commit_msg; do
+    [ -z "$commit_hash" ] && continue
+
+    COMMIT_SHORT_HASH=$(git log -1 "$commit_hash" --pretty=format:"%h")
+
+    # Extract ticket ID from commit message (if prefixes configured)
+    TICKET_ID=""
+    if has_ticket_prefixes; then
+        TICKET_PREFIXES=$(get_ticket_prefixes_pattern)
+        TICKET_ID=$(echo "$commit_msg" | grep -oE "(${TICKET_PREFIXES})-[0-9]+" | head -1)
+    fi
+
+    # Add commit line
+    if [ -n "$TICKET_ID" ]; then
+        echo "- **${TICKET_ID}** - ${commit_msg#*- }"
+    else
+        echo "- ${commit_msg}"
+    fi
+
+    # Add author (if configured)
+    if include_author; then
+        echo "  - _${commit_author}_"
+    fi
+
+    # Add ticket link (if configured and ticket exists)
+    if include_ticket_link && [ -n "$TICKET_URL_BASE" ] && [ -n "$TICKET_ID" ]; then
+        echo "  - [${TICKET_LINK_LABEL}](${TICKET_URL_BASE}/${TICKET_ID})"
+    fi
+
+    # Add commit link (if configured)
+    if include_commit_link && [ -n "$COMMIT_URL_BASE" ]; then
+        echo "  - [Commit: ${COMMIT_SHORT_HASH}](${COMMIT_URL_BASE}/${commit_hash})"
+    fi
+
+done > /tmp/changelog_entries.txt
+
+# Read entries back (avoids subshell variable loss)
+ENTRIES=$(cat /tmp/changelog_entries.txt 2>/dev/null || true)
+rm -f /tmp/changelog_entries.txt
+
+if [ -z "$ENTRIES" ]; then
+    log_info "No entries to write to root CHANGELOG"
+    exit 0
 fi
 
-# Add author (if configured)
-if include_author; then
-    CHANGELOG_ENTRY="${CHANGELOG_ENTRY}  - _${COMMIT_AUTHOR}_
-"
-fi
+CHANGELOG_ENTRY="## ${NEXT_VERSION} - ${CHANGELOG_DATE}
 
-# Add ticket link (if configured and ticket exists)
-if include_ticket_link && [ -n "$TICKET_URL_BASE" ] && [ -n "$TICKET_ID" ]; then
-    CHANGELOG_ENTRY="${CHANGELOG_ENTRY}  - [${TICKET_LINK_LABEL}](${TICKET_URL_BASE}/${TICKET_ID})
-"
-fi
+${ENTRIES}
 
-# Add commit link (if configured)
-if include_commit_link && [ -n "$COMMIT_URL_BASE" ]; then
-    CHANGELOG_ENTRY="${CHANGELOG_ENTRY}  - [Commit: ${COMMIT_SHORT_HASH}](${COMMIT_URL_BASE}/${LAST_COMMIT_HASH})
-"
-fi
-
-# Add trailing newline
-CHANGELOG_ENTRY="${CHANGELOG_ENTRY}
 "
 
 log_info "CHANGELOG entry:"
