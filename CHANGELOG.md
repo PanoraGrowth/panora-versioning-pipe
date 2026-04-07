@@ -83,3 +83,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: fca88c3](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/fca88c3199f5619ae2cfbb49ac04f92847e18c47)
 
 
+## v0.2.1 - 2026-04-07
+
+- fix: remove broken ignore pattern that filtered all chore commits
+  - _agustin.manessi_
+  - [Commit: e17a3f2](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/e17a3f29c47fb5b874ba6aa43d8e67d0de434841)
+
+
