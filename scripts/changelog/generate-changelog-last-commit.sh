@@ -106,8 +106,15 @@ fi
 if [ "$CHANGELOG_MODE" = "full" ]; then
     COMMITS_TO_INCLUDE="$FILTERED_COMMITS"
 else
-    # last_commit mode: only the last (most recent) commit
-    COMMITS_TO_INCLUDE=$(echo "$FILTERED_COMMITS" | head -n 1)
+    # last_commit mode: only the LAST commit from ALL commits (not filtered)
+    # If the last commit was already routed to per-folder, nothing goes to root
+    LAST_ONLY=$(echo "$ALL_COMMITS" | head -n 1)
+    LAST_HASH=$(echo "$LAST_ONLY" | cut -d'|' -f1)
+    if [ -n "$ROUTED_COMMITS" ] && echo "$ROUTED_COMMITS" | grep -q "$LAST_HASH"; then
+        COMMITS_TO_INCLUDE=""
+    else
+        COMMITS_TO_INCLUDE="$LAST_ONLY"
+    fi
 fi
 
 if [ -z "$COMMITS_TO_INCLUDE" ]; then
