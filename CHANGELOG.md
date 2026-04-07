@@ -90,3 +90,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: e17a3f2](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/e17a3f29c47fb5b874ba6aa43d8e67d0de434841)
 
 
+## v0.2.2 - 2026-04-07
+
+- fix: multi-commit changelog bugs in per-folder routing
+  - _agustin.manessi_
+  - [Commit: ec8262c](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/ec8262c0385ea067a95f8f10df85d9f2b0704b39)
+
+
