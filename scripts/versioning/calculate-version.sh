@@ -2,18 +2,16 @@
 # =============================================================================
 # calculate-version.sh - Calculate next version based on commits
 # =============================================================================
+# Context-aware: works in both PR context (VERSIONING_TARGET_BRANCH set)
+# and branch context (tag-based range).
+# Writes: /tmp/next_version.txt, /tmp/bump_type.txt, /tmp/latest_tag.txt
+# =============================================================================
+
+set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 . "${SCRIPT_DIR}/../lib/common.sh"
 . "${SCRIPT_DIR}/../lib/config-parser.sh"
-
-# Load scenario
-load_env "/tmp/scenario.env"
-
-# Only calculate version for development releases
-if [ "$SCENARIO" != "development_release" ]; then
-    exit 0
-fi
 
 log_section "CALCULATING VERSION"
 
@@ -33,50 +31,74 @@ MAJOR_PATTERN=$(build_bump_pattern "major")
 MINOR_PATTERN=$(build_bump_pattern "minor")
 
 # =============================================================================
-# Get latest tag from destination branch
+# Get latest tag
 # =============================================================================
 TAG_PATTERN=$(get_tag_pattern)
 LATEST_TAG=$(git tag --sort=-v:refname | \
     grep -E "$TAG_PATTERN" | head -n 1 || echo "")
 
+# Save latest tag for other scripts (e.g. CHANGELOG_BASE_REF)
+write_state "/tmp/latest_tag.txt" "${LATEST_TAG:-}"
+
 if [ -z "$LATEST_TAG" ]; then
-    log_info "No version tags found in ${VERSIONING_TARGET_BRANCH}"
-    log_info "Starting from initial values"
-    echo ""
+    log_info "No version tags found, starting from initial values"
     PERIOD=$PERIOD_INITIAL
     MAJOR=$MAJOR_INITIAL
     MINOR=$MINOR_INITIAL
 else
-    log_info "Latest tag in ${VERSIONING_TARGET_BRANCH}: $LATEST_TAG"
-
-    # Parse components from tag using dynamic helpers
+    log_info "Latest tag: $LATEST_TAG"
     VERSION=$(parse_tag_to_version "$LATEST_TAG")
     parse_version_components "$VERSION"
     PERIOD=$PARSED_PERIOD
     MAJOR=$PARSED_MAJOR
     MINOR=$PARSED_MINOR
-
     CURRENT_VER=$(build_version_string "$PERIOD" "$MAJOR" "$MINOR")
     log_info "Current version: ${CURRENT_VER}"
-    echo ""
+fi
+
+echo ""
+
+# =============================================================================
+# Determine commit range based on context
+# =============================================================================
+if [ -n "${VERSIONING_TARGET_BRANCH:-}" ]; then
+    # PR context: use target branch
+    COMMIT_RANGE="origin/${VERSIONING_TARGET_BRANCH}..HEAD"
+    log_info "Context: PR (target: $VERSIONING_TARGET_BRANCH)"
+else
+    # Branch context: use latest tag
+    if [ -n "$LATEST_TAG" ]; then
+        COMMIT_RANGE="${LATEST_TAG}..HEAD"
+        log_info "Context: Branch (since tag: $LATEST_TAG)"
+    else
+        COMMIT_RANGE="HEAD"
+        log_info "Context: Branch (no previous tags, using all commits)"
+    fi
 fi
 
 # =============================================================================
-# Get LAST commit to determine version bump
+# Get commits (excluding ignored patterns)
 # =============================================================================
 if [ -n "$IGNORE_PATTERN" ]; then
-    COMMITS=$(git log origin/${VERSIONING_TARGET_BRANCH}..HEAD \
+    COMMITS=$(git log $COMMIT_RANGE \
         --no-merges \
         --pretty=format:"%s" | \
         grep -vE "$IGNORE_PATTERN" || true)
 else
-    COMMITS=$(git log origin/${VERSIONING_TARGET_BRANCH}..HEAD \
+    COMMITS=$(git log $COMMIT_RANGE \
         --no-merges \
         --pretty=format:"%s")
 fi
 
-LAST_COMMIT=$(echo "$COMMITS" | head -n 1)
+if [ -z "$COMMITS" ]; then
+    log_info "No new commits found - skipping version calculation"
+    write_state "/tmp/next_version.txt" ""
+    write_state "/tmp/bump_type.txt" ""
+    exit 0
+fi
 
+# Get LAST commit to determine bump
+LAST_COMMIT=$(echo "$COMMITS" | head -n 1)
 log_info "Last commit: $LAST_COMMIT"
 echo ""
 
@@ -90,21 +112,18 @@ if [ -n "$MAJOR_PATTERN" ] && echo "$LAST_COMMIT" | grep -qE "$MAJOR_PATTERN"; t
     MAJOR=$((MAJOR + 1))
     MINOR=0
     log_info "Detected: MAJOR bump"
-    log_info "Version: ${PERIOD}${VERSION_SEP}${MAJOR}${VERSION_SEP}${MINOR}"
 elif [ -n "$MINOR_PATTERN" ] && echo "$LAST_COMMIT" | grep -qE "$MINOR_PATTERN"; then
     BUMP_TYPE="minor"
     MINOR=$((MINOR + 1))
     log_info "Detected: MINOR bump"
-    log_info "Version: ${PERIOD}${VERSION_SEP}${MAJOR}${VERSION_SEP}${MINOR}"
 else
     log_info "Detected: Timestamp update only (no version bump)"
-    log_info "Version: ${PERIOD}${VERSION_SEP}${MAJOR}${VERSION_SEP}${MINOR} (unchanged)"
 fi
 
 echo ""
 
 # =============================================================================
-# Build the full version tag (with or without timestamp)
+# Build the full version tag
 # =============================================================================
 CURRENT_VERSION=$(build_version_string "$PERIOD" "$MAJOR" "$MINOR")
 NEXT_VERSION=$(build_full_tag "$CURRENT_VERSION")
@@ -116,11 +135,17 @@ fi
 echo ""
 
 # =============================================================================
-# Check if tag already exists (collision)
+# Handle tag collision (append -2, -3, etc. if tag exists)
 # =============================================================================
 if git rev-parse "$NEXT_VERSION" >/dev/null 2>&1; then
-    log_info "Tag $NEXT_VERSION already exists"
-    log_info "Pipeline will handle collision by waiting or adding suffix"
+    log_info "Tag $NEXT_VERSION already exists, adding suffix"
+    SUFFIX=2
+    while git rev-parse "${NEXT_VERSION}-${SUFFIX}" >/dev/null 2>&1; do
+        SUFFIX=$((SUFFIX + 1))
+    done
+    NEXT_VERSION="${NEXT_VERSION}-${SUFFIX}"
+    log_info "New tag with suffix: $NEXT_VERSION"
+    echo ""
 fi
 
 # =============================================================================

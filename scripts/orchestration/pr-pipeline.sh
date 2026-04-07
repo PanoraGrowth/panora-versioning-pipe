@@ -11,7 +11,8 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 AUTOMATIONS_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
-# Load config parser to get branch names
+# Load common functions and config
+. "${AUTOMATIONS_DIR}/lib/common.sh"
 . "${AUTOMATIONS_DIR}/lib/config-parser.sh"
 
 # Get branch names from config
@@ -29,16 +30,13 @@ case "$TARGET_BRANCH" in
         # Continue with pipeline
         ;;
     *)
-        echo "=========================================="
-        echo "  PR PIPELINE SKIPPED"
-        echo "=========================================="
-        echo "Target branch: $TARGET_BRANCH"
+        log_section "PR PIPELINE SKIPPED"
+        log_info "Target branch: $TARGET_BRANCH"
         echo ""
-        echo "PR pipelines only run for PRs targeting:"
-        echo "  - $DEV_BRANCH (development releases)"
-        echo "  - $PREPROD_BRANCH (hotfixes)"
-        echo "  - $PROD_BRANCH (hotfixes)"
-        echo "=========================================="
+        log_info "PR pipelines only run for PRs targeting:"
+        log_info "  - $DEV_BRANCH (development releases)"
+        log_info "  - $PREPROD_BRANCH (hotfixes)"
+        log_info "  - $PROD_BRANCH (hotfixes)"
         exit 0
         ;;
 esac
@@ -52,84 +50,32 @@ esac
 . /tmp/scenario.env
 
 # ============================================================================
-# SCENARIO 1: Development Release
+# EXECUTE SCENARIO
 # ============================================================================
-if [ "$SCENARIO" = "development_release" ]; then
-    echo ""
-    echo "=========================================="
-    echo "  DEVELOPMENT RELEASE PIPELINE"
-    echo "=========================================="
-    echo ""
+case "$SCENARIO" in
+    development_release|hotfix_to_main|hotfix_to_preprod)
+        echo ""
+        log_section "PR PIPELINE — ${SCENARIO}"
+        echo ""
 
-    # Validate commits (CHANGELOG + version calculation moved to branch pipeline)
-    "${AUTOMATIONS_DIR}/validation/validate-commits.sh"
+        # Validate commits
+        "${AUTOMATIONS_DIR}/validation/validate-commits.sh"
 
-    echo ""
-    echo "=========================================="
-    echo "  PIPELINE COMPLETED SUCCESSFULLY"
-    echo "=========================================="
-fi
+        echo ""
+        log_section "PIPELINE COMPLETED SUCCESSFULLY"
+        ;;
 
-# ============================================================================
-# SCENARIO 2: Hotfix to Main (Production)
-# ============================================================================
-if [ "$SCENARIO" = "hotfix_to_main" ]; then
-    echo ""
-    echo "=========================================="
-    echo "  HOTFIX TO PRODUCTION PIPELINE"
-    echo "=========================================="
-    echo ""
+    promotion_to_preprod|promotion_to_main)
+        echo ""
+        log_section "PROMOTION — NO ACTION NEEDED"
+        log_info "This is a promotion PR from one environment to another."
+        log_info "No changelog or version changes are made during promotions."
+        ;;
 
-    # Validate commits (CHANGELOG moved to branch pipeline)
-    "${AUTOMATIONS_DIR}/validation/validate-commits.sh"
-
-    echo ""
-    echo "=========================================="
-    echo "  HOTFIX PIPELINE COMPLETED SUCCESSFULLY"
-    echo "=========================================="
-fi
-
-# ============================================================================
-# SCENARIO 3: Hotfix to Pre-production
-# ============================================================================
-if [ "$SCENARIO" = "hotfix_to_preprod" ]; then
-    echo ""
-    echo "=========================================="
-    echo "  HOTFIX TO PRE-PRODUCTION PIPELINE"
-    echo "=========================================="
-    echo ""
-
-    # Validate commits (CHANGELOG moved to branch pipeline)
-    "${AUTOMATIONS_DIR}/validation/validate-commits.sh"
-
-    echo ""
-    echo "=========================================="
-    echo "  HOTFIX PIPELINE COMPLETED SUCCESSFULLY"
-    echo "=========================================="
-fi
-
-# ============================================================================
-# SCENARIO 4: Promotions (No action needed)
-# ============================================================================
-if [ "$SCENARIO" = "promotion_to_preprod" ] || [ "$SCENARIO" = "promotion_to_main" ]; then
-    echo ""
-    echo "=========================================="
-    echo "  PROMOTION - NO ACTION NEEDED"
-    echo "=========================================="
-    echo "This is a promotion PR from one environment to another."
-    echo "No changelog or version changes are made during promotions."
-    echo "=========================================="
-fi
-
-# ============================================================================
-# SCENARIO 5: Unknown
-# ============================================================================
-if [ "$SCENARIO" = "unknown" ]; then
-    echo ""
-    echo "=========================================="
-    echo "  UNKNOWN SCENARIO - NO ACTION"
-    echo "=========================================="
-    echo "This PR scenario is not recognized."
-    echo "No pipeline action needed."
-    echo "=========================================="
-fi
+    *)
+        echo ""
+        log_section "UNKNOWN SCENARIO — NO ACTION"
+        log_info "This PR scenario is not recognized."
+        log_info "No pipeline action needed."
+        ;;
+esac
