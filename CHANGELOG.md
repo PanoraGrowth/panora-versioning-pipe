@@ -69,3 +69,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: 4f844d5](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/4f844d5318adabcdc011f4fcbb53caf42db5e782)
 
 
+## v0.1.2 - 2026-04-07
+
+- refactor: consolidate version calculation and simplify orchestrators
+  - _agustin.manessi_
+  - [Commit: 14fd7c2](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/14fd7c23f3c405b1daae0527db70b08366957cf9)
+
+
