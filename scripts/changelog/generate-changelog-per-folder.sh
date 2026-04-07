@@ -192,7 +192,7 @@ ${ENTRY}
         if grep -q "^## ${NEXT_VERSION}" "$FOLDER_CHANGELOG"; then
             TEMP_FILE=$(mktemp)
             awk -v version="## ${NEXT_VERSION}" -v entry="$ENTRY" '
-                $0 == version { print; found=1; next }
+                index($0, version) == 1 { print; found=1; next }
                 found && /^$/ { print entry; print ""; found=0 }
                 { print }
             ' "$FOLDER_CHANGELOG" > "$TEMP_FILE"
