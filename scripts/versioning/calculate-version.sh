@@ -117,7 +117,15 @@ elif [ -n "$MINOR_PATTERN" ] && echo "$LAST_COMMIT" | grep -qE "$MINOR_PATTERN";
     MINOR=$((MINOR + 1))
     log_info "Detected: MINOR bump"
 else
-    log_info "Detected: Timestamp update only (no version bump)"
+    # No bump pattern matched — check if timestamp can differentiate
+    if is_component_enabled "timestamp"; then
+        log_info "Detected: Timestamp update only (no version bump)"
+    else
+        log_info "Detected: No version bump (commit type has bump: none)"
+        write_state "/tmp/next_version.txt" ""
+        write_state "/tmp/bump_type.txt" ""
+        exit 0
+    fi
 fi
 
 echo ""

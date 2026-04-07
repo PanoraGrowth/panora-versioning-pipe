@@ -27,6 +27,12 @@ changelog:
   commit_url: "https://github.com/PanoraGrowth/panora-versioning-pipe/commit"
   ticket_link_label: "View issue"
 
+# Override specific commit types without replacing the entire array
+# These are patched on top of defaults.yml commit_types by name
+commit_type_overrides:
+  docs:
+    bump: "none"
+
 branches:
   production: "main"
   tag_on: "main"
