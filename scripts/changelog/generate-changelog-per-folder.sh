@@ -167,7 +167,16 @@ echo "$COMMITS_TO_PROCESS" | while IFS='|' read -r commit_hash commit_author com
         clean_msg=$(echo "$commit_msg" | sed 's/^[a-z]*: //')
     fi
 
-    ENTRY="- **${commit_type}**: ${clean_msg}
+    # Build emoji prefix if enabled
+    emoji_prefix=""
+    if use_changelog_emojis; then
+        emoji=$(get_commit_type_emoji "$commit_type")
+        if [ -n "$emoji" ] && [ "$emoji" != "null" ]; then
+            emoji_prefix="${emoji} "
+        fi
+    fi
+
+    ENTRY="- ${emoji_prefix}**${commit_type}**: ${clean_msg}
   _${commit_author}_"
 
     if [ -n "$COMMIT_URL_BASE" ]; then
