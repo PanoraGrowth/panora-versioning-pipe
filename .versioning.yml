@@ -24,6 +24,7 @@ version:
 
 changelog:
   title: "Changelog"
+  use_emojis: true
   commit_url: "https://github.com/PanoraGrowth/panora-versioning-pipe/commit"
   ticket_link_label: "View issue"
 

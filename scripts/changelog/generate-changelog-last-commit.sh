@@ -147,11 +147,21 @@ echo "$COMMITS_TO_INCLUDE" | while IFS='|' read -r commit_hash commit_author com
         TICKET_ID=$(echo "$commit_msg" | grep -oE "(${TICKET_PREFIXES})-[0-9]+" | head -1)
     fi
 
+    # Build emoji prefix if enabled
+    EMOJI_PREFIX=""
+    if use_changelog_emojis; then
+        COMMIT_TYPE=$(echo "$commit_msg" | sed -n 's/^\([a-z]*\).*/\1/p')
+        EMOJI=$(get_commit_type_emoji "$COMMIT_TYPE")
+        if [ -n "$EMOJI" ] && [ "$EMOJI" != "null" ]; then
+            EMOJI_PREFIX="${EMOJI} "
+        fi
+    fi
+
     # Add commit line
     if [ -n "$TICKET_ID" ]; then
-        echo "- **${TICKET_ID}** - ${commit_msg#*- }"
+        echo "- ${EMOJI_PREFIX}**${TICKET_ID}** - ${commit_msg#*- }"
     else
-        echo "- ${commit_msg}"
+        echo "- ${EMOJI_PREFIX}${commit_msg}"
     fi
 
     # Add author (if configured)
