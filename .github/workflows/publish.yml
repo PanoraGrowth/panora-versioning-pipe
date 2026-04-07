@@ -31,7 +31,6 @@ jobs:
         id: version
         run: |
           VERSION=$(git describe --tags --abbrev=0)
-          VERSION="${VERSION#v}"
           OWNER_LC="${GITHUB_REPOSITORY_OWNER,,}"
           echo "VERSION=$VERSION" >> "$GITHUB_OUTPUT"
           echo "OWNER_LC=$OWNER_LC" >> "$GITHUB_OUTPUT"
