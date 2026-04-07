@@ -27,12 +27,11 @@ changelog:
   commit_url: "https://github.com/PanoraGrowth/panora-versioning-pipe/commit"
   ticket_link_label: "View issue"
 
-commit_types:
-  - name: "docs"
-    description: "Documentation"
+# Override specific commit types without replacing the entire array
+# These are patched on top of defaults.yml commit_types by name
+commit_type_overrides:
+  docs:
     bump: "none"
-    emoji: "📚"
-    changelog_group: "Documentation"
 
 branches:
   production: "main"

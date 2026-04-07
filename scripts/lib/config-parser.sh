@@ -43,6 +43,40 @@ load_config() {
         # Use defaults only
         cp "$DEFAULTS_FILE" "$MERGED_CONFIG"
     fi
+
+    # Apply commit_type_overrides: patch or add commit types by name
+    apply_commit_type_overrides
+}
+
+# Patch commit_types array using commit_type_overrides map
+# - If a type name exists in commit_types → update its fields
+# - If a type name doesn't exist → append as new entry
+# This avoids the yq array-replace problem: users only specify what they want to change
+apply_commit_type_overrides() {
+    local has_overrides=$(yq -r '.commit_type_overrides // null' "$MERGED_CONFIG" 2>/dev/null)
+    if [ -z "$has_overrides" ] || [ "$has_overrides" = "null" ]; then
+        return
+    fi
+
+    # Process each override using while read (handles multiline output correctly)
+    yq -r '.commit_type_overrides | keys | .[]' "$MERGED_CONFIG" 2>/dev/null | while IFS= read -r type_name; do
+        [ -z "$type_name" ] && continue
+
+        # Check if type already exists in commit_types array
+        local exists=$(yq -r ".commit_types[] | select(.name == \"$type_name\") | .name" "$MERGED_CONFIG" 2>/dev/null)
+
+        if [ -n "$exists" ]; then
+            # Patch existing type: update each override field
+            yq -r ".commit_type_overrides.$type_name | keys | .[]" "$MERGED_CONFIG" 2>/dev/null | while IFS= read -r field; do
+                [ -z "$field" ] && continue
+                local value=$(yq -r ".commit_type_overrides.$type_name.$field" "$MERGED_CONFIG" 2>/dev/null)
+                yq -i "(.commit_types[] | select(.name == \"$type_name\")).$field = \"$value\"" "$MERGED_CONFIG" 2>/dev/null
+            done
+        else
+            # New type: append with name + all override fields merged by yq
+            yq -i ".commit_types += [{\"name\": \"$type_name\"} * .commit_type_overrides.$type_name]" "$MERGED_CONFIG" 2>/dev/null
+        fi
+    done
 }
 
 # Initialize config on source
