@@ -144,6 +144,7 @@ changelog:
   file: "CHANGELOG.md"
   title: "Changelog"
   format: "minimal"
+  mode: "last_commit"           # "last_commit" (only last commit) or "full" (all commits since last tag)
   use_emojis: false
   include_commit_link: true
   include_ticket_link: true
@@ -153,11 +154,13 @@ changelog:
 
   # Per-folder changelogs (for monorepos with scoped commits)
   # Requires commits.format: "conventional"
+  # Routing: exclusive — each entry goes to EITHER a subfolder OR root, never both
   per_folder:
     enabled: false
-    root_folders: []            # Folders to search for scope matching (e.g. ["backend", "frontend"])
+    folders: []                 # Folders that get their own CHANGELOG (e.g. ["backend", "frontend"])
     folder_pattern: ""          # Regex to filter subfolders (e.g. "^[0-9]{3}-" for numbered folders)
     scope_matching: "suffix"    # "suffix" (cluster-ecs -> 001-cluster-ecs) or "exact" (folder name = scope)
+    fallback: "root"            # "root" (unmatched → root CHANGELOG) or "file_path" (check modified files)
 
 validation:
   require_ticket_prefix: false

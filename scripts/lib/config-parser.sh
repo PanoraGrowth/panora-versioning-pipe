@@ -239,6 +239,20 @@ get_ticket_link_label() {
 }
 
 # =============================================================================
+# CHANGELOG CONFIGURATION (extended)
+# =============================================================================
+
+# Get changelog mode: "last_commit" or "full"
+get_changelog_mode() {
+    config_get "changelog.mode" "last_commit"
+}
+
+# Check if full history mode is enabled
+is_full_changelog_mode() {
+    [ "$(get_changelog_mode)" = "full" ]
+}
+
+# =============================================================================
 # CHANGELOG PER-FOLDER CONFIGURATION
 # =============================================================================
 
@@ -248,9 +262,16 @@ is_per_folder_changelog_enabled() {
     [ "$enabled" = "true" ]
 }
 
-# Get root folders for per-folder changelogs (space-separated)
-get_per_folder_root_folders() {
-    config_get_array "changelog.per_folder.root_folders"
+# Get configured folders for per-folder changelogs (space-separated)
+# Supports both "folders" (new) and "root_folders" (legacy) config keys
+get_per_folder_folders() {
+    local folders=$(config_get_array "changelog.per_folder.folders")
+    if [ -n "$folders" ]; then
+        echo "$folders"
+    else
+        # Legacy fallback
+        config_get_array "changelog.per_folder.root_folders"
+    fi
 }
 
 # Get folder pattern regex (e.g. "^[0-9]{3}-" for numbered folders)
@@ -263,6 +284,11 @@ get_per_folder_scope_matching() {
     config_get "changelog.per_folder.scope_matching" "suffix"
 }
 
+# Get fallback mode: "root" or "file_path"
+get_per_folder_fallback() {
+    config_get "changelog.per_folder.fallback" "root"
+}
+
 # Extract scope from a conventional commit message
 # Input: "feat(cluster-ecs): add new config" -> Output: "cluster-ecs"
 # Input: "feat: add feature" -> Output: "" (no scope)
@@ -272,10 +298,11 @@ extract_scope_from_commit() {
 }
 
 # Find folder matching a scope
-# Args: scope, root_folders (space-separated), folder_pattern, scope_matching
+# Routing: scope → folder match → subfolder discovery → (caller handles fallback)
+# Args: scope, folders (space-separated), folder_pattern, scope_matching
 find_folder_for_scope() {
     local scope="$1"
-    local root_folders="$2"
+    local folders="$2"
     local folder_pattern="$3"
     local scope_matching="$4"
 
@@ -283,36 +310,81 @@ find_folder_for_scope() {
         return
     fi
 
-    for root_folder in $root_folders; do
-        local root_path="${REPO_ROOT}/${root_folder}"
-        if [ ! -d "$root_path" ]; then
+    for folder in $folders; do
+        local folder_path="${REPO_ROOT}/${folder}"
+        if [ ! -d "$folder_path" ]; then
             continue
         fi
 
+        local folder_name=$(basename "$folder")
+
         if [ "$scope_matching" = "exact" ]; then
-            # Exact match: scope IS the root_folder name
-            if [ "$scope" = "$root_folder" ]; then
-                echo "$root_path"
+            # Step 2: Exact match — scope IS the configured folder name
+            if [ "$scope" = "$folder_name" ]; then
+                echo "$folder_path"
+                return
+            fi
+
+            # Step 3: Subfolder discovery — scope matches a subfolder within this folder
+            # Scans one level deep only
+            if [ -d "${folder_path}/${scope}" ]; then
+                echo "${folder_path}/${scope}"
                 return
             fi
         elif [ "$scope_matching" = "suffix" ]; then
             # Suffix match: search subfolders whose name ends with the scope
-            for subfolder in "$root_path"/*/; do
+            for subfolder in "$folder_path"/*/; do
                 [ -d "$subfolder" ] || continue
-                local folder_name=$(basename "$subfolder")
+                local subfolder_name=$(basename "$subfolder")
 
                 # Apply folder_pattern filter if set
                 if [ -n "$folder_pattern" ]; then
-                    echo "$folder_name" | grep -qE "$folder_pattern" || continue
+                    echo "$subfolder_name" | grep -qE "$folder_pattern" || continue
                 fi
 
                 # Check if folder name ends with the scope
-                case "$folder_name" in
+                case "$subfolder_name" in
                     *-"$scope") echo "$subfolder"; return ;;
                 esac
             done
         fi
     done
+}
+
+# Find folder for a commit by checking which configured folder contains the modified files
+# Args: commit_hash, folders (space-separated)
+# Returns: folder path if files fall within exactly ONE configured folder, empty otherwise
+find_folder_by_file_path() {
+    local commit_hash="$1"
+    local folders="$2"
+
+    # Get files modified by this commit
+    local changed_files=$(git diff-tree --no-commit-id --name-only -r "$commit_hash" 2>/dev/null)
+    if [ -z "$changed_files" ]; then
+        return
+    fi
+
+    local _matched=""
+    for file in $changed_files; do
+        [ -z "$file" ] && continue
+        for folder in $folders; do
+            case "$file" in
+                "${folder}"/*)
+                    if [ -z "$_matched" ]; then
+                        _matched="$folder"
+                    elif [ "$_matched" != "$folder" ]; then
+                        # Ambiguous — files in multiple folders
+                        return
+                    fi
+                    break
+                    ;;
+            esac
+        done
+    done
+
+    if [ -n "$_matched" ]; then
+        echo "${REPO_ROOT}/${_matched}"
+    fi
 }
 
 # =============================================================================
