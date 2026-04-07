@@ -97,3 +97,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: ec8262c](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/ec8262c0385ea067a95f8f10df85d9f2b0704b39)
 
 
+## v0.2.3 - 2026-04-07
+
+- fix: Docker image tag respects v-prefix and docs commits skip versioning
+  - _agustin.manessi_
+  - [Commit: a9a6f3f](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/a9a6f3fced399d20d3cd39d934be48cd1f55e1aa)
+
+
