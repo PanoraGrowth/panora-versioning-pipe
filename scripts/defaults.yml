@@ -173,7 +173,6 @@ validation:
     - "^squash!"
     - "^chore\\(release\\)"
     - "^chore\\(hotfix\\)"
-    - "^chore: update CHANGELOG"
 
 hotfix:
   branch_prefix: "hotfix/"
