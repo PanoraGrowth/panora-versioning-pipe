@@ -76,3 +76,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: 14fd7c2](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/14fd7c23f3c405b1daae0527db70b08366957cf9)
 
 
+## v0.2.0 - 2026-04-07
+
+- feat: per-folder changelog exclusive routing with subfolder discovery
+  - _agustin.manessi_
+  - [Commit: fca88c3](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/fca88c3199f5619ae2cfbb49ac04f92847e18c47)
+
+
