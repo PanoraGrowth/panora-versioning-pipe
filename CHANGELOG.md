@@ -48,3 +48,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: a9a6f3f](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/a9a6f3fced399d20d3cd39d934be48cd1f55e1aa)
 
 
+## v0.3.0 - 2026-04-07
+
+- feat: implement changelog emoji support and enable for this repo
+  - _agustin.manessi_
+  - [Commit: 917e3e4](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/917e3e401900ee5dbe75f90b2b0f8822a05308a1)
+
+
