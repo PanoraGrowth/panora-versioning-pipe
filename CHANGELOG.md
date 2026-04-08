@@ -76,3 +76,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: 4eddfea](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/4eddfeaeacf7c6ffd59f8b05933169764442d281)
 
 
+## v0.4.3 - 2026-04-08
+
+- 🔧 chore: minor Makefile comment cleanup (#27)
+  - _Agustín Manessi_
+  - [Commit: 56c6e40](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/56c6e402f196c641f70444721d73a9105872eff2)
+
+
