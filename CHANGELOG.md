@@ -69,3 +69,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: fd3d85e](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/fd3d85e2d33c645df0992679ec1235abe50992a6)
 
 
+## v0.4.2 - 2026-04-08
+
+- Revert "ci: trigger pipeline test"
+  - _agustin.manessi_
+  - [Commit: 4eddfea](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/4eddfeaeacf7c6ffd59f8b05933169764442d281)
+
+
