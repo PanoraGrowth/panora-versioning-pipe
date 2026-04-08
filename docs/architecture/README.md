@@ -1,7 +1,7 @@
 # Architecture
 
-**Version:** v0.4.2
-**Last updated:** 2026-04-08
+**Version:** v0.4.3
+**Last updated:** 2026-04-09
 
 ---
 
@@ -233,6 +233,9 @@ Scripts communicate via temp files:
 | `/tmp/latest_tag.txt` | Latest matching version tag |
 | `/tmp/routed_commits.txt` | Commits routed to per-folder CHANGELOGs |
 | `/tmp/per_folder_changelogs.txt` | Per-folder CHANGELOG paths for staging |
+| `/tmp/version_files_modified.txt` | Modified version file paths for staging |
+| `/tmp/changelog_committed.flag` | Signals CHANGELOG was committed, push pending |
+| `/tmp/hotfix_entry.md` | Hotfix CHANGELOG markdown entry |
 
 ---
 
