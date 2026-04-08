@@ -62,3 +62,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: 9148f7a](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/9148f7ae1ad3201de724beb726d0b3478a3882f2)
 
 
+## v0.4.1 - 2026-04-08
+
+- 🐛 fix: atomic push for CHANGELOG and tag to prevent double release (#25)
+  - _Agustín Manessi_
+  - [Commit: fd3d85e](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/fd3d85e2d33c645df0992679ec1235abe50992a6)
+
+
