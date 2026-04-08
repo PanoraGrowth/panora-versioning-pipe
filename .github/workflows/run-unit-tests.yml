@@ -3,6 +3,12 @@ name: Unit Tests
 on:
   pull_request:
     branches: [main]
+    paths:
+      - 'scripts/**'
+      - 'pipe.sh'
+      - 'Dockerfile'
+      - 'tests/**'
+      - 'Makefile'
 
 jobs:
   unit-tests:
