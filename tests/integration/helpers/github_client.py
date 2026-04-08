@@ -265,7 +265,7 @@ class GitHubClient:
         return result.stdout.strip() if result.stdout.strip() else None
 
     def wait_for_new_tag(self, previous_tag: str | None,
-                         timeout: int = MAX_WAIT) -> str | None:
+                         timeout: int = MAX_WAIT) -> str:
         """Poll until a new tag appears that differs from previous_tag."""
         deadline = time.time() + timeout
         while time.time() < deadline:
@@ -273,7 +273,9 @@ class GitHubClient:
             if current and current != previous_tag:
                 return current
             time.sleep(POLL_INTERVAL)
-        return None
+        raise TimeoutError(
+            f"No new tag appeared after {timeout}s. Last tag: {previous_tag}"
+        )
 
     def delete_tag(self, tag_name: str) -> None:
         try:

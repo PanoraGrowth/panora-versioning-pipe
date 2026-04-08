@@ -1,6 +1,6 @@
 # Test Coverage
 
-**207 unit tests + 8 integration tests** validated before every release.
+Unit tests and integration tests validated before every release.
 
 ---
 
