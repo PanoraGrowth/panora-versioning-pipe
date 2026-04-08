@@ -55,3 +55,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: 917e3e4](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/917e3e401900ee5dbe75f90b2b0f8822a05308a1)
 
 
+## v0.4.0 - 2026-04-08
+
+- 🚀 feat: implement automated test framework (#24)
+  - _Agustín Manessi_
+  - [Commit: 9148f7a](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/9148f7ae1ad3201de724beb726d0b3478a3882f2)
+
+
