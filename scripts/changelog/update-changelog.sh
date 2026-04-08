@@ -33,9 +33,7 @@ changelog_has_changes() {
 
 # Get list of version files that were modified
 get_version_files_modified() {
-    if [ -f "/tmp/version_files_modified.txt" ]; then
-        cat /tmp/version_files_modified.txt
-    fi
+    read_state "/tmp/version_files_modified.txt" || true
 }
 
 # Check if any version files were modified

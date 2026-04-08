@@ -124,11 +124,8 @@ class TestMergeAndTag:
                     previous_run_id=run_before, timeout=180,
                 )
 
-            # 6. Wait for new tag
+            # 6. Wait for new tag (raises TimeoutError if none appears)
             tag_after = github.wait_for_new_tag(tag_before, timeout=90)
-            assert tag_after is not None, (
-                f"No new tag created after merge. Last tag: {tag_before}"
-            )
             created_tag = tag_after
 
             # 7. Verify tag pattern
