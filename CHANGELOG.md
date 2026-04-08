@@ -83,3 +83,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: 56c6e40](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/56c6e402f196c641f70444721d73a9105872eff2)
 
 
+## v0.4.4 - 2026-04-08
+
+- 🐛 fix: address code review findings (set -e, raw push, dead code, docs) (#28)
+  - _Agustín Manessi_
+  - [Commit: 9ee961a](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/9ee961a2c00644fd49ab9dca8c261ebc569fecca)
+
+
