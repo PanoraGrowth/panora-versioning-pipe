@@ -33,7 +33,7 @@ lint: ## Run shellcheck on all scripts (requires shellcheck)
 build-test: build ## Build the test Docker image (bats-core)
 	docker build -f tests/Dockerfile.test --build-arg BASE_IMAGE=$(IMAGE_NAME):$(IMAGE_TAG) -t $(IMAGE_NAME)-test:$(IMAGE_TAG) .
 
-test: test-unit ## Run all local tests (unit only — integration requires credentials)
+test: test-unit ## Run all local tests (unit only, integration requires credentials)
 
 test-unit: build-test ## Run unit tests in Docker
 	docker run --rm $(IMAGE_NAME)-test:$(IMAGE_TAG) bats -r tests/unit/
