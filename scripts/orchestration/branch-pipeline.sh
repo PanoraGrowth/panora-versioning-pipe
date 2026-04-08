@@ -100,8 +100,11 @@ git tag -a "$NEW_TAG" \
 log_success "Tag created successfully"
 echo ""
 
-log_info "Pushing tag to remote repository..."
-git_push_tag "$NEW_TAG"
+log_info "Pushing CHANGELOG commit and tag atomically..."
+git_push_branch_and_tag "$VERSIONING_BRANCH" "$NEW_TAG"
+
+# Clean up flag file
+rm -f /tmp/changelog_committed.flag
 
 echo ""
 log_section "VERSION TAG CREATED SUCCESSFULLY"
