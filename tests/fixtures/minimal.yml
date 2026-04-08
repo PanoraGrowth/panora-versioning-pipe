@@ -1,0 +1,3 @@
+# Minimal config — only sets commit format, everything else uses defaults
+commits:
+  format: "ticket"

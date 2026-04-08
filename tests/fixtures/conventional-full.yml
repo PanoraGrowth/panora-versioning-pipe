@@ -1,0 +1,10 @@
+# Full conventional commits config with emojis and full changelog mode
+commits:
+  format: "conventional"
+
+changelog:
+  use_emojis: true
+  mode: "full"
+
+validation:
+  require_type_in_last_commit: true

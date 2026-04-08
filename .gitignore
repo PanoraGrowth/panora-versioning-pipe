@@ -10,3 +10,5 @@ Thumbs.db
 
 # Local working files
 temp/
+__pycache__/
+.pytest_cache/

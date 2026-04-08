@@ -1,0 +1,12 @@
+# Custom commit type overrides: patch emoji, change bump, add new type
+commits:
+  format: "conventional"
+
+commit_type_overrides:
+  feat:
+    emoji: "🆕"
+  docs:
+    bump: "none"
+  infra:
+    bump: "minor"
+    emoji: "🔩"

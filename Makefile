@@ -1,7 +1,7 @@
 IMAGE_NAME ?= panora-versioning-pipe
 IMAGE_TAG  ?= local
 
-.PHONY: build run shell lint help
+.PHONY: build run shell lint help build-test test test-unit test-unit-filter test-integration test-integration-filter
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
@@ -29,5 +29,22 @@ shell: build ## Open an interactive shell in the container
 lint: ## Run shellcheck on all scripts (requires shellcheck)
 	@command -v shellcheck >/dev/null 2>&1 || { echo "shellcheck not found. Install: brew install shellcheck"; exit 1; }
 	shellcheck -s sh scripts/**/*.sh pipe.sh
+
+build-test: build ## Build the test Docker image (bats-core)
+	docker build -f tests/Dockerfile.test --build-arg BASE_IMAGE=$(IMAGE_NAME):$(IMAGE_TAG) -t $(IMAGE_NAME)-test:$(IMAGE_TAG) .
+
+test: test-unit ## Run all local tests (unit only — integration requires credentials)
+
+test-unit: build-test ## Run unit tests in Docker
+	docker run --rm $(IMAGE_NAME)-test:$(IMAGE_TAG) bats -r tests/unit/
+
+test-unit-filter: build-test ## Run specific test: make test-unit-filter F=config-parser/getters
+	docker run --rm $(IMAGE_NAME)-test:$(IMAGE_TAG) bats tests/unit/$(F).bats
+
+test-integration: ## Run integration tests (requires gh CLI authenticated)
+	cd tests/integration && pip install -q -r requirements.txt && pytest -v test_github.py
+
+test-integration-filter: ## Run specific integration scenario: make test-integration-filter S=feat-major-bump
+	cd tests/integration && pip install -q -r requirements.txt && pytest -v test_github.py -k "$(S)"
 
 .DEFAULT_GOAL := help
