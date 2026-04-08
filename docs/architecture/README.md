@@ -1,7 +1,7 @@
 # Architecture
 
-**Version:** v0.2.2
-**Last updated:** 2026-04-07
+**Version:** v0.4.2
+**Last updated:** 2026-04-08
 
 ---
 
@@ -25,8 +25,8 @@ Merge to tag branch (main or development)
         ├── write-version-file.sh     → update version in project files
         ├── generate-changelog-per-folder.sh  → per-folder CHANGELOGs (monorepo)
         ├── generate-changelog-last-commit.sh → root CHANGELOG
-        ├── update-changelog.sh       → commit + push CHANGELOG
-        └── create + push git tag
+        ├── update-changelog.sh       → commit CHANGELOG (no push in branch context)
+        └── atomic push: CHANGELOG commit + git tag (single push, [skip ci])
 ```
 
 The PR pipeline only validates. The branch pipeline does all the work: version calculation, CHANGELOG generation, and tag creation.
@@ -51,7 +51,8 @@ panora-versioning-pipe/
 │   ├── changelog/             # CHANGELOG generation (root + per-folder)
 │   ├── orchestration/         # Pipeline orchestrators (PR + branch)
 │   └── reporting/             # Notifications (Teams webhook, Bitbucket status)
-├── docs/                      # Feature documentation + test results
+├── tests/                     # Test framework (unit + integration)
+├── docs/                      # Feature documentation + test coverage
 ├── .github/workflows/         # GitHub Actions workflows
 └── examples/                  # Example configs + CI setups
 ```
@@ -165,18 +166,27 @@ See `docs/per-folder-changelog/README.md` for full documentation.
 ### GitHub Actions
 
 ```yaml
-# PR validation
+# PR validation + unit tests (only when core files change)
 on:
   pull_request:
     branches: [main]
+    paths: [scripts/**, pipe.sh, Dockerfile, tests/**, Makefile]
 
 # Tag creation on merge
 on:
   push:
     branches: [main]
+
+# Release (triggered by tag-on-merge completion)
+on:
+  workflow_run:
+    workflows: ["Main - Create Version Tag"]
+    types: [completed]
 ```
 
 The pipe auto-detects GitHub Actions and maps `GITHUB_*` variables to `VERSIONING_*`.
+
+The branch pipeline's CHANGELOG commit uses `[skip ci]` to prevent re-triggering workflows. Tag + CHANGELOG are pushed atomically in a single `git push`.
 
 ### Bitbucket Pipelines
 
@@ -233,7 +243,7 @@ Base: Alpine 3.19
 Tools: bash, git, curl, jq, yq v4.35.1
 Registries: ghcr.io/panoragrowth/panora-versioning-pipe
             public.ecr.aws/k5n8p2t3/panora-versioning-pipe
-Tags: :latest, :v0.2.2 (version-specific)
+Tags: :latest, :vX.Y.Z (version-specific)
 ```
 
 ---
