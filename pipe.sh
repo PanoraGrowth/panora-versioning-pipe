@@ -102,4 +102,3 @@ echo "=========================================="
 echo "  VERSIONING PIPE COMPLETED"
 echo "=========================================="
 # Trigger image rebuild
-# trigger
