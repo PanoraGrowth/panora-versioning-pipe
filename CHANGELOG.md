@@ -90,3 +90,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: 9ee961a](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/9ee961a2c00644fd49ab9dca8c261ebc569fecca)
 
 
+## v0.4.5 - 2026-04-08
+
+- 🐛 fix: review findings — minimal permissions, consistent API, raw cat (#29)
+  - _Agustín Manessi_
+  - [Commit: 9633145](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/96331458465fc9a8ad823d67f5b7824ff190d703)
+
+
