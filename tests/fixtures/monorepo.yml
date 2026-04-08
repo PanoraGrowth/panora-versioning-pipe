@@ -1,0 +1,13 @@
+# Monorepo config with per-folder changelog routing
+commits:
+  format: "conventional"
+
+changelog:
+  per_folder:
+    enabled: true
+    folders:
+      - services
+      - infrastructure
+    folder_pattern: "^[0-9]{3}-"
+    scope_matching: "suffix"
+    fallback: "root"

@@ -1,0 +1,18 @@
+# All 4 version components enabled (period + major + minor + timestamp)
+commits:
+  format: "conventional"
+
+version:
+  components:
+    period:
+      enabled: true
+      initial: 1
+    major:
+      enabled: true
+      initial: 0
+    minor:
+      enabled: true
+      initial: 0
+    timestamp:
+      enabled: true
+      format: "%Y%m%d%H%M%S"

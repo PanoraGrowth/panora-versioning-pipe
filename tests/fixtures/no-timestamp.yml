@@ -1,0 +1,17 @@
+# Period + major + minor, no timestamp
+commits:
+  format: "conventional"
+
+version:
+  components:
+    period:
+      enabled: true
+      initial: 0
+    major:
+      enabled: true
+      initial: 0
+    minor:
+      enabled: true
+      initial: 0
+    timestamp:
+      enabled: false

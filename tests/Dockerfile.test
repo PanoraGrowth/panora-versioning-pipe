@@ -1,0 +1,16 @@
+# Dockerfile for test runner
+# Extends the production image with bats-core for unit testing
+
+ARG BASE_IMAGE=panora-versioning-pipe:local
+FROM ${BASE_IMAGE}
+
+# Override entrypoint from production image
+ENTRYPOINT []
+
+# Install bats-core
+RUN apk add --no-cache bats parallel
+
+# Copy test files
+COPY tests/ /pipe/tests/
+
+WORKDIR /pipe

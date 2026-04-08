@@ -1,0 +1,10 @@
+# Ticket-based config with prefixes and required tickets
+commits:
+  format: "ticket"
+
+tickets:
+  prefixes:
+    - AM
+    - TECH
+  required: true
+  url: "https://tickets.example.com"

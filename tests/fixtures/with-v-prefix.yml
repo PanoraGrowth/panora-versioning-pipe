@@ -1,0 +1,17 @@
+# Tag prefix v enabled, no timestamp
+commits:
+  format: "conventional"
+
+version:
+  tag_prefix_v: true
+  components:
+    period:
+      enabled: false
+    major:
+      enabled: true
+      initial: 0
+    minor:
+      enabled: true
+      initial: 0
+    timestamp:
+      enabled: false

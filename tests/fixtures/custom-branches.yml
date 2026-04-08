@@ -1,0 +1,9 @@
+# Custom branch names (non-default)
+commits:
+  format: "conventional"
+
+branches:
+  development: "dev"
+  pre_production: "staging"
+  production: "master"
+  hotfix_prefix: "emergency/"

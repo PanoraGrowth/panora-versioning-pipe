@@ -1,0 +1,121 @@
+# Integration test scenarios — single source of truth for GitHub and Bitbucket
+#
+# Each scenario defines:
+#   - name: unique identifier (used in branch names)
+#   - description: what this scenario tests
+#   - config_override: if set, replaces .versioning.yml in test repo for this scenario
+#   - commits: list of commits to create (message + optional file changes)
+#   - expected: what to verify after the pipe runs
+#
+# Branch naming: test/auto-{name}-{run_id}
+
+scenarios:
+
+  # --- Basic version bumps ---
+
+  - name: feat-major-bump
+    description: "feat commit triggers major version bump and tag creation"
+    commits:
+      - message: "feat: add automated test feature"
+        files:
+          test-artifact.txt: "feat test"
+    expected:
+      pr_check: pass
+      tag_created: true
+      tag_pattern: "^v\\d+\\.\\d+\\.\\d+$"
+      changelog_contains: "feat: add automated test feature"
+
+  - name: fix-minor-bump
+    description: "fix commit triggers minor version bump"
+    commits:
+      - message: "fix: resolve automated test bug"
+        files:
+          test-artifact.txt: "fix test"
+    expected:
+      pr_check: pass
+      tag_created: true
+      tag_pattern: "^v\\d+\\.\\d+\\.\\d+$"
+      changelog_contains: "fix: resolve automated test bug"
+
+  - name: chore-minor-bump
+    description: "chore commit triggers minor version bump"
+    commits:
+      - message: "chore: automated test maintenance"
+        files:
+          test-artifact.txt: "chore test"
+    expected:
+      pr_check: pass
+      tag_created: true
+      tag_pattern: "^v\\d+\\.\\d+\\.\\d+$"
+      changelog_contains: "chore: automated test maintenance"
+
+  # --- Per-folder changelog ---
+
+  - name: scoped-backend
+    description: "feat(backend) commit routes changelog to backend/"
+    commits:
+      - message: "feat(backend): add automated backend feature"
+        files:
+          test-artifact.txt: "scoped backend test"
+    expected:
+      pr_check: pass
+      tag_created: true
+      tag_pattern: "^v\\d+\\.\\d+\\.\\d+$"
+      changelog_contains: "feat(backend): add automated backend feature"
+      changelog_location: "backend/CHANGELOG.md"
+
+  - name: scoped-frontend
+    description: "fix(frontend) commit routes changelog to frontend/"
+    commits:
+      - message: "fix(frontend): resolve automated frontend bug"
+        files:
+          test-artifact.txt: "scoped frontend test"
+    expected:
+      pr_check: pass
+      tag_created: true
+      tag_pattern: "^v\\d+\\.\\d+\\.\\d+$"
+      changelog_contains: "fix(frontend): resolve automated frontend bug"
+      changelog_location: "frontend/CHANGELOG.md"
+
+  - name: unscoped-to-root
+    description: "commit without scope goes to root CHANGELOG"
+    commits:
+      - message: "fix: resolve general automated test issue"
+        files:
+          test-artifact.txt: "unscoped test"
+    expected:
+      pr_check: pass
+      tag_created: true
+      tag_pattern: "^v\\d+\\.\\d+\\.\\d+$"
+      changelog_contains: "fix: resolve general automated test issue"
+      changelog_location: "CHANGELOG.md"
+
+  # --- Multi-commit scenarios ---
+
+  - name: multi-commit-highest-bump
+    description: "multiple commits — highest bump type wins (feat > fix)"
+    merge_method: merge  # must use merge (not squash) to preserve individual commits
+    commits:
+      - message: "fix: first fix in multi-commit"
+        files:
+          test-artifact.txt: "multi 1"
+      - message: "feat: feature after fix in multi-commit"
+        files:
+          test-artifact2.txt: "multi 2"
+    expected:
+      pr_check: pass
+      tag_created: true
+      tag_pattern: "^v\\d+\\.\\d+\\.\\d+$"
+      changelog_contains: "feature after fix in multi-commit"
+
+  # --- PR validation ---
+
+  - name: invalid-commit-format
+    description: "non-conventional commit message fails PR validation"
+    commits:
+      - message: "this is not a conventional commit at all"
+        files:
+          test-artifact.txt: "invalid test"
+    expected:
+      pr_check: fail
+      tag_created: false
