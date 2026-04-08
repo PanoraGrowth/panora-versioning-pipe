@@ -74,7 +74,5 @@ These tests run against real repositories, creating actual PRs, merging, and ver
 
 ## Platforms
 
-All tests are validated on:
-
-- **GitHub Actions** — primary CI platform
-- **Bitbucket Pipelines** — secondary, tested for parity
+- **GitHub Actions** — unit tests + integration tests
+- **Bitbucket Pipelines** — unit tests (integration tests coming soon)
