@@ -107,6 +107,19 @@ git_push_branch() {
     fi
 }
 
+# Push branch and tag atomically (single push, single workflow trigger)
+git_push_branch_and_tag() {
+    local branch="$1"
+    local tag="$2"
+    if git push origin "HEAD:refs/heads/${branch}" "refs/tags/${tag}"; then
+        log_success "Pushed branch ($branch) and tag ($tag) atomically"
+        return 0
+    else
+        log_error "Failed to push branch and tag atomically"
+        return 1
+    fi
+}
+
 # Push a tag with error handling
 git_push_tag() {
     local tag="$1"
