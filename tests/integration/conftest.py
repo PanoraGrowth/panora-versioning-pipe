@@ -8,6 +8,7 @@ import pytest
 import yaml
 
 from helpers.github_client import GitHubClient
+from helpers.bitbucket_client import BitbucketClient
 
 
 SCENARIOS_FILE = Path(__file__).parent / "test-scenarios.yml"
@@ -33,6 +34,12 @@ RUN_ID = os.environ.get("TEST_RUN_ID", uuid.uuid4().hex[:8])
 def github():
     """GitHub client — shared across all tests in the session."""
     return GitHubClient()
+
+
+@pytest.fixture(scope="session")
+def bitbucket():
+    """Bitbucket client — shared across all tests in the session."""
+    return BitbucketClient()
 
 
 @pytest.fixture(scope="session")
