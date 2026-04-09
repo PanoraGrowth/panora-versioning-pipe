@@ -14,6 +14,7 @@ DEFAULT_WORKSPACE = "panoragrowth"
 DEFAULT_REPO = "panora-versioning-pipe-bitbucket"
 POLL_INTERVAL = 10  # seconds between status checks
 MAX_WAIT = 300  # 5 minutes max wait for pipelines
+REQUEST_TIMEOUT = 30  # seconds per HTTP request
 
 
 class BitbucketClient:
@@ -34,17 +35,19 @@ class BitbucketClient:
         return f"{self.BASE_URL}/repositories/{self.workspace}/{self.repo_slug}/{path}"
 
     def _get(self, path: str, **kwargs) -> dict:
+        kwargs.setdefault("timeout", REQUEST_TIMEOUT)
         r = self.session.get(self._url(path), **kwargs)
         r.raise_for_status()
         return r.json()
 
     def _post(self, path: str, **kwargs) -> dict:
+        kwargs.setdefault("timeout", REQUEST_TIMEOUT)
         r = self.session.post(self._url(path), **kwargs)
         r.raise_for_status()
         return r.json()
 
     def _delete(self, path: str) -> None:
-        r = self.session.delete(self._url(path))
+        r = self.session.delete(self._url(path), timeout=REQUEST_TIMEOUT)
         # 404 is fine for cleanup (already deleted)
         if r.status_code != 404:
             r.raise_for_status()
@@ -84,7 +87,7 @@ class BitbucketClient:
         for path, content in files.items():
             form_data[path] = content
 
-        r = self.session.post(self._url("src"), data=form_data)
+        r = self.session.post(self._url("src"), data=form_data, timeout=REQUEST_TIMEOUT)
         r.raise_for_status()
 
         # Get the new commit hash from the branch tip
@@ -224,7 +227,7 @@ class BitbucketClient:
 
     def get_file_content(self, path: str, ref: str = "main") -> str | None:
         """Get raw file content from the repo at a given ref."""
-        r = self.session.get(self._url(f"src/{ref}/{path}"))
+        r = self.session.get(self._url(f"src/{ref}/{path}"), timeout=REQUEST_TIMEOUT)
         if r.status_code != 200:
             return None
         return r.text
