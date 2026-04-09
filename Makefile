@@ -1,7 +1,7 @@
 IMAGE_NAME ?= panora-versioning-pipe
 IMAGE_TAG  ?= local
 
-.PHONY: build run shell lint help build-test test test-unit test-unit-filter test-integration test-integration-filter
+.PHONY: build run shell lint help build-test test test-unit test-unit-filter test-integration test-integration-bitbucket test-integration-all test-integration-filter test-integration-bitbucket-filter
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \

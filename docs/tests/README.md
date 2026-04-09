@@ -74,5 +74,11 @@ These tests run against real repositories, creating actual PRs, merging, and ver
 
 ## Platforms
 
-- **GitHub Actions** — unit tests + integration tests
-- **Bitbucket Pipelines** — unit tests (integration tests coming soon)
+- **GitHub Actions** — unit tests + integration tests (8 scenarios)
+- **Bitbucket Pipelines** — unit tests + integration tests (8 scenarios, same `test-scenarios.yml`)
+
+### Bitbucket integration notes
+
+- Uses `BitbucketClient` (REST API v2.0 with Bearer token auth via `BB_TOKEN`)
+- Squash merge requires explicit commit message — Bitbucket defaults to "Merged in branch (pull request #N)" which loses the conventional commit subject
+- Tags sorted by `-target.date` (not name) for correct semver ordering
