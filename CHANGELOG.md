@@ -104,3 +104,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: ac8ed69](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/ac8ed693862453619b3dadf7280b9f4d1ab0fc4a)
 
 
+## v0.5.0 - 2026-04-09
+
+- 🚀 feat: add Bitbucket integration tests — 8/8 scenarios passing (#31)
+  - _Agustín Manessi_
+  - [Commit: 6ff4db4](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/6ff4db466bae31d40320c1181c79fa02601d2bdc)
+
+
