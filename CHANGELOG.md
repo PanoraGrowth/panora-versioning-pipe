@@ -97,3 +97,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: 9633145](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/96331458465fc9a8ad823d67f5b7824ff190d703)
 
 
+## v0.4.6 - 2026-04-09
+
+- 🐛 fix: apply ignore patterns to commit subject, not full log line (#30)
+  - _Agustín Manessi_
+  - [Commit: ac8ed69](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/ac8ed693862453619b3dadf7280b9f4d1ab0fc4a)
+
+
