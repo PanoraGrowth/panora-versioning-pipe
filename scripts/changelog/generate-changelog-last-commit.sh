@@ -60,15 +60,15 @@ else
     GIT_RANGE="${CHANGELOG_BASE_REF}..HEAD"
 fi
 
-if [ -n "$IGNORE_PATTERN" ]; then
-    ALL_COMMITS=$(git log $GIT_RANGE \
-        --no-merges \
-        --pretty=format:"%H|%an|%s" | \
-        grep -vE "$IGNORE_PATTERN" || true)
-else
-    ALL_COMMITS=$(git log $GIT_RANGE \
-        --no-merges \
-        --pretty=format:"%H|%an|%s")
+ALL_COMMITS=$(git log $GIT_RANGE \
+    --no-merges \
+    --pretty=format:"%H|%an|%s")
+
+# Filter ignored patterns against the commit SUBJECT (3rd field), not the full line.
+# Patterns like ^Revert are anchored to the start of the subject, so grep on the
+# full "hash|author|subject" line would never match.
+if [ -n "$IGNORE_PATTERN" ] && [ -n "$ALL_COMMITS" ]; then
+    ALL_COMMITS=$(echo "$ALL_COMMITS" | awk -F'|' -v pat="$IGNORE_PATTERN" '$3 !~ pat' || true)
 fi
 
 if [ -z "$ALL_COMMITS" ]; then
