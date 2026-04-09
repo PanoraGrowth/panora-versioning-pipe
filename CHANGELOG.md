@@ -111,3 +111,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: 6ff4db4](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/6ff4db466bae31d40320c1181c79fa02601d2bdc)
 
 
+## v0.5.1 - 2026-04-09
+
+- 🐛 fix: review findings — HTTP timeouts, .PHONY, docs update (#32)
+  - _Agustín Manessi_
+  - [Commit: 407470a](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/407470a80316b30d94ad00cc7724591e4be74371)
+
+
