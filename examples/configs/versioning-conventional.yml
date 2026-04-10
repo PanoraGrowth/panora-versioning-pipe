@@ -1,11 +1,13 @@
 # .versioning-conventional.yml
 #
-# Demonstrates: Conventional commits format.
+# Demonstrates: Conventional commits format (recommended default).
 # Shows:
 #   - Commit format: feat(scope): message / fix(api): message
 #   - Emojis enabled in the changelog (each commit type gets its emoji)
 #   - Commit links in changelog entries
-#   - Per-folder changelogs disabled (default — single repo mode)
+#   - tag_prefix_v: produce git tags like v1.2.3 instead of 1.2.3
+#   - commit_type_overrides: tweak default commit_types without redefining the whole array
+#   - per_folder: commented sample so you can see how to enable it for monorepos
 #
 # With conventional commits, the scope in feat(scope) is optional
 # but enables per-folder changelog grouping when per_folder is enabled.
@@ -14,6 +16,18 @@
 
 commits:
   format: "conventional"
+
+version:
+  # tag_prefix_v: true  → tags look like v1.2.3
+  # tag_prefix_v: false → tags look like 1.2.3 (default)
+  tag_prefix_v: true
+
+# Override specific commit types on top of the built-in defaults (scripts/defaults.yml).
+# You only set the fields you want to change; everything else is inherited by name.
+# Common use case: keep `docs` commits out of version bumps.
+commit_type_overrides:
+  docs:
+    bump: "none"        # docs commits don't trigger a version bump
 
 changelog:
   file: "CHANGELOG.md"
@@ -24,5 +38,15 @@ changelog:
   include_author: true
   commit_url: "https://github.com/your-org/your-repo/commit"
 
-  per_folder:
-    enabled: false
+  # Per-folder changelogs are OFF by default (single-repo mode).
+  # Uncomment the block below to enable per-folder CHANGELOGs for a monorepo
+  # with scoped commits like feat(api): ... or fix(web): ...
+  #
+  # per_folder:
+  #   enabled: true
+  #   folders:
+  #     - "src"                      # look inside src/ for subfolders
+  #   folder_pattern: "^(api|web|lib)$"  # only match these folder names
+  #   scope_matching: "exact"        # commit scope must equal the folder name
+  #   fallback: "root"               # unmatched scopes go to the root CHANGELOG
+  #                                  # ("file_path" would inspect changed files instead)
