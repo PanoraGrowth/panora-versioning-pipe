@@ -2,7 +2,7 @@
 
 Unit tests and integration tests validated before every release.
 
-**As of v0.5.4**: 207 unit tests (bats-core) and 8 end-to-end integration scenarios, run against both GitHub and Bitbucket.
+**As of v0.5.5**: 219 unit tests (bats-core) and 9 end-to-end integration scenarios, run against both GitHub and Bitbucket.
 
 ---
 
@@ -71,13 +71,14 @@ These tests run against real repositories, creating actual PRs, merging, and ver
 - **Unscoped commit → root CHANGELOG**: commits without scope go to root
 - **Multi-commit PR → highest bump wins**: PR with fix + feat = major bump (feat wins)
 - **Invalid commit format → PR validation fails**: non-conventional commit is rejected
+- **Hotfix from production branch → PR check only**: validates the `hotfix` commit type through PR validation without merging (no tag created)
 
 ---
 
 ## Platforms
 
-- **GitHub Actions** — unit tests + integration tests (8 scenarios)
-- **Bitbucket Pipelines** — unit tests + integration tests (8 scenarios, same `test-scenarios.yml`)
+- **GitHub Actions** — unit tests + integration tests (9 scenarios)
+- **Bitbucket Pipelines** — unit tests + integration tests (9 scenarios, same `test-scenarios.yml`)
 
 ### Bitbucket integration notes
 

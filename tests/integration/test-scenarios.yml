@@ -122,3 +122,15 @@ scenarios:
     expected:
       pr_check: fail
       tag_created: false
+
+  # --- Hotfix flow ---
+
+  - name: hotfix-from-production-branch
+    description: "hotfix-typed commit targeting main — PR check validates the 'hotfix' commit type without merging. tag_created:false routes this to the PR-only test path (NO_MERGE_SCENARIOS), so no tag is created and the hotfix scripts are not exercised end-to-end (they are not currently wired into the pipelines at v0.5.5; see tests/unit/changelog/hotfix.bats for direct coverage of the generator)."
+    commits:
+      - message: "hotfix(security): patch critical auth bug"
+        files:
+          test-artifact.txt: "hotfix test"
+    expected:
+      pr_check: pass
+      tag_created: false
