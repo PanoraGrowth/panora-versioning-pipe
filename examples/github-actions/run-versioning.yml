@@ -2,7 +2,13 @@
 # Copy this to .github/workflows/run-versioning.yml
 #
 # Runs panora-versioning-pipe as a Docker action with the provided context.
-# Called by pr-versioning.yml and tag-on-merge.yml.
+# Called by pr-versioning.yml for the PR flow.
+#
+# NOTE: This reusable is PR-only. The tag-on-merge flow uses a single-job
+# inline pattern (see tag-on-merge.yml) instead of calling this reusable,
+# because GitHub Actions does not allow mixing `steps:` and `uses:` in a
+# single job, and the token-generation + checkout + pipe-run sequence is
+# clearer as linear steps than as a two-job (needs + outputs) chain.
 
 name: Run Versioning Pipe
 
@@ -27,14 +33,6 @@ on:
         description: "Commit SHA"
         required: true
         type: string
-      github_token:
-        description: >-
-          GitHub App token for branch pipeline (required for tag-on-merge to
-          push to protected main). Leave empty for PR pipeline — the default
-          GITHUB_TOKEN is sufficient for read-only PR operations.
-        required: false
-        type: string
-        default: ""
 
 jobs:
   versioning:
@@ -47,11 +45,6 @@ jobs:
         with:
           fetch-depth: 0
           ref: ${{ inputs.branch }}
-          # Use the GitHub App token when provided (tag-on-merge flow), fall
-          # back to GITHUB_TOKEN for the PR flow. The App token is needed so
-          # the pipe can push the CHANGELOG commit + version tag to a
-          # protected main branch.
-          token: ${{ inputs.github_token != '' && inputs.github_token || secrets.GITHUB_TOKEN }}
 
       # Public consumer image — hosted on ECR Public for zero-auth access
       # from any downstream repository (no GHCR package-read permission
@@ -67,7 +60,3 @@ jobs:
           VERSIONING_BRANCH: ${{ inputs.branch }}
           VERSIONING_TARGET_BRANCH: ${{ inputs.target_branch }}
           VERSIONING_COMMIT: ${{ inputs.commit }}
-          # CI_GITHUB_TOKEN is read by the pipe only when non-empty; the PR
-          # flow leaves it blank and the pipe falls back to its default
-          # (validate-only) behavior.
-          CI_GITHUB_TOKEN: ${{ inputs.github_token }}

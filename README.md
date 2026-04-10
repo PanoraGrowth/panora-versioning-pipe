@@ -377,16 +377,17 @@ jobs:
 ```
 
 ```yaml
-# .github/workflows/tag-on-merge.yml (branch/tag caller)
+# .github/workflows/tag-on-merge.yml (single-job inline pattern)
 on:
   push:
     branches: [main]
 
+permissions:
+  contents: write
+
 jobs:
-  ci-token:
+  versioning:
     runs-on: ubuntu-latest
-    outputs:
-      token: ${{ steps.ci-token.outputs.token }}
     steps:
       - id: ci-token
         uses: actions/create-github-app-token@v1
@@ -394,13 +395,17 @@ jobs:
           app-id: ${{ secrets.CI_APP_ID }}
           private-key: ${{ secrets.CI_APP_PRIVATE_KEY }}
 
-  versioning:
-    needs: ci-token
-    uses: ./.github/workflows/run-versioning.yml
-    with:
-      branch: ${{ github.ref_name }}
-      commit: ${{ github.sha }}
-      github_token: ${{ needs.ci-token.outputs.token }}
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: main
+          token: ${{ steps.ci-token.outputs.token }}
+
+      - uses: docker://public.ecr.aws/k5n8p2t3/panora-versioning-pipe:latest
+        env:
+          VERSIONING_BRANCH: main
+          VERSIONING_COMMIT: ${{ github.sha }}
+          CI_GITHUB_TOKEN: ${{ steps.ci-token.outputs.token }}
 ```
 
 See [`examples/github-actions/`](examples/github-actions/) for ready-to-use versions of these files.
@@ -427,7 +432,7 @@ The `tag-on-merge.yml` workflow needs to push a CHANGELOG commit and a version t
     private-key: ${{ secrets.CI_APP_PRIVATE_KEY }}
 ```
 
-The generated token is masked in logs, scoped to the installation, and expires in ~1 hour. The reusable `run-versioning.yml` receives it via the optional `github_token` input and passes it both to `actions/checkout` and to the pipe as `CI_GITHUB_TOKEN`.
+The generated token is masked in logs, scoped to the installation, and expires in ~1 hour. It is used inline — in the same job — as the `token:` for `actions/checkout` and as `CI_GITHUB_TOKEN` for the pipe container, so no token is ever passed between jobs.
 
 > The PR pipeline (`pr-versioning.yml`) does NOT need the App token — the default `GITHUB_TOKEN` with `contents: write` is enough because it only validates commits and pushes CHANGELOG updates to the PR head branch.
 
