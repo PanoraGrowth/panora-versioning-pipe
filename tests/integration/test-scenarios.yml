@@ -92,21 +92,24 @@ scenarios:
 
   # --- Multi-commit scenarios ---
 
-  - name: multi-commit-highest-bump
-    description: "multiple commits — highest bump type wins (feat > fix)"
+  - name: multi-commit-last-wins
+    description: "multi-commit merge PR — the LAST commit determines the bump (pipe uses last-commit-only semantics, NOT highest-bump-wins). For squash merges, this distinction is invisible because there is only one commit."
     merge_method: merge  # must use merge (not squash) to preserve individual commits
     commits:
+      # Order matters: the feat MUST be last to trigger a major bump under last-wins semantics.
+      # If flipped (feat first, fix last), this scenario would produce a minor bump instead.
+      # See scripts/versioning/calculate-version.sh:100-107 and docs/architecture/README.md:112,248.
       - message: "fix: first fix in multi-commit"
         files:
           test-artifact.txt: "multi 1"
-      - message: "feat: feature after fix in multi-commit"
+      - message: "feat: feature as the last commit in multi-commit"
         files:
           test-artifact2.txt: "multi 2"
     expected:
       pr_check: pass
       tag_created: true
       tag_pattern: "^v\\d+\\.\\d+\\.\\d+$"
-      changelog_contains: "feature after fix in multi-commit"
+      changelog_contains: "feature as the last commit in multi-commit"
 
   # --- PR validation ---
 
