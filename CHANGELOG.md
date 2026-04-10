@@ -132,3 +132,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: e6d8118](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/e6d81189d96274bb6d7e6d2fced816941cccf867)
 
 
+## v0.5.4 - 2026-04-10
+
+- 🔨 refactor(workflows): remove dead paths-ignore for LICENSE (#36)
+  - _Agustín Manessi_
+  - [Commit: effbfae](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/effbfaed7277cad50a5ddd5a40a0383e9e8bf29e)
+
+
