@@ -146,3 +146,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: fad391b](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/fad391b8ff805d4fefae20a0aabf2ff841d7631f)
 
 
+## v0.5.6 - 2026-04-10
+
+- 🐛 fix(tests): rename multi-commit-highest-bump to multi-commit-last-wins (#38)
+  - _Agustín Manessi_
+  - [Commit: f8b98cd](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/f8b98cd40c2e24577331cbff03d5e35bbb2763a4)
+
+
