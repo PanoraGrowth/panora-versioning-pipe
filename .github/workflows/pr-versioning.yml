@@ -12,9 +12,14 @@ permissions:
 
 jobs:
   versioning:
-    uses: ./.github/workflows/run-versioning.yml
-    with:
-      pr_id: ${{ github.event.pull_request.number }}
-      branch: ${{ github.head_ref }}
-      target_branch: ${{ github.base_ref }}
-      commit: ${{ github.event.pull_request.head.sha }}
+    name: Versioning Pipe
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.head_ref }}
+
+      - name: Run versioning pipe
+        uses: docker://ghcr.io/panoragrowth/panora-versioning-pipe:latest

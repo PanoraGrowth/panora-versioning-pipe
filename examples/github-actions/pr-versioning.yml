@@ -13,9 +13,32 @@ permissions:
 
 jobs:
   versioning:
-    uses: ./.github/workflows/run-versioning.yml
-    with:
-      pr_id: ${{ github.event.pull_request.number }}
-      branch: ${{ github.head_ref }}
-      target_branch: ${{ github.base_ref }}
-      commit: ${{ github.event.pull_request.head.sha }}
+    name: Versioning Pipe
+    runs-on: ubuntu-latest
+    steps:
+      # fetch-depth: 0 is required so the pipe can read the full commit
+      # history for changelog generation and version detection.
+      #
+      # ref: ${{ github.head_ref }} is REQUIRED — without it, GitHub checks
+      # out the ephemeral merge commit and the pipe's atomic CHANGELOG push
+      # back to the feature branch would target the wrong commit.
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.head_ref }}
+
+      # Public consumer image — hosted on ECR Public for zero-auth access
+      # from any downstream repository (no GHCR package-read permission
+      # needed). The `k5n8p2t3` alias is AWS auto-generated and will
+      # transition to `panoragrowth` once AWS approves the custom alias;
+      # the image will be available at both paths during the transition.
+      # In production, pin to a specific version tag (e.g. :v0.5.0) instead
+      # of :latest to get reproducible builds.
+      #
+      # The pipe auto-detects PR context from GitHub Actions environment
+      # variables (GITHUB_EVENT_NAME, GITHUB_HEAD_REF, GITHUB_BASE_REF,
+      # GITHUB_REF_NAME, GITHUB_SHA, GITHUB_EVENT_PATH). No explicit
+      # VERSIONING_* env vars are needed here.
+      - name: Run versioning pipe
+        uses: docker://public.ecr.aws/k5n8p2t3/panora-versioning-pipe:latest

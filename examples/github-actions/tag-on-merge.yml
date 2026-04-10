@@ -28,13 +28,10 @@
 # ------------------------------------------------------------------------------
 # Single-job inline pattern
 # ------------------------------------------------------------------------------
-# This file does NOT call the reusable run-versioning.yml. Instead, token
-# generation, checkout, and the pipe Docker run all live as linear steps in a
-# single job. This mirrors the pipe's own .github/workflows/tag-on-merge.yml
-# and is required because GitHub Actions does not allow mixing `steps:` and
-# `uses:` in the same job. The Docker image reference is intentionally
-# duplicated between this file and run-versioning.yml — the trade-off is a
-# dramatically simpler consumer workflow.
+# Token generation, checkout, and the pipe Docker run all live as linear steps
+# in a single job. This mirrors the pipe's own .github/workflows/tag-on-merge.yml
+# and keeps each trigger workflow self-contained — no reusable indirection
+# needed.
 # ------------------------------------------------------------------------------
 
 name: Main - Create Version Tag
@@ -73,9 +70,12 @@ jobs:
       # be available at both paths during the transition.
       # In production, pin to a specific version tag (e.g. :v0.5.0) instead
       # of :latest to get reproducible builds.
+      #
+      # The pipe auto-detects branch context from GitHub Actions environment
+      # variables (GITHUB_EVENT_NAME, GITHUB_REF_NAME, GITHUB_SHA). No
+      # explicit VERSIONING_BRANCH / VERSIONING_COMMIT env vars are needed
+      # here — only CI_GITHUB_TOKEN for the push operations.
       - name: Run versioning pipe
         uses: docker://public.ecr.aws/k5n8p2t3/panora-versioning-pipe:latest
         env:
-          VERSIONING_BRANCH: main
-          VERSIONING_COMMIT: ${{ github.sha }}
           CI_GITHUB_TOKEN: ${{ steps.ci-token.outputs.token }}

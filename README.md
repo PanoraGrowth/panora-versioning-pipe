@@ -324,25 +324,16 @@ The scope (in parentheses) is optional. It is used for per-folder changelog grou
 
 ## GitHub Actions
 
-The recommended approach uses a reusable workflow called by separate PR and branch trigger workflows. Map GitHub's native variables to the pipe's generic `VERSIONING_*` vars using the `docker://` action syntax:
+Two single-job workflows — one for PRs, one for tag-on-merge. The pipe auto-detects all required context (`GITHUB_EVENT_NAME`, `GITHUB_HEAD_REF`, `GITHUB_BASE_REF`, `GITHUB_REF_NAME`, `GITHUB_SHA`, `GITHUB_EVENT_PATH`) from the Actions environment, so no explicit `VERSIONING_*` env vars are needed in the workflow.
 
 ```yaml
-# .github/workflows/run-versioning.yml (reusable workflow)
+# .github/workflows/pr-versioning.yml (PR trigger)
 on:
-  workflow_call:
-    inputs:
-      pr_id:
-        type: string
-        default: ""
-      branch:
-        type: string
-        required: true
-      target_branch:
-        type: string
-        default: ""
-      commit:
-        type: string
-        required: true
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: write
 
 jobs:
   versioning:
@@ -351,33 +342,14 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          ref: ${{ github.head_ref }}   # required — do not drop
+
       - uses: docker://public.ecr.aws/k5n8p2t3/panora-versioning-pipe:latest
         # Alternative: docker://ghcr.io/panoragrowth/panora-versioning-pipe:latest
-        env:
-          VERSIONING_PR_ID: ${{ inputs.pr_id }}
-          VERSIONING_BRANCH: ${{ inputs.branch }}
-          VERSIONING_TARGET_BRANCH: ${{ inputs.target_branch }}
-          VERSIONING_COMMIT: ${{ inputs.commit }}
 ```
 
 ```yaml
-# .github/workflows/pr-versioning.yml (PR caller)
-on:
-  pull_request:
-    types: [opened, synchronize, reopened]
-
-jobs:
-  versioning:
-    uses: ./.github/workflows/run-versioning.yml
-    with:
-      pr_id: ${{ github.event.pull_request.number }}
-      branch: ${{ github.head_ref }}
-      target_branch: ${{ github.base_ref }}
-      commit: ${{ github.sha }}
-```
-
-```yaml
-# .github/workflows/tag-on-merge.yml (single-job inline pattern)
+# .github/workflows/tag-on-merge.yml (main-branch trigger)
 on:
   push:
     branches: [main]
@@ -403,10 +375,10 @@ jobs:
 
       - uses: docker://public.ecr.aws/k5n8p2t3/panora-versioning-pipe:latest
         env:
-          VERSIONING_BRANCH: main
-          VERSIONING_COMMIT: ${{ github.sha }}
           CI_GITHUB_TOKEN: ${{ steps.ci-token.outputs.token }}
 ```
+
+> **Why keep `ref: ${{ github.head_ref }}` in the PR checkout?** GitHub's default PR checkout lands on the ephemeral merge commit, but the pipe pushes the CHANGELOG commit back to the feature branch via `git push origin HEAD:refs/heads/<branch>`. HEAD must be the real feature branch commit, not the merge preview.
 
 See [`examples/github-actions/`](examples/github-actions/) for ready-to-use versions of these files.
 
@@ -472,9 +444,8 @@ The [`examples/`](examples/) directory contains ready-to-use files:
 | [`examples/configs/versioning-ticket.yml`](examples/configs/versioning-ticket.yml) | Ticket format with Jira integration |
 | [`examples/configs/versioning-monorepo.yml`](examples/configs/versioning-monorepo.yml) | Monorepo with per-folder changelogs and grouped version files |
 | [`examples/bitbucket/bitbucket-pipelines.yml`](examples/bitbucket/bitbucket-pipelines.yml) | Full Bitbucket Pipelines example |
-| [`examples/github-actions/run-versioning.yml`](examples/github-actions/run-versioning.yml) | Reusable workflow — core versioning logic |
-| [`examples/github-actions/pr-versioning.yml`](examples/github-actions/pr-versioning.yml) | PR trigger caller |
-| [`examples/github-actions/tag-on-merge.yml`](examples/github-actions/tag-on-merge.yml) | Branch/tag trigger caller (requires GitHub App token — see [GitHub App setup](#github-app-setup-required-for-protected-main)) |
+| [`examples/github-actions/pr-versioning.yml`](examples/github-actions/pr-versioning.yml) | PR trigger — validates commits and generates CHANGELOG preview |
+| [`examples/github-actions/tag-on-merge.yml`](examples/github-actions/tag-on-merge.yml) | Main-branch trigger — creates version tag (requires GitHub App token — see [GitHub App setup](#github-app-setup-required-for-protected-main)) |
 
 ## CI/CD Architecture (for contributors and self-hosting)
 
