@@ -25,13 +25,17 @@ changelog:
   # Requires conventional commits with scoped messages: feat(scope): message
   per_folder:
     enabled: true
-    root_folders:
+    folders:
       - "projects"         # Look for subfolders inside projects/
     folder_pattern: "^[0-9]{3}-"  # Only match numbered folders: 001-service-api, 002-web
     # scope_matching options:
     #   "suffix" — folder "001-service-api" matches scope "service-api" (folder ends with scope)
     #   "exact"  — folder name must exactly equal the commit scope
     scope_matching: "suffix"
+    # fallback: where to route commits whose scope does not match any folder.
+    #   "root"      — unmatched commits go to the root CHANGELOG.md (safe default)
+    #   "file_path" — inspect the commit's modified file paths to infer the target folder
+    fallback: "root"
 
 version_file:
   enabled: true

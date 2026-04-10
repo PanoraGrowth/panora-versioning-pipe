@@ -7,6 +7,8 @@
 #   - All changelog link types enabled
 #   - Custom ticket link label
 #   - Version format with period, major, minor, and timestamp components
+#   - changelog.mode: control how much history ends up in the CHANGELOG
+#   - validation.ignore_patterns: skip noise commits during commit scanning
 #
 # Replace "your-org.atlassian.net" with your actual Jira instance hostname.
 # Replace "your-org/your-repo" with your actual repository path.
@@ -46,3 +48,21 @@ changelog:
   include_author: true
   commit_url: "https://github.com/your-org/your-repo/commit"
   ticket_link_label: "View in Jira"
+  # mode controls how much history is written on each run:
+  #   "last_commit" — only the commit that triggered the run (default, lean)
+  #   "full"        — every commit since the previous tag (fuller history)
+  mode: "last_commit"
+
+validation:
+  # Patterns (regex) skipped when scanning commits for validation.
+  # These defaults match merges, reverts, git fixup/squash markers and
+  # release/hotfix chore commits so they do not block validation.
+  # Override this list only if you want custom ignore rules — otherwise
+  # omit the block and inherit scripts/defaults.yml.
+  ignore_patterns:
+    - "^Merge"
+    - "^Revert"
+    - "^fixup!"
+    - "^squash!"
+    - "^chore\\(release\\)"
+    - "^chore\\(hotfix\\)"
