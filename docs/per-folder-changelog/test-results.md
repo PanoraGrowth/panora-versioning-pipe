@@ -1,13 +1,17 @@
-# Per-folder CHANGELOG — Test Results
+# Per-folder CHANGELOG — Historical Test Results (v0.2.2)
+
+> **Status**: Historical record. These are the original manual test results from the per-folder CHANGELOG feature stabilization in **v0.2.2** (2026-04-07). The feature is now covered by the automated test suite — see [`docs/tests/README.md`](../tests/README.md) for the current coverage. This file is kept for traceability of the three bugs found and fixed during the initial rollout; it is **not** kept in sync with newer releases.
+
+---
 
 Test execution results for the per-folder CHANGELOG routing feature.
 
-**Test plan reference:** `temp/999-testing/test-plan.md`, section 4.2
+**Test plan reference:** `temp/999-testing/test-plan.md`, section 4.2 _(internal)_
 **Execution date:** 2026-04-07
-**Pipe version tested:** v0.2.2 (Docker image `:latest`)
+**Pipe version tested:** v0.2.2 (Docker image `:latest` at the time)
 **Tester:** Claude + Agustin Manessi
 
-**Test repos:**
+**Test repos** _(one-off manual fixtures, no longer actively used)_:
 - GitHub: `PanoraGrowth/panora-versioning-pipe-test`
 - Bitbucket: `panoragrowth/panora-versioning-pipe-bitbucket`
 

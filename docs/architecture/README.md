@@ -1,6 +1,6 @@
 # Architecture
 
-**Last updated:** 2026-04-09
+**Last updated:** 2026-04-10 (v0.5.4)
 
 ---
 
@@ -25,7 +25,7 @@ Merge to tag branch (main or development)
         ├── generate-changelog-per-folder.sh  → per-folder CHANGELOGs (monorepo)
         ├── generate-changelog-last-commit.sh → root CHANGELOG
         ├── update-changelog.sh       → commit CHANGELOG (no push in branch context)
-        └── atomic push: CHANGELOG commit + git tag (single push, [skip ci])
+        └── atomic push: CHANGELOG commit + git tag (single push, CI-skip marker)
 ```
 
 The PR pipeline only validates. The branch pipeline does all the work: version calculation, CHANGELOG generation, and tag creation.
@@ -103,13 +103,13 @@ Versions are built from toggleable components:
 
 | Component | Bump trigger | Default |
 |-----------|-------------|---------|
-| v prefix | Config | off |
-| Period | Config change | off |
-| Major | Commit types: `feat`, `major`, `breaking`, `feature` | on |
-| Minor | Commit types: `fix`, `chore`, `docs`, `refactor`, `test`, etc. | on |
-| Timestamp | Auto-generated | on |
+| v prefix | `version.tag_prefix_v` | off |
+| Period | Manual / config change | off |
+| Major | Commit types with `bump: "major"` (defaults: `major`, `breaking`, `feat`, `feature`) | on |
+| Minor | Commit types with `bump: "minor"` (defaults: `minor`, `fix`, `hotfix`, `security`, `refactor`, `perf`, `docs`, `test`, `chore`, `build`, `ci`, `revert`, `style`) | on |
+| Timestamp | Auto-generated when no bump match | on |
 
-Only the LAST commit in a PR determines the version bump.
+Only the LAST commit in a PR determines the version bump. Commit types with `bump: "none"` skip tag creation entirely. Use `commit_type_overrides` to retune individual types without redefining the whole list (the pipe itself sets `docs: { bump: none }` in `.versioning.yml`).
 
 ---
 
@@ -128,13 +128,14 @@ When enabled, commits are routed to folder-specific CHANGELOGs based on their sc
 
 ```yaml
 changelog:
+  mode: "last_commit"          # "last_commit" (default) or "full"
   per_folder:
     enabled: true
     folders:
       - "backend"
       - "frontend"
-    scope_matching: "exact"
-    fallback: "file_path"
+    scope_matching: "exact"    # "exact" or "suffix"
+    fallback: "file_path"      # "root" (default) or "file_path"
 ```
 
 **Routing flow:**
@@ -164,28 +165,20 @@ See `docs/per-folder-changelog/README.md` for full documentation.
 
 ### GitHub Actions
 
-```yaml
-# PR validation + unit tests (only when core files change)
-on:
-  pull_request:
-    branches: [main]
-    paths: [scripts/**, pipe.sh, Dockerfile, tests/**, Makefile]
+The pipe ships with three workflows in `.github/workflows/`:
 
-# Tag creation on merge
-on:
-  push:
-    branches: [main]
+| Workflow | Trigger | Purpose |
+|----------|---------|---------|
+| `pr-versioning.yml` | `pull_request: [main]` | Validates commits and generates the CHANGELOG preview |
+| `tag-on-merge.yml` | `push: [main]` | Runs the branch pipeline, creates the version tag |
+| `publish.yml` | `workflow_run: [Main - Create Version Tag] / workflow_dispatch` | Builds the Docker image and pushes to GHCR + ECR Public |
+| `run-unit-tests.yml` | `pull_request` on core paths | Runs the bats unit-test suite |
 
-# Release (triggered by tag-on-merge completion)
-on:
-  workflow_run:
-    workflows: ["Main - Create Version Tag"]
-    types: [completed]
-```
+`tag-on-merge.yml` uses a GitHub App token (`CI_APP_ID` + `CI_APP_PRIVATE_KEY`) to push past branch protection and to re-trigger downstream workflows (the default `GITHUB_TOKEN` cannot do either).
 
-The pipe auto-detects GitHub Actions and maps `GITHUB_*` variables to `VERSIONING_*`.
+The pipe auto-detects GitHub Actions and maps `GITHUB_*` variables to `VERSIONING_*` internally (see `pipe.sh:39-54`).
 
-The branch pipeline's CHANGELOG commit uses `[skip ci]` to prevent re-triggering workflows. Tag + CHANGELOG are pushed atomically in a single `git push`.
+The branch pipeline's CHANGELOG commit uses the CI-skip marker to prevent re-triggering workflows. Tag + CHANGELOG are pushed atomically in a single `git push`.
 
 ### Bitbucket Pipelines
 
@@ -254,7 +247,7 @@ Tags: :latest, :vX.Y.Z (version-specific)
 
 1. **Last commit only for bumps**: only the last commit determines the version bump type. `changelog.mode: "full"` shows all commits in the CHANGELOG, but the bump is still from the last commit only.
 
-2. **Patch component not implemented**: `version.components.patch` exists in config but has no bump logic.
+2. **No patch component**: `period`, `major`, `minor`, and `timestamp` are the only version components. There is no `patch` component.
 
 3. **config_get_array and spaces**: array values with spaces in config (like regex patterns) will be split incorrectly. Avoid spaces in `ignore_patterns`.
 

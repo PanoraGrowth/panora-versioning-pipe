@@ -93,6 +93,7 @@ Optional variables:
 |----------|---------|-------------|
 | `GIT_USER_NAME` | `CI Pipeline` | Git author name for automated commits (changelog, version file) |
 | `GIT_USER_EMAIL` | `ci@panora-versioning-pipe.noreply` | Git author email for automated commits |
+| `CI_GITHUB_TOKEN` | _(none)_ | GitHub App installation token used for push back to a protected branch. Required by the `tag-on-merge` workflow when `main` is protected — see [GitHub App setup](#github-app-setup-required-for-protected-main). |
 | `TEAMS_WEBHOOK_URL` | _(none)_ | Microsoft Teams incoming webhook URL for notifications |
 | `BITBUCKET_API_TOKEN` | _(none)_ | Bitbucket app password for build status reporting (adapter only) |
 
@@ -134,13 +135,10 @@ version:
       enabled: false   # First component — manually bumped integer (e.g. 1 in 1.3.20240115)
       initial: 0
     major:
-      enabled: true    # Second component — bumped by "major" commit type
+      enabled: true    # Second component — bumped by commit types with bump: "major"
       initial: 0
     minor:
-      enabled: true    # Third component — bumped by "minor" commit type
-      initial: 0
-    patch:
-      enabled: false   # Fourth component (rarely used alongside timestamp)
+      enabled: true    # Third component — bumped by commit types with bump: "minor"
       initial: 0
     timestamp:
       enabled: true    # Auto-generated timestamp appended to version
@@ -155,25 +153,27 @@ version:
 
 ### commit_types
 
-The default commit type list is built-in and covers the most common types. You can override it in your `.versioning.yml`:
+The default commit type list is built-in and covers the most common types. You can override individual fields per type via `commit_type_overrides` (see [`examples/configs/versioning-conventional.yml`](examples/configs/versioning-conventional.yml)) or replace the whole list via `commit_types:` in your `.versioning.yml`.
 
-| Type | Changelog group | Version bump |
+| Type | Changelog group | Default bump |
 |------|-----------------|--------------|
-| `major` | Breaking Changes | Increments Major, resets Minor |
-| `minor` | Release | Increments Minor |
-| `feat` / `feature` | Features | Timestamp update only |
-| `fix` | Bug Fixes | Timestamp update only |
-| `hotfix` | Hotfixes | Timestamp update only |
-| `security` | Security | Timestamp update only |
-| `refactor` | Refactoring | Timestamp update only |
-| `perf` | Performance | Timestamp update only |
-| `docs` | Documentation | Timestamp update only |
-| `test` | Testing | Timestamp update only |
-| `chore` | Chores | Timestamp update only |
-| `build` | Build | Timestamp update only |
-| `ci` | CI/CD | Timestamp update only |
-| `revert` | Reverts | Timestamp update only |
-| `style` | Style | Timestamp update only |
+| `major` / `breaking` | Breaking Changes | `major` — increments Major, resets Minor |
+| `feat` / `feature` | Features | `major` |
+| `minor` | Release | `minor` — increments Minor |
+| `fix` | Bug Fixes | `minor` |
+| `hotfix` | Hotfixes | `minor` |
+| `security` | Security | `minor` |
+| `refactor` | Refactoring | `minor` |
+| `perf` | Performance | `minor` |
+| `docs` | Documentation | `minor` |
+| `test` | Testing | `minor` |
+| `chore` | Chores | `minor` |
+| `build` | Build | `minor` |
+| `ci` | CI/CD | `minor` |
+| `revert` | Reverts | `minor` |
+| `style` | Style | `minor` |
+
+Set a type's `bump` to `"none"` to keep a commit type out of version bumps entirely (common choice for `docs`). When only the last commit determines the bump and that commit is bump `none`, no tag is created.
 
 ### changelog
 
@@ -189,12 +189,15 @@ changelog:
   commit_url: ""                # e.g. "https://github.com/your-org/your-repo/commit"
   ticket_link_label: "View ticket"  # Label for ticket links in changelog entries
 
+  mode: "last_commit"           # "last_commit" (default) or "full" (all commits since last tag)
+
   # Per-folder changelogs (monorepo mode — requires commits.format: "conventional")
   per_folder:
     enabled: false
-    root_folders: []            # Folders to scan for subfolders, e.g. ["projects", "services"]
-    folder_pattern: ""          # Regex to filter subfolders, e.g. "^[0-9]{3}-"
+    folders: []                 # Folders that get their own CHANGELOG, e.g. ["backend", "frontend"]
+    folder_pattern: ""          # Regex to filter subfolders (suffix mode), e.g. "^[0-9]{3}-"
     scope_matching: "suffix"    # "suffix": scope matches folder suffix; "exact": scope = folder name
+    fallback: "root"            # "root" or "file_path" — behavior when scope doesn't match
 ```
 
 ### validation
@@ -291,11 +294,16 @@ Toggle individual components on or off via `version.components.<component>.enabl
 
 ### Bump rules
 
-| Commit type | Effect |
-|-------------|--------|
+Only the **last commit** in the PR determines the bump. Each commit type has a `bump` field (see the table above) and the pipe resolves the bump from that field:
+
+| `bump` value | Effect |
+|--------------|--------|
 | `major` | Increments Major, resets Minor to 0 |
 | `minor` | Increments Minor |
-| Any other type (`feat`, `fix`, `docs`, …) | Timestamp update only (Major and Minor unchanged) |
+| `none` | No tag created (commit is still recorded in CHANGELOG) |
+| _unset / not matched_ | Timestamp update only (Major and Minor unchanged) — requires `timestamp` component enabled |
+
+With the defaults, `feat` / `feature` bump major, and `fix` / `refactor` / `chore` / etc. bump minor. Override individual types via `commit_type_overrides` — a common pattern is `docs: { bump: "none" }` to keep documentation PRs from triggering releases.
 
 ## Commit Formats
 
@@ -324,7 +332,7 @@ The scope (in parentheses) is optional. It is used for per-folder changelog grou
 
 ## GitHub Actions
 
-Two single-job workflows — one for PRs, one for tag-on-merge. The pipe auto-detects all required context (`GITHUB_EVENT_NAME`, `GITHUB_HEAD_REF`, `GITHUB_BASE_REF`, `GITHUB_REF_NAME`, `GITHUB_SHA`, `GITHUB_EVENT_PATH`) from the Actions environment, so no explicit `VERSIONING_*` env vars are needed in the workflow.
+Two single-job workflows — one for PRs, one for tag-on-merge. The pipe auto-detects all required context (`GITHUB_EVENT_NAME`, `GITHUB_HEAD_REF`, `GITHUB_BASE_REF`, `GITHUB_REF_NAME`, `GITHUB_SHA`, `GITHUB_EVENT_PATH`) from the Actions environment, so no explicit `VERSIONING_*` env vars are needed in the workflow. Copy these straight into `.github/workflows/` — they are identical to what the pipe itself runs on this repo.
 
 ```yaml
 # .github/workflows/pr-versioning.yml (PR trigger)
@@ -471,9 +479,9 @@ PR merged to main
 
 GitHub Actions does not trigger workflows from tags created by other workflows using `GITHUB_TOKEN` — this is an intentional limitation to prevent infinite loops. Instead of working around this with a Personal Access Token, the publish workflow uses `workflow_run` to chain after `tag-on-merge` completes. This keeps the workflows sequential (like Bitbucket Pipelines) without extra secrets.
 
-### Path filtering
+### Skipping the versioning run
 
-`tag-on-merge.yml` uses `paths-ignore` to skip documentation-only changes. Since `publish.yml` triggers via `workflow_run` (not on push), it inherits this filtering — if `tag-on-merge` doesn't run, `publish` doesn't run either.
+`tag-on-merge.yml` does not use `paths-ignore` — every push to `main` is considered a release candidate. The pipe has its own internal short-circuits (bump `none`, no new commits since last tag, or a commit subject that matches `validation.ignore_patterns`) and the CHANGELOG commit it creates is tagged with the CI-skip marker to prevent re-triggering itself.
 
 ### Manual trigger
 
