@@ -2,6 +2,8 @@
 
 Unit tests and integration tests validated before every release.
 
+**As of v0.5.4**: 207 unit tests (bats-core) and 8 end-to-end integration scenarios, run against both GitHub and Bitbucket.
+
 ---
 
 ## What we test

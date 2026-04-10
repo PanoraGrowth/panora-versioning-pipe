@@ -31,19 +31,30 @@ Thank you for your interest in contributing. This document covers how to set up 
 
 ## Local Testing
 
-The pipe expects Bitbucket-compatible environment variables. To test a PR pipeline scenario locally:
+For day-to-day development, exercise the pipe via the automated unit tests (Dockerised bats suite) and the integration tests that drive real repositories on GitHub and Bitbucket:
 
 ```bash
-BITBUCKET_PR_ID=1 \
-BITBUCKET_BRANCH=feature/my-branch \
-BITBUCKET_PR_DESTINATION_BRANCH=development \
-BITBUCKET_COMMIT=abc1234 \
-make run
+make test                      # bats unit tests in Docker
+make test-integration          # GitHub integration scenarios (requires gh CLI)
+make test-integration-bitbucket # Bitbucket integration scenarios (requires BB_TOKEN)
 ```
 
-The `make run` target mounts your current directory as `/workspace` inside the container. Place a `.versioning.yml` in the directory you run from to test different configurations.
+See `docs/tests/README.md` for the full test-coverage reference.
 
-See `examples/` for ready-to-use config examples.
+For manual spot-checks you can also drive the container directly. `make shell` drops you into an interactive shell with the current directory mounted at `/workspace`, where you can export the generic `VERSIONING_*` variables and run `/pipe/pipe.sh` by hand:
+
+```bash
+make shell
+
+# inside the container
+export VERSIONING_PR_ID=1
+export VERSIONING_BRANCH=feature/my-branch
+export VERSIONING_TARGET_BRANCH=main
+export VERSIONING_COMMIT=$(git rev-parse HEAD)
+/pipe/pipe.sh
+```
+
+Place a `.versioning.yml` in the directory you run from to test different configurations. See `examples/configs/` for ready-to-use config examples.
 
 ## Linting
 
