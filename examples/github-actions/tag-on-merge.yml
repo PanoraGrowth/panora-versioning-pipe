@@ -1,0 +1,81 @@
+# Tag on merge — create version tag + CHANGELOG when a push lands on main
+# Copy this to .github/workflows/tag-on-merge.yml
+#
+# ------------------------------------------------------------------------------
+# GitHub App token — REQUIRED for any repo with a protected main branch
+# ------------------------------------------------------------------------------
+# The default GITHUB_TOKEN cannot push commits and tags to a branch protected
+# against push-with-GITHUB_TOKEN, and cannot re-trigger downstream workflows
+# from its own pushes. This workflow therefore generates a short-lived token
+# from a GitHub App installed on the repo and uses it for both checkout and
+# the pipe's push operations.
+#
+# Required secrets (configure in repo Settings → Secrets and variables → Actions):
+#   - CI_APP_ID          → numeric App ID of the GitHub App
+#   - CI_APP_PRIVATE_KEY → PEM private key generated for the App
+#
+# See the "GitHub App setup" section of the panora-versioning-pipe README for
+# step-by-step instructions on creating and installing the App.
+#
+# ------------------------------------------------------------------------------
+# Atomic push + [skip ci] behavior
+# ------------------------------------------------------------------------------
+# The pipe creates the CHANGELOG commit with a `[skip ci]` marker in the subject
+# and pushes the commit and the version tag atomically in a single `git push`.
+# This prevents infinite CI loops (the CHANGELOG push does NOT re-trigger this
+# workflow) while keeping the tag and CHANGELOG consistent at all times.
+#
+# ------------------------------------------------------------------------------
+# Single-job inline pattern
+# ------------------------------------------------------------------------------
+# This file does NOT call the reusable run-versioning.yml. Instead, token
+# generation, checkout, and the pipe Docker run all live as linear steps in a
+# single job. This mirrors the pipe's own .github/workflows/tag-on-merge.yml
+# and is required because GitHub Actions does not allow mixing `steps:` and
+# `uses:` in the same job. The Docker image reference is intentionally
+# duplicated between this file and run-versioning.yml — the trade-off is a
+# dramatically simpler consumer workflow.
+# ------------------------------------------------------------------------------
+
+name: Main - Create Version Tag
+
+on:
+  push:
+    branches:
+      - main            # Change to your tag branch (must match .versioning.yml branches.tag_on)
+    paths-ignore:
+      - 'LICENSE'
+
+permissions:
+  contents: write
+
+jobs:
+  versioning:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate CI token
+        id: ci-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.CI_APP_ID }}
+          private-key: ${{ secrets.CI_APP_PRIVATE_KEY }}
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: main
+          token: ${{ steps.ci-token.outputs.token }}
+
+      # Public consumer image — hosted on ECR Public for zero-auth access.
+      # The `k5n8p2t3` alias is AWS auto-generated and will transition to
+      # `panoragrowth` once AWS approves the custom alias; the image will
+      # be available at both paths during the transition.
+      # In production, pin to a specific version tag (e.g. :v0.5.0) instead
+      # of :latest to get reproducible builds.
+      - name: Run versioning pipe
+        uses: docker://public.ecr.aws/k5n8p2t3/panora-versioning-pipe:latest
+        env:
+          VERSIONING_BRANCH: main
+          VERSIONING_COMMIT: ${{ github.sha }}
+          CI_GITHUB_TOKEN: ${{ steps.ci-token.outputs.token }}
