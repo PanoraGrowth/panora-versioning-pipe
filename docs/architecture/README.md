@@ -111,6 +111,15 @@ Versions are built from toggleable components:
 
 Only the LAST commit in a PR determines the version bump. Commit types with `bump: "none"` skip tag creation entirely. Use `commit_type_overrides` to retune individual types without redefining the whole list (the pipe itself sets `docs: { bump: none }` in `.versioning.yml`).
 
+### Bump calculation semantics
+
+The pipe uses **last-commit-wins** semantics: only the most recent commit in the range drives the bump. Older commits in the range are invisible to the bump calculator. This is **intentional** and differs from semantic-release, release-please, and standard-version, which use **highest-bump-wins**.
+
+- **Squash merge** (recommended): there is only one commit in the range, so last-wins and highest-wins are identical. No surprise.
+- **Merge commit / rebase-and-merge**: commits `[feat: big, fix: small]` in that chronological order produce a **minor** bump from `fix:`, silently losing the `feat:`. Consumers using merge commits must either keep the highest-impact commit last, or switch to squash merge.
+
+**Recommendation for consumers:** configure the watched branch to use **squash merge**. The rule lives at `scripts/versioning/calculate-version.sh:100-107` and is locked by the integration scenario `multi-commit-last-wins` in `tests/integration/test-scenarios.yml` (introduced in PR #38).
+
 ---
 
 ## CHANGELOG system
@@ -245,7 +254,7 @@ Tags: :latest, :vX.Y.Z (version-specific)
 
 ## Known limitations
 
-1. **Last commit only for bumps**: only the last commit determines the version bump type. `changelog.mode: "full"` shows all commits in the CHANGELOG, but the bump is still from the last commit only.
+1. **Last commit only for bumps**: only the last commit determines the version bump type. `changelog.mode: "full"` shows all commits in the CHANGELOG, but the bump is still from the last commit only. See "Bump calculation semantics" above for the rationale and the squash-merge recommendation.
 
 2. **No patch component**: `period`, `major`, `minor`, and `timestamp` are the only version components. There is no `patch` component.
 
