@@ -125,3 +125,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: 61924f8](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/61924f8fbbb1bcd0bad4954bf9378cb8c840ef80)
 
 
+## v0.5.3 - 2026-04-10
+
+- 🔨 refactor(workflows): inline PR reusable and drop redundant env vars (#35)
+  - _Agustín Manessi_
+  - [Commit: e6d8118](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/e6d81189d96274bb6d7e6d2fced816941cccf867)
+
+
