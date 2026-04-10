@@ -377,20 +377,59 @@ jobs:
 ```
 
 ```yaml
-# .github/workflows/branch-versioning.yml (branch/tag caller)
+# .github/workflows/tag-on-merge.yml (branch/tag caller)
 on:
   push:
-    branches: [development]
+    branches: [main]
 
 jobs:
+  ci-token:
+    runs-on: ubuntu-latest
+    outputs:
+      token: ${{ steps.ci-token.outputs.token }}
+    steps:
+      - id: ci-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.CI_APP_ID }}
+          private-key: ${{ secrets.CI_APP_PRIVATE_KEY }}
+
   versioning:
+    needs: ci-token
     uses: ./.github/workflows/run-versioning.yml
     with:
       branch: ${{ github.ref_name }}
       commit: ${{ github.sha }}
+      github_token: ${{ needs.ci-token.outputs.token }}
 ```
 
 See [`examples/github-actions/`](examples/github-actions/) for ready-to-use versions of these files.
+
+### GitHub App setup (required for protected main)
+
+The `tag-on-merge.yml` workflow needs to push a CHANGELOG commit and a version tag back to `main`. The default `GITHUB_TOKEN` cannot do this when `main` is protected, and it cannot re-trigger downstream workflows from its own pushes. A short-lived GitHub App token solves both problems.
+
+**Steps**:
+
+1. Create a GitHub App in your organization (Settings → Developer settings → GitHub Apps → New GitHub App). Minimal permissions: **Repository → Contents: Read & write**, **Repository → Metadata: Read-only**. No webhook needed.
+2. Generate a private key for the App and download the PEM file.
+3. Install the App on the consumer repository (App settings → Install App).
+4. Add two secrets to the consumer repo (Settings → Secrets and variables → Actions):
+   - `CI_APP_ID` — the numeric App ID
+   - `CI_APP_PRIVATE_KEY` — the full PEM contents
+5. The example `tag-on-merge.yml` already wires these secrets via `actions/create-github-app-token@v1`:
+
+```yaml
+- id: ci-token
+  uses: actions/create-github-app-token@v1
+  with:
+    app-id: ${{ secrets.CI_APP_ID }}
+    private-key: ${{ secrets.CI_APP_PRIVATE_KEY }}
+```
+
+The generated token is masked in logs, scoped to the installation, and expires in ~1 hour. The reusable `run-versioning.yml` receives it via the optional `github_token` input and passes it both to `actions/checkout` and to the pipe as `CI_GITHUB_TOKEN`.
+
+> The PR pipeline (`pr-versioning.yml`) does NOT need the App token — the default `GITHUB_TOKEN` with `contents: write` is enough because it only validates commits and pushes CHANGELOG updates to the PR head branch.
 
 ## Monorepo Support
 
@@ -430,7 +469,7 @@ The [`examples/`](examples/) directory contains ready-to-use files:
 | [`examples/bitbucket/bitbucket-pipelines.yml`](examples/bitbucket/bitbucket-pipelines.yml) | Full Bitbucket Pipelines example |
 | [`examples/github-actions/run-versioning.yml`](examples/github-actions/run-versioning.yml) | Reusable workflow — core versioning logic |
 | [`examples/github-actions/pr-versioning.yml`](examples/github-actions/pr-versioning.yml) | PR trigger caller |
-| [`examples/github-actions/branch-versioning.yml`](examples/github-actions/branch-versioning.yml) | Branch/tag trigger caller |
+| [`examples/github-actions/tag-on-merge.yml`](examples/github-actions/tag-on-merge.yml) | Branch/tag trigger caller (requires GitHub App token — see [GitHub App setup](#github-app-setup-required-for-protected-main)) |
 
 ## CI/CD Architecture (for contributors and self-hosting)
 
