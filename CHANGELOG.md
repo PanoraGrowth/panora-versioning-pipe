@@ -139,3 +139,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: effbfae](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/effbfaed7277cad50a5ddd5a40a0383e9e8bf29e)
 
 
+## v0.5.5 - 2026-04-10
+
+- 🐛 fix(docs): align public documentation with v0.5.4 state (#37)
+  - _Agustín Manessi_
+  - [Commit: fad391b](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/fad391b8ff805d4fefae20a0aabf2ff841d7631f)
+
+
