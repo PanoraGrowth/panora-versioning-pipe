@@ -1,0 +1,53 @@
+name: Release Readiness Gate
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  release-readiness:
+    name: Release Readiness
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.head_ref }}
+
+      - name: Ensure base ref is available
+        run: git fetch origin ${{ github.base_ref }} --depth=0 || git fetch origin ${{ github.base_ref }}
+
+      - name: Install yq
+        run: |
+          if ! command -v yq >/dev/null 2>&1; then
+            sudo wget -q -O /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+            sudo chmod +x /usr/local/bin/yq
+          fi
+          yq --version
+
+      - name: Run release readiness checks
+        id: checks
+        env:
+          BASE_REF: origin/${{ github.base_ref }}
+        run: bash scripts/release/check-release-readiness.sh | tee /tmp/release-readiness.log
+
+      - name: Post PR comment
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          status='${{ job.status }}'
+          {
+            echo "### Release Readiness Gate — ${status}"
+            echo
+            echo '```'
+            cat /tmp/release-readiness.log
+            echo '```'
+          } > /tmp/comment.md
+          gh pr comment "$PR_NUMBER" --body-file /tmp/comment.md
