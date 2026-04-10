@@ -40,8 +40,6 @@ on:
   push:
     branches:
       - main            # Change to your tag branch (must match .versioning.yml branches.tag_on)
-    paths-ignore:
-      - 'LICENSE'
 
 permissions:
   contents: write
