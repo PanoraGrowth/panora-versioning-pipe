@@ -83,6 +83,27 @@ Valid types: `feat`, `fix`, `docs`, `test`, `chore`, `refactor`, `perf`, `ci`, `
 
 The last commit in a PR must include a type. Intermediate commits may be untyped (merge commits, fixups).
 
+## Commit Message Hygiene
+
+GitHub Actions scans commit messages for workflow-skip directives like `[skip ci]`, `[ci skip]`, `[no ci]`, `[skip actions]`, and `[actions skip]`. The match is a **plain substring check** — it does not distinguish a directive from prose that happens to include the same characters. If any of these strings appears anywhere in the subject or body of a push commit, every workflow on that push is silently skipped.
+
+This matters in two very different places:
+
+1. **Intentional — the pipe itself**. `scripts/changelog/update-changelog.sh` deliberately writes `[skip ci]` in the CHANGELOG commit subject so that the atomic tag-and-changelog push from `tag-on-merge.yml` does not re-trigger itself into an infinite loop. This is the pipe's internal circuit breaker and must never be removed.
+2. **Accidental — in PR commit messages**. When you describe the pipe's behavior in a commit message or PR body (for example, explaining how the atomic push works), do NOT paste the literal directive string as prose. GitHub will substring-match it, skip the workflow on merge, and the PR will land on main without triggering `tag-on-merge.yml` — no tag, no CHANGELOG, no release.
+
+**Safe alternatives when documenting the behavior in commits or PR bodies**:
+
+- `skip-ci` (with a dash)
+- `"skip ci"` (in quotes, without the square brackets)
+- "the CI skip directive"
+- "the atomic push marker"
+- "the workflow-skip pragma"
+
+**Incident context**: PR #34 was merged to `main` without a tag because its commit body contained the literal substring as descriptive prose. GitHub's substring match skipped `tag-on-merge.yml`, leaving the change untagged. The fix was to bundle PR #34 into the next release (PR #35). If you hit the same gotcha, open a follow-up PR whose merge triggers the missed tagging — do not try to re-run the skipped workflow manually.
+
+File contents (READMEs, YAML comments, shell scripts) are **not** scanned — only commit messages and the subject line of the HEAD commit on a push. You can freely write the literal directive inside a file like this `CONTRIBUTING.md` for educational purposes. Just keep it out of the git log.
+
 ## Pull Request Process
 
 1. Create a feature branch from `main`:
