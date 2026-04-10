@@ -118,3 +118,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: 407470a](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/407470a80316b30d94ad00cc7724591e4be74371)
 
 
+## v0.5.2 - 2026-04-10
+
+- 🐛 fix(examples): align configs with v0.5.0 features (#33)
+  - _Agustín Manessi_
+  - [Commit: 61924f8](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/61924f8fbbb1bcd0bad4954bf9378cb8c840ef80)
+
+
