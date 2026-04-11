@@ -126,7 +126,7 @@ scenarios:
   # --- Hotfix flow ---
 
   - name: hotfix-from-production-branch
-    description: "hotfix-typed commit targeting main — PR check validates the 'hotfix' commit type without merging. tag_created:false routes this to the PR-only test path (NO_MERGE_SCENARIOS), so no tag is created and the hotfix scripts are not exercised end-to-end (they are not currently wired into the pipelines at v0.5.5; see tests/unit/changelog/hotfix.bats for direct coverage of the generator)."
+    description: "hotfix-typed commit targeting main — PR check validates the 'hotfix' commit type without merging. tag_created:false routes this to the PR-only test path (NO_MERGE_SCENARIOS)."
     commits:
       - message: "hotfix(security): patch critical auth bug"
         files:
@@ -134,3 +134,45 @@ scenarios:
     expected:
       pr_check: pass
       tag_created: false
+
+  - name: hotfix-to-main-with-patch-bump
+    description: "Full hotfix wire-up end-to-end: a hotfix/ branch is merged to main (squash), the pipe bumps PATCH (not MINOR), tags v*.*.*.1, and the CHANGELOG header carries the (Hotfix) marker."
+    merge_method: squash
+    # GitHub-specific: exercises the scenario + PATCH routing via the GH test
+    # harness (config_override, branch_prefix, pr_title, changelog_section_marker
+    # are only implemented in test_github.py for now).
+    skip_bitbucket: true
+    branch_prefix: "hotfix/auto"
+    # PR title must start with 'hotfix:' so the squash merge subject carries
+    # the signal — branch-context detect-scenario.sh inspects the merge-commit
+    # subject via its commit-type convention path (gh API fallback is not
+    # available inside the pipe's Alpine Docker image).
+    pr_title: "hotfix: wire-up patch bump integration test"
+    config_override:
+      version:
+        tag_prefix_v: true
+        components:
+          period:
+            enabled: true
+            initial: 0
+          major:
+            enabled: true
+            initial: 0
+          minor:
+            enabled: true
+            initial: 0
+          patch:
+            enabled: true
+            initial: 0
+          timestamp:
+            enabled: false
+    commits:
+      - message: "hotfix: wire-up patch bump integration test"
+        files:
+          test-artifact.txt: "hotfix patch test"
+    expected:
+      pr_check: pass
+      tag_created: true
+      tag_pattern: '^v\d+\.\d+\.\d+\.1$'
+      changelog_contains: "wire-up patch bump integration test"
+      changelog_section_marker: "(Hotfix)"

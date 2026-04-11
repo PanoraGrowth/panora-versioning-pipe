@@ -22,7 +22,7 @@ import yaml
 from conftest import load_scenarios, scenario_ids
 
 
-SCENARIOS = load_scenarios()
+SCENARIOS = [s for s in load_scenarios() if not s.get("skip_bitbucket", False)]
 
 # Separate scenarios that merge (create tags) from those that don't
 MERGE_SCENARIOS = [s for s in SCENARIOS if s["expected"].get("tag_created", False)]

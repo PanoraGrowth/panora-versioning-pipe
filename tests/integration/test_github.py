@@ -34,21 +34,30 @@ class TestPRValidation:
     @pytest.mark.parametrize("scenario", NO_MERGE_SCENARIOS,
                              ids=scenario_ids(NO_MERGE_SCENARIOS))
     def test_pr_check(self, github, run_id, scenario):
-        branch = f"test/auto-{scenario['name']}-{run_id}"
+        branch_prefix = scenario.get("branch_prefix", "test/auto")
+        branch = f"{branch_prefix}-{scenario['name']}-{run_id}"
+        pr_title = scenario.get("pr_title", f"test: {scenario['name']}")
         pr_number = None
 
         try:
             github.create_branch(branch)
 
-            for commit in scenario["commits"]:
+            config_override = scenario.get("config_override")
+            commits = scenario["commits"]
+            for idx, commit in enumerate(commits):
+                files = dict(commit.get("files", {"test-artifact.txt": "test"}))
+                if config_override and idx == 0:
+                    import yaml
+                    files[".versioning.yml"] = yaml.safe_dump(
+                        config_override, default_flow_style=False, sort_keys=False
+                    )
                 github.create_commit(
                     branch=branch,
                     message=commit["message"],
-                    files=commit.get("files", {"test-artifact.txt": "test"}),
+                    files=files,
                 )
 
-            pr = github.create_pr(head=branch, base="main",
-                                  title=f"test: {scenario['name']}")
+            pr = github.create_pr(head=branch, base="main", title=pr_title)
             pr_number = pr["number"]
 
             check_result = github.wait_for_checks(pr_number)
@@ -73,7 +82,13 @@ class TestMergeAndTag:
     @pytest.mark.parametrize("scenario", MERGE_SCENARIOS,
                              ids=scenario_ids(MERGE_SCENARIOS))
     def test_merge_creates_tag(self, github, run_id, scenario):
-        branch = f"test/auto-{scenario['name']}-{run_id}"
+        # Scenarios may override the branch prefix (e.g. hotfix scenarios need
+        # the hotfix/ prefix so PR-context detection routes correctly) and the
+        # PR title (squash merges take the PR title as the commit subject,
+        # which drives branch-context hotfix detection).
+        branch_prefix = scenario.get("branch_prefix", "test/auto")
+        branch = f"{branch_prefix}-{scenario['name']}-{run_id}"
+        pr_title = scenario.get("pr_title", f"test: {scenario['name']}")
         pr_number = None
         created_tag = None
 
@@ -81,16 +96,26 @@ class TestMergeAndTag:
             # 1. Create branch and commits
             github.create_branch(branch)
 
-            for commit in scenario["commits"]:
+            # Apply config_override by injecting .versioning.yml into the FIRST
+            # scenario commit. The pipe reads the working-tree config at
+            # run time, so committing the override on the branch is enough.
+            config_override = scenario.get("config_override")
+            commits = scenario["commits"]
+            for idx, commit in enumerate(commits):
+                files = dict(commit.get("files", {"test-artifact.txt": "test"}))
+                if config_override and idx == 0:
+                    import yaml
+                    files[".versioning.yml"] = yaml.safe_dump(
+                        config_override, default_flow_style=False, sort_keys=False
+                    )
                 github.create_commit(
                     branch=branch,
                     message=commit["message"],
-                    files=commit.get("files", {"test-artifact.txt": "test"}),
+                    files=files,
                 )
 
             # 2. Create PR and wait for checks
-            pr = github.create_pr(head=branch, base="main",
-                                  title=f"test: {scenario['name']}")
+            pr = github.create_pr(head=branch, base="main", title=pr_title)
             pr_number = pr["number"]
 
             check_result = github.wait_for_checks(pr_number)
@@ -151,6 +176,18 @@ class TestMergeAndTag:
                 key_part = expected.split(": ", 1)[-1] if ": " in expected else expected
                 assert key_part in content, (
                     f"Expected '{key_part}' not found in {changelog_path}"
+                )
+
+            # 9. Verify CHANGELOG section marker (e.g. "(Hotfix)" for hotfix releases)
+            if "changelog_section_marker" in scenario["expected"]:
+                marker = scenario["expected"]["changelog_section_marker"]
+                changelog_path = scenario["expected"].get(
+                    "changelog_location", "CHANGELOG.md"
+                )
+                content = github.get_file_content(changelog_path)
+                assert content is not None, f"{changelog_path} not found"
+                assert marker in content, (
+                    f"Expected marker '{marker}' not found in {changelog_path}"
                 )
 
         finally:

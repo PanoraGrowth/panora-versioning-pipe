@@ -31,6 +31,14 @@ if [ "$VERSIONING_BRANCH" != "$TAG_BRANCH" ]; then
 fi
 
 # ============================================================================
+# Detect scenario (development_release vs hotfix_to_main) for the commit being
+# released. Writes /tmp/scenario.env which calculate-version.sh and the
+# CHANGELOG scripts downstream consume. MUST run before calculate-version.sh
+# so hotfix routing drives the PATCH bump.
+# ============================================================================
+"${AUTOMATIONS_DIR}/detection/detect-scenario.sh"
+
+# ============================================================================
 # Calculate version (writes /tmp/next_version.txt, /tmp/bump_type.txt, /tmp/latest_tag.txt)
 # ============================================================================
 "${AUTOMATIONS_DIR}/versioning/calculate-version.sh"
@@ -56,8 +64,7 @@ echo ""
 # Generate CHANGELOG + version files (before tag creation)
 # ============================================================================
 
-# Set context for changelog scripts
-echo "SCENARIO=development_release" > /tmp/scenario.env
+# /tmp/scenario.env was populated by detect-scenario.sh above; reuse it as-is
 export CHANGELOG_BASE_REF="${LATEST_TAG}"
 
 echo ""

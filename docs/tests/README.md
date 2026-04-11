@@ -2,7 +2,7 @@
 
 Unit tests and integration tests validated before every release.
 
-**As of v0.5.5**: 219 unit tests (bats-core) and 9 end-to-end integration scenarios, run against both GitHub and Bitbucket.
+**As of ticket 024 (hotfix wire-up)**: 272 unit tests (bats-core) and 10 end-to-end integration scenarios. Integration scenarios run against both GitHub and Bitbucket except for the hotfix-to-main-with-patch-bump scenario, which is GitHub-only while the bitbucket harness catches up with `branch_prefix` / `pr_title` / `config_override` support.
 
 ---
 
@@ -18,11 +18,13 @@ Unit tests and integration tests validated before every release.
 
 ### Version Calculation
 
-- Tag pattern generation for all component combinations (period, major, minor, timestamp)
-- Version string building from components
-- Tag parsing and component extraction
+- Tag pattern generation for all component combinations (period, major, minor, patch, timestamp)
+- Version string building from components, including the opt-in PATCH component
+- Tag parsing and component extraction for v0.5.9 and v0.5.9.1 forms
 - Timestamp-based tag handling
 - v-prefix support
+- Hotfix PATCH bump routing (scenario-driven, separate from last-commit-wins)
+- PATCH reset on major/minor bumps, backward-compat fallback when patch is disabled
 
 ### Commit Validation
 
@@ -42,6 +44,7 @@ Unit tests and integration tests validated before every release.
 - Hotfix → production = hotfix changelog
 - Unknown target branch = no action
 - Custom branch names (dev, staging, master, emergency/)
+- **Branch context** (post-merge, no PR target): hotfix detection via commit-type convention (`hotfix:` / `hotfix(...)`) and GitHub API PR lookup fallback
 
 ### Platform Detection
 
@@ -72,13 +75,14 @@ These tests run against real repositories, creating actual PRs, merging, and ver
 - **Multi-commit PR → highest bump wins**: PR with fix + feat = major bump (feat wins)
 - **Invalid commit format → PR validation fails**: non-conventional commit is rejected
 - **Hotfix from production branch → PR check only**: validates the `hotfix` commit type through PR validation without merging (no tag created)
+- **Hotfix to main with PATCH bump → full end-to-end**: opts into the PATCH component via `config_override`, merges a `hotfix:` commit squash-style from a `hotfix/auto-*` branch, and verifies the resulting tag ends in `.1` and the CHANGELOG section header carries the `(Hotfix)` marker (GitHub only at v0.5.10)
 
 ---
 
 ## Platforms
 
-- **GitHub Actions** — unit tests + integration tests (9 scenarios)
-- **Bitbucket Pipelines** — unit tests + integration tests (9 scenarios, same `test-scenarios.yml`)
+- **GitHub Actions** — unit tests + integration tests (10 scenarios)
+- **Bitbucket Pipelines** — unit tests + integration tests (9 scenarios, same `test-scenarios.yml`; the hotfix wire-up scenario is `skip_bitbucket: true` pending harness parity)
 
 ### Bitbucket integration notes
 

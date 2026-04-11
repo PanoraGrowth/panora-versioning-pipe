@@ -140,6 +140,12 @@ version:
     minor:
       enabled: true    # Third component — bumped by commit types with bump: "minor"
       initial: 0
+    patch:
+      enabled: false   # Opt-in 4th component used by the hotfix flow. When enabled,
+                       # hotfix_to_main / hotfix_to_preprod scenarios bump PATCH instead
+                       # of MINOR. Rendered only when > 0 (v0.5.9 stays v0.5.9 until a
+                       # hotfix lands, then becomes v0.5.9.1). See "Hotfix flow" below.
+      initial: 0
     timestamp:
       enabled: true    # Auto-generated timestamp appended to version
       format: "%Y%m%d%H%M%S"
@@ -161,7 +167,7 @@ The default commit type list is built-in and covers the most common types. You c
 | `feat` / `feature` | Features | `major` |
 | `minor` | Release | `minor` — increments Minor |
 | `fix` | Bug Fixes | `minor` |
-| `hotfix` | Hotfixes | `minor` |
+| `hotfix` | Hotfixes | `minor` by default; bumps PATCH instead when `version.components.patch.enabled: true` AND the scenario is `hotfix_to_main` / `hotfix_to_preprod`. See "Hotfix flow" below. |
 | `security` | Security | `minor` |
 | `refactor` | Refactoring | `minor` |
 | `perf` | Performance | `minor` |
@@ -285,6 +291,8 @@ The format depends on which components are enabled via `version.components.*.ena
 | With period enabled | `PERIOD.MAJOR.MINOR.TIMESTAMP` | `0.1.3.20240115143022` |
 | Without timestamp | `PERIOD.MAJOR.MINOR` or `MAJOR.MINOR` | `0.1.0` / `1.3` |
 | With v prefix | Prepend `v` to any of the above | `v0.1.0` / `v1.3.20240115143022` |
+| With PATCH enabled (hotfix released) | `...MINOR.PATCH[.TIMESTAMP]` | `v0.5.9.1` |
+| With PATCH enabled (no hotfix yet) | `...MINOR` — patch omitted while `= 0` | `v0.5.9` |
 
 A collision suffix (e.g. `-2`) is appended automatically when two tags are created in the same second.
 
@@ -298,12 +306,26 @@ Only the **last commit** in the PR determines the bump. Each commit type has a `
 
 | `bump` value | Effect |
 |--------------|--------|
-| `major` | Increments Major, resets Minor to 0 |
-| `minor` | Increments Minor |
+| `major` | Increments Major, resets Minor and Patch to 0 |
+| `minor` | Increments Minor, resets Patch to 0 |
+| `patch` | Scenario-driven only — hotfix scenarios bump PATCH when the opt-in component is enabled |
 | `none` | No tag created (commit is still recorded in CHANGELOG) |
-| _unset / not matched_ | Timestamp update only (Major and Minor unchanged) — requires `timestamp` component enabled |
+| _unset / not matched_ | Timestamp update only (other components unchanged) — requires `timestamp` component enabled |
 
 With the defaults, `feat` / `feature` bump major, and `fix` / `refactor` / `chore` / etc. bump minor. Override individual types via `commit_type_overrides` — a common pattern is `docs: { bump: "none" }` to keep documentation PRs from triggering releases.
+
+### Hotfix flow
+
+When `version.components.patch.enabled: true` is set in `.versioning.yml`, the pipe treats `hotfix_to_main` and `hotfix_to_preprod` scenarios as PATCH releases rather than MINOR ones:
+
+- Branch naming: `hotfix/...` (configurable via `hotfix.branch_prefix`). PR-context detection matches the branch prefix.
+- Commit / PR title convention: start with `hotfix:` or `hotfix(scope):` so the squash-merge commit subject carries the signal into branch-context detection.
+- Tag output: `v0.5.9` → `v0.5.9.1` → `v0.5.9.2`, resetting to 0 (and being omitted) at the next minor release.
+- CHANGELOG header: the version section is suffixed with `(Hotfix)` — e.g. `## v0.5.9.1 (Hotfix) - 2026-04-12`.
+
+With `patch.enabled: false` (the default) the flow is **backward-compatible**: hotfix branches still get PR validation, but merges produce normal MINOR bumps exactly as before. There is no behavioural change for consumers who do not opt in.
+
+Full walkthrough: [`docs/adoption-guide.md`](docs/adoption-guide.md#step-5--when-and-how-to-use-hotfixes). Architecture deep-dive: [`docs/architecture/README.md`](docs/architecture/README.md#hotfix-flow).
 
 ## Commit Formats
 
