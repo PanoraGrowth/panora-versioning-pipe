@@ -174,3 +174,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: c1871d7](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/c1871d73c7f235975d7608828c0adf59b2222f2d)
 
 
+## v0.6.0 - 2026-04-11
+
+- 🚀 feat(versioning): wire up hotfix flow with PATCH component (#45)
+  - _Agustín Manessi_
+  - [Commit: 0edd192](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/0edd192a4245b3328f69dda2eece4f5c009b0c58)
+
+
