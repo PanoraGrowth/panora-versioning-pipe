@@ -188,3 +188,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: 299c10f](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/299c10f5e168f4fcf6fd5f5f6dc6e3f69961cbbb)
 
 
+## v0.6.2 - 2026-04-11
+
+- 🐛 fix(version-file): strip tag_prefix_v when writing json/yaml targets (#48)
+  - _Agustín Manessi_
+  - [Commit: c032a00](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/c032a000e37436c1a66ea99b69698e90d8ee6e3b)
+
+
