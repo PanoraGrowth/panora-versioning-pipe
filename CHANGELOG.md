@@ -160,3 +160,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: 0e96110](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/0e96110b63f4764803f90360288af0cbe9ee1c61)
 
 
+## v0.5.8 - 2026-04-11
+
+- ⚙️ ci(lint): add commit message hygiene lint (#42)
+  - _Agustín Manessi_
+  - [Commit: 12b9ec9](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/12b9ec95a87fe35c30006e8dfab1578d171d089b)
+
+
