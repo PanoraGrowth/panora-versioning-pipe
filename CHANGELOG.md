@@ -153,3 +153,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: f8b98cd](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/f8b98cd40c2e24577331cbff03d5e35bbb2763a4)
 
 
+## v0.5.7 - 2026-04-11
+
+- 🧪 test(hotfix): cover generate-hotfix-changelog.sh and update-changelog.sh hotfix path (#43)
+  - _Agustín Manessi_
+  - [Commit: 0e96110](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/0e96110b63f4764803f90360288af0cbe9ee1c61)
+
+
