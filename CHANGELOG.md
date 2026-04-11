@@ -167,3 +167,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: 12b9ec9](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/12b9ec95a87fe35c30006e8dfab1578d171d089b)
 
 
+## v0.5.9 - 2026-04-11
+
+- ⚙️ ci(release): add automated release readiness gate (#41)
+  - _Agustín Manessi_
+  - [Commit: c1871d7](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/c1871d73c7f235975d7608828c0adf59b2222f2d)
+
+
