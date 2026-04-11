@@ -1,0 +1,128 @@
+# Example: hotfix-enabled versioning
+#
+# Demonstrates the hotfix flow introduced in v0.6.0 (ticket 024).
+# Opts into the PATCH version component so that hotfix commits bump
+# PATCH instead of MINOR, producing tags like v1.2.3.1 without disturbing
+# the normal semver trajectory.
+#
+# ----------------------------------------------------------------------
+# How the hotfix flow works
+# ----------------------------------------------------------------------
+#
+# 1. Create a branch from the production tag (for example from v1.2.3):
+#      git checkout -b hotfix/fix-auth-bypass v1.2.3
+#
+# 2. Commit the fix using the "hotfix:" conventional commit type:
+#      git commit -m "hotfix: patch critical auth bypass"
+#
+# 3. Open a PR against main and merge (squash is recommended).
+#
+# 4. On merge, the pipe detects the hotfix scenario via the commit
+#    subject convention (primary path) or via a GitHub API lookup of
+#    the PR's head_ref against hotfix_pattern (secondary path, used
+#    when gh CLI is available inside the pipe Docker image).
+#
+# 5. The pipe bumps the PATCH component (not MINOR), producing a tag
+#    like v1.2.3.1 and a CHANGELOG header marked "(Hotfix)":
+#
+#      ## v1.2.3.1 (Hotfix) - 2026-04-12
+#
+#      - hotfix: patch critical auth bypass
+#
+# ----------------------------------------------------------------------
+# Tag semantics with the PATCH component
+# ----------------------------------------------------------------------
+#
+# - v1.2.3    - last minor release (patch = 0, component hidden)
+# - v1.2.3.1  - first hotfix on top of v1.2.3
+# - v1.2.3.2  - second hotfix on top of v1.2.3
+# - v1.3.0    - next minor release (patch resets to 0, hidden again)
+# - v2.0.0    - next major release (minor and patch reset to 0)
+#
+# Rollback is trivial because every hotfix has its own immutable tag.
+# Docker images published per release follow the same naming, so
+# "docker pull ghcr.io/.../pipe:v1.2.3" restores the pre-hotfix state.
+#
+# ----------------------------------------------------------------------
+# Backward compatibility
+# ----------------------------------------------------------------------
+#
+# The PATCH component is OPT-IN. Consumers that do not set
+# version.components.patch.enabled (default false) see zero change in
+# behavior. Tags continue to render without the fourth component
+# (v1.2.3, not v1.2.3.0), and the hotfix scenario falls back to a
+# minor bump if someone merges a hotfix commit into a repo that has
+# not opted in.
+#
+# ======================================================================
+
+commits:
+  format: "conventional"
+
+version:
+  tag_prefix_v: true
+  components:
+    period:
+      enabled: true
+      initial: 0
+    major:
+      enabled: true
+      initial: 1
+    minor:
+      enabled: true
+      initial: 0
+    # NEW in v0.6.0 — required for the hotfix flow.
+    # When enabled, hotfix_to_main and hotfix_to_preprod scenarios bump
+    # PATCH instead of MINOR. Patch resets to 0 on any major or minor
+    # bump and is omitted from the tag when its value is 0.
+    patch:
+      enabled: true
+      initial: 0
+    timestamp:
+      enabled: false
+
+branches:
+  production: "main"
+  tag_on: "main"
+  # Branches matching this prefix activate the hotfix scenario when
+  # merged to the production branch. The commit subject convention
+  # (`hotfix:` or `hotfix(scope):`) takes precedence; this pattern is
+  # the secondary detection path used when the convention is absent
+  # and the pipe's Docker image has the gh CLI available.
+  hotfix_pattern: "hotfix/"
+
+# Override the "hotfix" commit type to explicitly mark it as the driver
+# of a PATCH bump. Without this override, the scenario detection in
+# branch-pipeline.sh takes precedence, but adding the override here
+# documents the intent and ensures consistent behavior even if the
+# scenario detection path is reworked.
+commit_type_overrides:
+  hotfix:
+    bump: "patch"
+
+changelog:
+  file: "CHANGELOG.md"
+  title: "Changelog"
+  use_emojis: true
+  include_commit_link: true
+  include_author: true
+  # Root changelog mode:
+  #   "last_commit" (default) - only the last commit in the bump batch
+  #                             appears in the CHANGELOG entry
+  #   "full"                  - every commit since the last tag appears
+  mode: "last_commit"
+
+# ----------------------------------------------------------------------
+# Consumer setup checklist (see docs/adoption-guide.md for details)
+# ----------------------------------------------------------------------
+#
+# - Install a GitHub App on this repo with contents: read+write.
+# - Store its app ID and private key as repo secrets CI_APP_ID
+#   and CI_APP_PRIVATE_KEY.
+# - Copy examples/github-actions/pr-versioning.yml and
+#   examples/github-actions/tag-on-merge.yml into .github/workflows/.
+# - Main branch protection must allow the GitHub App bypass to push
+#   the atomic CHANGELOG + tag. Direct pushes by GITHUB_TOKEN would be
+#   rejected even with --admin merges.
+# - Commit conventional commits on feature branches; commit `hotfix:`
+#   commits on hotfix/* branches to activate the patch bump path.

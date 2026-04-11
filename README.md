@@ -473,6 +473,7 @@ The [`examples/`](examples/) directory contains ready-to-use files:
 | [`examples/configs/versioning-conventional.yml`](examples/configs/versioning-conventional.yml) | Conventional commits with emojis |
 | [`examples/configs/versioning-ticket.yml`](examples/configs/versioning-ticket.yml) | Ticket format with Jira integration |
 | [`examples/configs/versioning-monorepo.yml`](examples/configs/versioning-monorepo.yml) | Monorepo with per-folder changelogs and grouped version files |
+| [`examples/configs/versioning-hotfix.yml`](examples/configs/versioning-hotfix.yml) | Hotfix flow with opt-in PATCH component — produces tags like `v1.2.3.1` |
 | [`examples/bitbucket/bitbucket-pipelines.yml`](examples/bitbucket/bitbucket-pipelines.yml) | Full Bitbucket Pipelines example |
 | [`examples/github-actions/pr-versioning.yml`](examples/github-actions/pr-versioning.yml) | PR trigger — validates commits and generates CHANGELOG preview |
 | [`examples/github-actions/tag-on-merge.yml`](examples/github-actions/tag-on-merge.yml) | Main-branch trigger — creates version tag (requires GitHub App token — see [GitHub App setup](#github-app-setup-required-for-protected-main)) |
