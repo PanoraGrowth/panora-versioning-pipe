@@ -115,6 +115,33 @@ This matters in two very different places:
 
 File contents (READMEs, YAML comments, shell scripts) are **not** scanned — only commit messages and the subject line of the HEAD commit on a push. You can freely write the literal directive inside a file like this `CONTRIBUTING.md` for educational purposes. Just keep it out of the git log.
 
+### Automated enforcement
+
+A lint script at `scripts/lint/check-commit-hygiene.sh` enforces the rules above. It is wired into the `Commit Hygiene` GitHub Actions workflow (`.github/workflows/commit-hygiene.yml`), which runs on every pull request targeting `main` and blocks merge on failure. The lint also distinguishes pipe-authored commits (`chore(release):` / `chore(hotfix):`) — those are allowed to carry the marker because the pipe's atomic-push circuit breaker depends on it.
+
+**Run the lint locally**:
+
+```bash
+# Against an inline message
+scripts/lint/check-commit-hygiene.sh -m "feat: your subject"
+
+# Against the commit message you are about to write
+scripts/lint/check-commit-hygiene.sh -f .git/COMMIT_EDITMSG
+
+# Against an open PR (requires gh CLI authenticated)
+scripts/lint/check-commit-hygiene.sh -p 123
+```
+
+Exit codes: `0` clean, `1` forbidden substring found, `2` usage error.
+
+**Exemption**: in the rare case that you *want* a commit to skip workflows (for example a pure-docs PR with no code to validate), add the trailer
+
+```
+X-Intentional-Skip-CI: true
+```
+
+on its own line in the commit body. The lint recognizes the trailer and lets the commit through. The trailer documents the intent explicitly, so the exemption is auditable in `git log`.
+
 ## Pull Request Process
 
 1. Create a feature branch from `main`:
