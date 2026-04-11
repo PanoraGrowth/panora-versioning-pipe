@@ -177,9 +177,6 @@ validation:
 hotfix:
   branch_prefix: "hotfix/"
   validate_commits: true
-  update_changelog_on_main: true
-  update_changelog_on_preprod: true
-  changelog_header: "HOTFIX"
 
 branches:
   development: "development"

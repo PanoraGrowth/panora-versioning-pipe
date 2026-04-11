@@ -66,7 +66,7 @@ No installation is needed in your pipeline — the image is referenced directly 
 ## How It Works
 
 **PR pipeline** (triggered when `VERSIONING_PR_ID` is set):
-1. Detects the pipeline scenario (development release, hotfix, promotion)
+1. Detects the pipeline scenario (development release, promotion)
 2. Validates commit format against the configured style
 3. Calculates the next version based on the last commit type
 4. Updates version files (if configured)
@@ -214,17 +214,6 @@ validation:
     - "^squash!"
     - "^chore\\(release\\)"
     - "^chore\\(hotfix\\)"
-```
-
-### hotfix
-
-```yaml
-hotfix:
-  branch_prefix: "hotfix/"          # Branches starting with this are treated as hotfix branches
-  validate_commits: true            # Validate commit format on hotfix branches
-  update_changelog_on_main: true    # Add a hotfix entry to the main branch changelog
-  update_changelog_on_preprod: true # Add a hotfix entry to the pre-production changelog
-  changelog_header: "HOTFIX"        # Section header used in hotfix changelog entries
 ```
 
 ### branches

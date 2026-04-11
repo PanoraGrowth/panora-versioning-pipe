@@ -228,7 +228,7 @@ Scripts communicate via temp files:
 
 | File | Purpose |
 |------|---------|
-| `/tmp/scenario.env` | Pipeline scenario (development_release, hotfix, etc.) |
+| `/tmp/scenario.env` | Pipeline scenario (development_release, promotion_to_*, etc.) |
 | `/tmp/next_version.txt` | Calculated next version tag |
 | `/tmp/bump_type.txt` | Bump type (major, minor, timestamp_only) |
 | `/tmp/latest_tag.txt` | Latest matching version tag |
@@ -236,7 +236,6 @@ Scripts communicate via temp files:
 | `/tmp/per_folder_changelogs.txt` | Per-folder CHANGELOG paths for staging |
 | `/tmp/version_files_modified.txt` | Modified version file paths for staging |
 | `/tmp/changelog_committed.flag` | Signals CHANGELOG was committed, push pending |
-| `/tmp/hotfix_entry.md` | Hotfix CHANGELOG markdown entry |
 
 ---
 
