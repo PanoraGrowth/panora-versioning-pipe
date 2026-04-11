@@ -16,9 +16,17 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 # Load scenario
 load_env "/tmp/scenario.env"
 
-# Only generate for development releases
-if [ "$SCENARIO" != "development_release" ]; then
-    exit 0
+# Generate for development releases AND hotfix scenarios — the "(Hotfix)" marker
+# is appended to the version header below so per-folder CHANGELOGs match the
+# root CHANGELOG format for hotfix releases.
+case "$SCENARIO" in
+    development_release|hotfix_to_main|hotfix_to_preprod) ;;
+    *) exit 0 ;;
+esac
+
+HEADER_SUFFIX=""
+if [ "$SCENARIO" = "hotfix_to_main" ] || [ "$SCENARIO" = "hotfix_to_preprod" ]; then
+    HEADER_SUFFIX=" (Hotfix)"
 fi
 
 # Only run if per-folder changelogs are enabled
@@ -192,7 +200,7 @@ echo "$COMMITS_TO_PROCESS" | while IFS='|' read -r commit_hash commit_author com
 
 ---
 
-## ${NEXT_VERSION} - ${CHANGELOG_DATE}
+## ${NEXT_VERSION}${HEADER_SUFFIX} - ${CHANGELOG_DATE}
 
 ${ENTRY}
 
@@ -208,7 +216,7 @@ ${ENTRY}
             mv "$TEMP_FILE" "$FOLDER_CHANGELOG"
         else
             echo "
-## ${NEXT_VERSION} - ${CHANGELOG_DATE}
+## ${NEXT_VERSION}${HEADER_SUFFIX} - ${CHANGELOG_DATE}
 
 ${ENTRY}
 

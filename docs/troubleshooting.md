@@ -1,6 +1,6 @@
 # Troubleshooting
 
-**Last updated:** 2026-04-10 (v0.5.5)
+**Last updated:** 2026-04-11 (hotfix wire-up, ticket 024)
 
 Common problems encountered by consumers of `panora-versioning-pipe`, with a short cause/fix note for each. Structure: one subsection per problem, each with **Cause**, **Fix**, and references to deeper material where relevant.
 
@@ -188,3 +188,53 @@ This is documented in [`docs/architecture/README.md`](architecture/README.md#ver
    This is the canonical example used by the pipe itself (see [`examples/configs/versioning-conventional.yml`](../examples/configs/versioning-conventional.yml)).
 
 4. `commit_type_overrides` is a flat map of `type_name → field_overrides`. Only the fields you set are changed; everything else inherits from the default. This was the fix for Finding #8 in the internal review log (yq replacing the full `commit_types` array on any override) — it exists specifically so you don't have to copy the whole 17-entry array just to tweak one field.
+
+---
+
+## My hotfix wasn't detected — PATCH didn't bump
+
+**Cause.** The `version.components.patch.enabled` flag is `false` (the default). The hotfix wire-up only takes the PATCH path when the component is opted in. With patch disabled, the flow falls back to the standard last-commit-wins bump — a `hotfix:` commit maps to `bump: "minor"` in [`scripts/defaults.yml`](../scripts/defaults.yml), so you get a MINOR release instead of a PATCH.
+
+**Fix.** Enable the component in `.versioning.yml`:
+
+```yaml
+version:
+  components:
+    patch:
+      enabled: true
+      initial: 0
+```
+
+No other config changes are required. The next hotfix merged to `main` will bump PATCH and produce a tag like `v0.5.9.1`. See [`docs/adoption-guide.md`](adoption-guide.md) Step 5 for the full hotfix workflow.
+
+---
+
+## My hotfix branch was merged but the scenario wasn't recognized
+
+**Cause.** `scripts/detection/detect-scenario.sh` in branch context (post-merge) looks for a hotfix signal in two places:
+
+1. **Primary**: the merge commit subject starts with `hotfix:` or `hotfix(...)`.
+2. **Fallback**: `gh api /repos/.../commits/{sha}/pulls` returns a PR whose head ref matches `hotfix.branch_prefix`.
+
+The fallback only works when `gh` is available and `GITHUB_REPOSITORY` is exported into the pipe's container — which is NOT the case inside the pipe's own Alpine Docker image (gh is not installed). Consumers running the pipe on GitHub Actions get the commit-type path only.
+
+With squash merge (the recommended strategy), the merge commit subject is the PR title. If the PR title does not start with `hotfix:`, the primary detection misses and the pipe falls through to `development_release`.
+
+**Fix.** Start the PR title with `hotfix:` — for example `hotfix: patch auth token leak`. GitHub appends ` (#NN)` to the subject during the squash merge, which does not disrupt the prefix match. The branch name itself can still be `hotfix/whatever` (and should be, for PR-context detection), but the PR title is what survives into the merge commit.
+
+If you already merged and didn't set the PR title, the release is treated as a normal `development_release`. Roll the fix forward in the next regular release — there is no way to retroactively re-run the scenario detection without a new merge commit.
+
+---
+
+## My hotfix tag looks like `v0.5.9.1.1` or similar
+
+**Cause.** Unexpected parsing artifact — this shouldn't happen in normal use. The most likely explanation is manual tag creation that didn't round-trip through `parse_version_components` + `build_version_string`.
+
+**Fix.** File a bug against `panora-versioning-pipe` with:
+
+1. The output of `gh release list --limit 5` (or the equivalent tag listing).
+2. Your `.versioning.yml` contents.
+3. The commit subject that triggered the bad tag.
+4. The `calculate-version.sh` log from the failing tag-on-merge run.
+
+The pipe's unit tests (`tests/unit/versioning/patch-component.bats` and `hotfix-bump.bats`) lock the expected format — a failure at runtime would indicate a regression the tests didn't catch.

@@ -1,6 +1,6 @@
 # Adoption Guide
 
-**Last updated:** 2026-04-10 (v0.5.5)
+**Last updated:** 2026-04-11 (hotfix wire-up, ticket 024)
 
 This guide walks a new consumer repository through adopting `panora-versioning-pipe` end-to-end: prerequisites, config selection, workflow installation, and verification of the first release. It assumes familiarity with git, GitHub Actions, and conventional commits, but assumes nothing about this pipe.
 
@@ -146,9 +146,67 @@ After the first merge to `main` completes, verify:
 
 ---
 
+## Step 5 — When and how to use hotfixes
+
+Hotfixes are an **opt-in** release lane for urgent production fixes. They bump a separate PATCH component (not MINOR), so a hotfix released on top of `v0.5.9` becomes `v0.5.9.1` instead of `v0.5.10`. This keeps the next planned minor release on its own version number and makes rollback trivial.
+
+### When a hotfix is appropriate
+
+- **Yes:** a production bug that can't wait for the next regular release cycle (security bypass, outage, data corruption).
+- **No:** a routine bug you'd normally ship in the next release — use a normal `fix:` commit on the development branch.
+
+### How to ship a hotfix
+
+1. **Enable the PATCH component** in `.versioning.yml` (one-time setup):
+
+   ```yaml
+   version:
+     components:
+       patch:
+         enabled: true
+         initial: 0
+   ```
+
+   Without this, hotfix commits fall through to the standard last-commit-wins flow and produce a MINOR bump — zero behavioural change from pre-wire-up, which is by design.
+
+2. **Create a branch off `main`** using the configured hotfix prefix (`hotfix/` by default):
+
+   ```bash
+   git checkout main && git pull
+   git checkout -b hotfix/patch-auth-bypass
+   ```
+
+3. **Commit the fix with a `hotfix:` commit type** (this is the signal that survives a squash merge):
+
+   ```bash
+   git commit -m "hotfix: patch auth token leak"
+   ```
+
+4. **Open a PR to `main`**. The PR check runs in PR context, detects the `hotfix/` branch prefix, and validates.
+5. **Squash-merge** the PR. The squash-commit subject carries the `hotfix:` prefix from the PR title; `branch-pipeline.sh` on `main` picks up the signal via the commit-type convention and bumps PATCH.
+6. **Result**: a new tag like `v0.5.9.1` and a CHANGELOG entry headed `## v0.5.9.1 (Hotfix) - YYYY-MM-DD`.
+
+### Setting the PR title
+
+The squash-merge commit subject comes from the PR title (not the branch commit message). For detection to survive, **start the PR title with `hotfix:`** as well — e.g. `hotfix: patch auth token leak`. GitHub appends `(#NN)` to the subject, which does not disrupt the prefix match.
+
+### Rollback
+
+Every hotfix produces a distinct Docker image tag, so rolling back is a straight `docker pull`:
+
+```bash
+docker pull ghcr.io/panoragrowth/panora-versioning-pipe:v0.5.9    # pre-hotfix
+# or
+docker pull ghcr.io/panoragrowth/panora-versioning-pipe:v0.5.9.1  # post-hotfix
+```
+
+The next minor release resets PATCH to 0 and omits it from the tag: `v0.5.9.2` → `v0.5.10`.
+
+---
+
 ## Next steps
 
-- [`docs/architecture/README.md`](architecture/README.md) — how version calculation, CHANGELOG generation, and per-folder routing actually work under the hood.
+- [`docs/architecture/README.md`](architecture/README.md) — how version calculation, CHANGELOG generation, and per-folder routing actually work under the hood. See the "Hotfix flow" section for the full detection matrix.
 - [`docs/per-folder-changelog/README.md`](per-folder-changelog/README.md) — deep dive for monorepo adopters (scope matching, subfolder discovery, `file_path` fallback).
 - [`examples/`](../examples/) — every config and workflow shipped with the pipe; all are production-grade and tested.
 - [`CONTRIBUTING.md`](../CONTRIBUTING.md) — only if you plan to contribute changes back to the pipe itself. Consumers do not need this.

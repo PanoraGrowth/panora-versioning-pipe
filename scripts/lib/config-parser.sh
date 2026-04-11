@@ -497,7 +497,10 @@ get_tag_branch() {
 # PATTERN BUILDERS
 # =============================================================================
 
-# Count enabled version components (period, major, minor)
+# Count enabled base version components (period, major, minor).
+# NOTE: patch is intentionally excluded — it is an OPTIONAL trailing component
+# rendered only when patch > 0, so it must not inflate the base component count
+# used to build the fixed-width tag regex.
 get_enabled_component_count() {
     local count=0
     is_component_enabled "period" && count=$((count + 1))
@@ -521,16 +524,25 @@ get_tag_pattern() {
         i=$((i + 1))
     done
 
+    # Optional trailing patch group — matches both backward-compat tags
+    # (v0.5.9, patch omitted) and hotfix tags (v0.5.9.1, patch present)
+    local patch_group=""
+    if is_component_enabled "patch"; then
+        patch_group="(\.[0-9]+)?"
+    fi
+
     if is_component_enabled "timestamp"; then
-        echo "^${prefix}${base}\.[0-9]{12,14}(-[0-9]+)?\$"
+        echo "^${prefix}${base}${patch_group}\.[0-9]{12,14}(-[0-9]+)?\$"
     else
-        echo "^${prefix}${base}\$"
+        echo "^${prefix}${base}${patch_group}\$"
     fi
 }
 
-# Build version string from period/major/minor based on enabled components
+# Build version string from period/major/minor/patch based on enabled components.
+# Patch is rendered only when enabled AND non-zero, so tags like v0.5.9 (patch=0)
+# stay identical to the pre-patch-component behaviour.
 build_version_string() {
-    local period="$1" major="$2" minor="$3"
+    local period="$1" major="$2" minor="$3" patch="${4:-0}"
     local sep=$(get_version_separator)
     local version=""
 
@@ -544,6 +556,13 @@ build_version_string() {
     if is_component_enabled "minor"; then
         [ -n "$version" ] && version="${version}${sep}"
         version="${version}${minor}"
+    fi
+    if is_component_enabled "patch"; then
+        # Numeric gate: append only when patch is a positive integer
+        if [ -n "$patch" ] && [ "$patch" -gt 0 ] 2>/dev/null; then
+            [ -n "$version" ] && version="${version}${sep}"
+            version="${version}${patch}"
+        fi
     fi
 
     echo "$version"
@@ -567,7 +586,7 @@ parse_tag_to_version() {
     fi
 }
 
-# Parse version string into PARSED_PERIOD, PARSED_MAJOR, PARSED_MINOR
+# Parse version string into PARSED_PERIOD, PARSED_MAJOR, PARSED_MINOR, PARSED_PATCH
 # Sets global variables — call after parse_tag_to_version
 parse_version_components() {
     local version="$1"
@@ -589,8 +608,21 @@ parse_version_components() {
 
     if is_component_enabled "minor"; then
         PARSED_MINOR=$(echo "$version" | cut -d. -f${pos})
+        pos=$((pos + 1))
     else
         PARSED_MINOR="0"
+    fi
+
+    # Patch: optional trailing field — absent for v0.5.9, present for v0.5.9.1
+    if is_component_enabled "patch"; then
+        local total_fields=$(echo "$version" | awk -F. '{print NF}')
+        if [ "$total_fields" -ge "$pos" ]; then
+            PARSED_PATCH=$(echo "$version" | cut -d. -f${pos})
+        else
+            PARSED_PATCH="0"
+        fi
+    else
+        PARSED_PATCH="0"
     fi
 }
 

@@ -17,9 +17,19 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 # Load scenario
 load_env "/tmp/scenario.env"
 
-# Only generate changelog for development releases
-if [ "$SCENARIO" != "development_release" ]; then
-    exit 0
+# Generate the root CHANGELOG for development releases AND hotfix scenarios.
+# Hotfix releases reuse this generator (the marker is injected into the header
+# below) so the entire release flow — dev or hotfix — goes through a single path.
+case "$SCENARIO" in
+    development_release|hotfix_to_main|hotfix_to_preprod) ;;
+    *) exit 0 ;;
+esac
+
+# Append a "(Hotfix)" marker to the version header when the release is a
+# hotfix. Dev releases render unchanged.
+HEADER_SUFFIX=""
+if [ "$SCENARIO" = "hotfix_to_main" ] || [ "$SCENARIO" = "hotfix_to_preprod" ]; then
+    HEADER_SUFFIX=" (Hotfix)"
 fi
 
 log_section "GENERATING CHANGELOG"
@@ -190,7 +200,7 @@ if [ -z "$ENTRIES" ]; then
     exit 0
 fi
 
-CHANGELOG_ENTRY="## ${NEXT_VERSION} - ${CHANGELOG_DATE}
+CHANGELOG_ENTRY="## ${NEXT_VERSION}${HEADER_SUFFIX} - ${CHANGELOG_DATE}
 
 ${ENTRIES}
 
