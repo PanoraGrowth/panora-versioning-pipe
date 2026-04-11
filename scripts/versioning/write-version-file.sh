@@ -228,6 +228,17 @@ VERSION=$(cat /tmp/next_version.txt)
 log_info "Version to write: $VERSION"
 echo ""
 
+# For json/yaml modes, store plain semver (strip tag_prefix_v if set).
+# npm, package.json, changesets, semantic-release all require the
+# `version` field without the `v` prefix. Regex mode is unaffected —
+# consumers template {{VERSION}} in their replacement and can choose
+# whether to emit the prefix themselves.
+VERSION_PLAIN="$VERSION"
+TAG_PREFIX=$(get_tag_prefix)
+if [ -n "$TAG_PREFIX" ]; then
+    VERSION_PLAIN="${VERSION#$TAG_PREFIX}"
+fi
+
 # =============================================================================
 # Get configuration
 # =============================================================================
@@ -250,11 +261,11 @@ write_yaml() {
     # Create or update YAML file
     if [ -f "$file_path" ]; then
         # Update existing file
-        yq -i ".${key} = \"${VERSION}\"" "$file_path"
+        yq -i ".${key} = \"${VERSION_PLAIN}\"" "$file_path"
     else
         # Create new file
         mkdir -p "$(dirname "$file_path")"
-        echo "${key}: \"${VERSION}\"" > "$file_path"
+        echo "${key}: \"${VERSION_PLAIN}\"" > "$file_path"
     fi
 
     MODIFIED_FILES="$file_path"
@@ -274,11 +285,11 @@ write_json() {
     # Create or update JSON file
     if [ -f "$file_path" ]; then
         # Update existing file using yq (can handle JSON too)
-        yq -i -o=json ".${key} = \"${VERSION}\"" "$file_path"
+        yq -i -o=json ".${key} = \"${VERSION_PLAIN}\"" "$file_path"
     else
         # Create new file
         mkdir -p "$(dirname "$file_path")"
-        echo "{\"${key}\": \"${VERSION}\"}" | yq -o=json > "$file_path"
+        echo "{\"${key}\": \"${VERSION_PLAIN}\"}" | yq -o=json > "$file_path"
     fi
 
     MODIFIED_FILES="$file_path"
