@@ -181,3 +181,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: 0edd192](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/0edd192a4245b3328f69dda2eece4f5c009b0c58)
 
 
+## v0.6.1 - 2026-04-11
+
+- 🐛 fix: add hotfix example config and complete integration scenario override (#46)
+  - _Agustín Manessi_
+  - [Commit: 299c10f](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/299c10f5e168f4fcf6fd5f5f6dc6e3f69961cbbb)
+
+
