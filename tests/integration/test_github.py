@@ -139,7 +139,8 @@ class TestMergeAndTag:
 
             # 4. Merge PR (use scenario's merge_method, default squash)
             merge_method = scenario.get("merge_method", "squash")
-            github.merge_pr(pr_number, method=merge_method)
+            merge_subject = scenario.get("merge_subject")
+            github.merge_pr(pr_number, method=merge_method, subject=merge_subject)
             pr_number = None  # merged
 
             # 5. Wait for NEW tag-on-merge workflow to start and complete

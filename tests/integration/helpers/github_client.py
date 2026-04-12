@@ -137,14 +137,21 @@ class GitHubClient:
         pr_number = output.strip().split("/")[-1]
         return {"number": int(pr_number), "url": output.strip()}
 
-    def merge_pr(self, pr_number: int, method: str = "squash") -> None:
+    def merge_pr(
+        self, pr_number: int, method: str = "squash", subject: str | None = None,
+    ) -> None:
         """Merge PR using gh CLI with --admin to bypass branch protection.
 
         Note: --admin bypasses rulesets but still generates push events
         that trigger workflows when used with the CLI (not always true
         with the REST API PUT endpoint).
+
+        subject: override the commit subject for squash merges (gh --subject).
         """
-        self._gh(["pr", "merge", str(pr_number), f"--{method}", "--admin"])
+        cmd = ["pr", "merge", str(pr_number), f"--{method}", "--admin"]
+        if subject:
+            cmd.extend(["--subject", subject])
+        self._gh(cmd)
 
     def close_pr(self, pr_number: int) -> None:
         try:
