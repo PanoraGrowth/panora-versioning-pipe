@@ -3,7 +3,7 @@
 # Each scenario defines:
 #   - name: unique identifier (used in branch names)
 #   - description: what this scenario tests
-#   - config_override: if set, replaces .versioning.yml in test repo for this scenario
+#   - config_override: if set, deep-merged on top of the test repo's .versioning.yml
 #   - commits: list of commits to create (message + optional file changes)
 #   - expected: what to verify after the pipe runs
 #
@@ -143,51 +143,16 @@ scenarios:
     # the signal. branch-context detect-scenario.sh inspects the merge commit
     # subject via the commit-type convention (purely git-based, v0.6.3+).
     pr_title: "hotfix: wire-up patch bump integration test"
-    # FULL config_override — the test framework currently serializes
-    # config_override as a REPLACEMENT of .versioning.yml, not a merge
-    # (tracked as framework improvement in ticket 027). Missing keys fall
-    # back to defaults.yml, which for branches.tag_on defaults to
-    # "development" — that skips tag creation on main. To prevent this
-    # and restore the test repo's base config at the same time, the
-    # override carries every key the base config needs.
-    # NOTE: v0.6.3+ defaults patch.enabled to true, so opting in is automatic.
-    # The explicit patch block below is defensive clarity, not a requirement.
+    # Delta-only config_override — the test framework deep-merges this on
+    # top of the test repo's .versioning.yml (ticket 027). Only keys that
+    # differ from the base config need to be specified here.
+    # patch.enabled defaults to true since v0.6.3+, but we keep it explicit
+    # as defensive clarity for this hotfix scenario.
     config_override:
-      commits:
-        format: "conventional"
       version:
-        tag_prefix_v: true
         components:
-          period:
-            enabled: true
-          major:
-            enabled: true
-          minor:
-            enabled: true
           patch:
             enabled: true
-            initial: 0
-          timestamp:
-            enabled: false
-      branches:
-        development: "main"
-        production: "main"
-        tag_on: "main"
-      hotfix:
-        keyword: "hotfix"
-      changelog:
-        mode: "full"
-        commit_url: "https://github.com/PanoraGrowth/panora-versioning-pipe-test/commit"
-        include_author: true
-        include_commit_link: true
-        include_ticket_link: false
-        per_folder:
-          enabled: true
-          folders:
-            - "backend"
-            - "frontend"
-          scope_matching: "exact"
-          fallback: "file_path"
     commits:
       - message: "hotfix: wire-up patch bump integration test"
         files:
