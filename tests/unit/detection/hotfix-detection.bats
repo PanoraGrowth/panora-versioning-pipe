@@ -318,3 +318,163 @@ EOF
     [ "$status" -eq 0 ]
     echo "$output" | grep -q '^SCENARIO=development_release$'
 }
+
+# =============================================================================
+# Bloque 4 — Multi-keyword detection (glob pattern list from config)
+# =============================================================================
+
+@test "multi-keyword: subject 'hotfix: foo' → scenario=hotfix (pattern hotfix:*)" {
+    seed_head_commit "hotfix: fix auth bug"
+    run_detect "multi-keyword"
+    [ "$status" -eq 0 ]
+    echo "$output" | grep -q '^SCENARIO=hotfix$'
+}
+
+@test "multi-keyword: subject 'hotfix(scope): foo' → scenario=hotfix (pattern hotfix(*)" {
+    seed_head_commit "hotfix(auth): fix session expiry"
+    run_detect "multi-keyword"
+    [ "$status" -eq 0 ]
+    echo "$output" | grep -q '^SCENARIO=hotfix$'
+}
+
+@test "multi-keyword: subject 'Hotfix/test patch' → scenario=hotfix (pattern [Hh]otfix/*)" {
+    seed_head_commit "Hotfix/test patch"
+    run_detect "multi-keyword"
+    [ "$status" -eq 0 ]
+    echo "$output" | grep -q '^SCENARIO=hotfix$'
+}
+
+@test "multi-keyword: subject 'hotfix/fix-auth-bypass' → scenario=hotfix (lowercase)" {
+    seed_head_commit "hotfix/fix-auth-bypass"
+    run_detect "multi-keyword"
+    [ "$status" -eq 0 ]
+    echo "$output" | grep -q '^SCENARIO=hotfix$'
+}
+
+@test "multi-keyword: subject 'feat: add feature' → scenario=development_release" {
+    seed_head_commit "feat: add new feature"
+    run_detect "multi-keyword"
+    [ "$status" -eq 0 ]
+    echo "$output" | grep -q '^SCENARIO=development_release$'
+}
+
+@test "multi-keyword: subject 'Hotfixed/something' → NO match (false positive guard)" {
+    seed_head_commit "Hotfixed/something unexpected"
+    run_detect "multi-keyword"
+    [ "$status" -eq 0 ]
+    echo "$output" | grep -q '^SCENARIO=development_release$'
+}
+
+# =============================================================================
+# Bloque 5 — Custom multi-keyword list (isolation test)
+# =============================================================================
+
+@test "custom multi-keyword: 'urgent: foo' → scenario=hotfix" {
+    cat > "${BATS_TEST_TMPDIR}/repo/.versioning.yml" <<'EOF'
+commits:
+  format: "conventional"
+version:
+  components:
+    major:
+      enabled: true
+      initial: 0
+    minor:
+      enabled: true
+      initial: 0
+    timestamp:
+      enabled: false
+hotfix:
+  keyword:
+    - "urgent:*"
+    - "critical(*"
+EOF
+    cd "${BATS_TEST_TMPDIR}/repo" || return 1
+    echo "artifact" > artifact.txt
+    git add -A >/dev/null
+    git commit -q -m "urgent: fix payment gateway"
+
+    run flock "$LOCKFILE" sh -c "
+        cd '${BATS_TEST_TMPDIR}/repo' && \
+        sh '${PIPE_DIR}/detection/detect-scenario.sh' >/dev/null 2>&1 ; \
+        cat /tmp/scenario.env 2>/dev/null
+    "
+    [ "$status" -eq 0 ]
+    echo "$output" | grep -q '^SCENARIO=hotfix$'
+}
+
+@test "custom multi-keyword: 'critical(prod): foo' → scenario=hotfix" {
+    cat > "${BATS_TEST_TMPDIR}/repo/.versioning.yml" <<'EOF'
+commits:
+  format: "conventional"
+version:
+  components:
+    major:
+      enabled: true
+      initial: 0
+    minor:
+      enabled: true
+      initial: 0
+    timestamp:
+      enabled: false
+hotfix:
+  keyword:
+    - "urgent:*"
+    - "critical(*"
+EOF
+    cd "${BATS_TEST_TMPDIR}/repo" || return 1
+    echo "artifact" > artifact.txt
+    git add -A >/dev/null
+    git commit -q -m "critical(prod): rollback bad migration"
+
+    run flock "$LOCKFILE" sh -c "
+        cd '${BATS_TEST_TMPDIR}/repo' && \
+        sh '${PIPE_DIR}/detection/detect-scenario.sh' >/dev/null 2>&1 ; \
+        cat /tmp/scenario.env 2>/dev/null
+    "
+    [ "$status" -eq 0 ]
+    echo "$output" | grep -q '^SCENARIO=hotfix$'
+}
+
+@test "custom multi-keyword: 'hotfix: foo' → NO match (keyword isolation)" {
+    cat > "${BATS_TEST_TMPDIR}/repo/.versioning.yml" <<'EOF'
+commits:
+  format: "conventional"
+version:
+  components:
+    major:
+      enabled: true
+      initial: 0
+    minor:
+      enabled: true
+      initial: 0
+    timestamp:
+      enabled: false
+hotfix:
+  keyword:
+    - "urgent:*"
+    - "critical(*"
+EOF
+    cd "${BATS_TEST_TMPDIR}/repo" || return 1
+    echo "artifact" > artifact.txt
+    git add -A >/dev/null
+    git commit -q -m "hotfix: this should NOT trigger"
+
+    run flock "$LOCKFILE" sh -c "
+        cd '${BATS_TEST_TMPDIR}/repo' && \
+        sh '${PIPE_DIR}/detection/detect-scenario.sh' >/dev/null 2>&1 ; \
+        cat /tmp/scenario.env 2>/dev/null
+    "
+    [ "$status" -eq 0 ]
+    echo "$output" | grep -q '^SCENARIO=development_release$'
+}
+
+# =============================================================================
+# Bloque 6 — Merge commit parent-2 with multi-keyword patterns
+# =============================================================================
+
+@test "multi-keyword merge commit: parent 2 'Hotfix/branch-name' → scenario=hotfix" {
+    seed_merge_commit_with_branch_tip "Hotfix/fix-critical-auth"
+    run_detect "multi-keyword"
+    [ "$status" -eq 0 ]
+    echo "$output" | grep -q '^SCENARIO=hotfix$'
+}

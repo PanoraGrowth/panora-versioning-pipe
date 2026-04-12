@@ -85,15 +85,19 @@ version:
     timestamp:
       enabled: false
 
-# Hotfix detection keyword. Default is "hotfix". Change this if your team
-# uses a different convention (e.g. "urgent", "critical", "fixprod").
-# Detection is a strict prefix match on the merge commit subject:
-# "{keyword}:" or "{keyword}(". Example subjects that match when
-# keyword="hotfix": "hotfix: foo", "hotfix(scope): foo".
-# Example subjects that do NOT match: "hotfixed: foo", "pre-hotfix: foo",
-# "feat: foo".
+# Hotfix detection keywords. Each entry is a shell glob pattern matched
+# against the merge commit subject. If ANY pattern matches, it's a hotfix.
+# Default patterns cover:
+#   - "hotfix:*"      → conventional commit (hotfix: fix auth)
+#   - "hotfix(*"       → conventional with scope (hotfix(auth): fix)
+#   - "[Hh]otfix/*"   → GitHub auto-title from branch name (Hotfix/fix-auth)
+# Customize for your team's conventions. Backwards compatible: a single
+# string value (e.g. keyword: "urgent") is auto-expanded at parse time.
 hotfix:
-  keyword: "hotfix"
+  keyword:
+    - "hotfix:*"
+    - "hotfix(*"
+    - "[Hh]otfix/*"
 
 branches:
   production: "main"

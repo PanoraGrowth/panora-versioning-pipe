@@ -432,10 +432,54 @@ teardown() { common_teardown; }
 # HOTFIX CONFIGURATION
 # =============================================================================
 
-@test "get_hotfix_keyword: default is 'hotfix'" {
+@test "get_hotfix_keyword: default base keyword is 'hotfix' (from array defaults)" {
     source_config_parser "minimal"
     run get_hotfix_keyword
     assert_equals "hotfix" "$output"
+}
+
+@test "get_hotfix_keywords: default returns 3 patterns from defaults.yml" {
+    source_config_parser "minimal"
+    run get_hotfix_keywords
+    [ "$status" -eq 0 ]
+    echo "$output" | grep -q 'hotfix:\*'
+    echo "$output" | grep -q 'hotfix(\*'
+    echo "$output" | grep -q '\[Hh\]otfix/\*'
+}
+
+@test "get_hotfix_keywords: multi-keyword fixture returns list as-is" {
+    source_config_parser "multi-keyword"
+    run get_hotfix_keywords
+    [ "$status" -eq 0 ]
+    echo "$output" | grep -q 'hotfix:\*'
+    echo "$output" | grep -q 'hotfix(\*'
+    echo "$output" | grep -q '\[Hh\]otfix/\*'
+}
+
+@test "get_hotfix_keyword: base word from multi-keyword fixture is 'hotfix'" {
+    source_config_parser "multi-keyword"
+    run get_hotfix_keyword
+    assert_equals "hotfix" "$output"
+}
+
+@test "get_hotfix_keywords: scalar backwards compat expands to 2 patterns" {
+    write_inline_fixture 'commits:
+  format: "conventional"
+hotfix:
+  keyword: "urgent"'
+    run get_hotfix_keywords
+    [ "$status" -eq 0 ]
+    echo "$output" | grep -q 'urgent:\*'
+    echo "$output" | grep -q 'urgent(\*'
+}
+
+@test "get_hotfix_keyword: scalar backwards compat base word is 'urgent'" {
+    write_inline_fixture 'commits:
+  format: "conventional"
+hotfix:
+  keyword: "urgent"'
+    run get_hotfix_keyword
+    assert_equals "urgent" "$output"
 }
 
 # =============================================================================

@@ -1,0 +1,18 @@
+# Fixture: hotfix.keyword as a list of glob patterns (v0.7.0+)
+commits:
+  format: "conventional"
+version:
+  components:
+    major:
+      enabled: true
+      initial: 0
+    minor:
+      enabled: true
+      initial: 0
+    timestamp:
+      enabled: false
+hotfix:
+  keyword:
+    - "hotfix:*"
+    - "hotfix(*"
+    - "[Hh]otfix/*"

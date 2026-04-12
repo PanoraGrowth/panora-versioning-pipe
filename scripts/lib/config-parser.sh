@@ -450,11 +450,28 @@ get_ignore_patterns_regex() {
 # HOTFIX CONFIGURATION
 # =============================================================================
 
-# Commit type keyword that identifies a hotfix. Used by detect-scenario.sh to
-# match the merge commit subject against "{keyword}:" or "{keyword}(". Default
-# "hotfix" applies if the consumer does not override in .versioning.yml.
+# Return hotfix keyword glob patterns (newline-separated).
+# Handles both formats:
+#   - Array (new):  keyword: ["hotfix:*", "hotfix(*"]  → return items as-is
+#   - Scalar (legacy): keyword: "hotfix"  → auto-expand to "hotfix:*\nhotfix(*"
+get_hotfix_keywords() {
+    local ktype
+    ktype=$(yq -r '.hotfix.keyword | type' "$MERGED_CONFIG" 2>/dev/null)
+    if [ "$ktype" = "!!seq" ]; then
+        yq -r '.hotfix.keyword[]' "$MERGED_CONFIG" 2>/dev/null
+    else
+        local kw
+        kw=$(config_get "hotfix.keyword" "hotfix")
+        printf '%s\n%s\n' "${kw}:*" "${kw}(*"
+    fi
+}
+
+# Return the base hotfix keyword (for branch prefix matching in PR context).
+# Extracts the base word from the first keyword pattern by stripping glob chars.
 get_hotfix_keyword() {
-    config_get "hotfix.keyword" "hotfix"
+    local first
+    first=$(get_hotfix_keywords | head -1)
+    echo "$first" | sed 's/[:([].*$//'
 }
 
 # =============================================================================

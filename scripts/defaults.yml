@@ -185,13 +185,18 @@ validation:
     - "^chore\\(hotfix\\)"
 
 hotfix:
-  # Commit type keyword that identifies a hotfix. The pipe detects a hotfix
+  # Glob patterns that identify a hotfix commit. The pipe detects a hotfix
   # scenario when the merge commit subject (or, for merge-commit style merges,
-  # the second parent's subject) starts with "{keyword}:" or "{keyword}(".
-  # Customize if your team uses a different convention (e.g. "urgent", "critical").
-  # Detection is pure git — no platform APIs, works on GitHub, Bitbucket, GitLab,
-  # or any git host.
-  keyword: "hotfix"
+  # the second parent's subject) matches ANY pattern in this list.
+  # Each entry is a shell glob evaluated via `case` (supports *, ?, [...]).
+  # Customize for your team's conventions. Detection is pure git — no platform
+  # APIs, works on GitHub, Bitbucket, GitLab, or any git host.
+  # Backwards compatible: a single string value (e.g. keyword: "hotfix") is
+  # auto-expanded to ["hotfix:*", "hotfix(*"] at parse time.
+  keyword:
+    - "hotfix:*"
+    - "hotfix(*"
+    - "[Hh]otfix/*"
 
 branches:
   development: "development"
