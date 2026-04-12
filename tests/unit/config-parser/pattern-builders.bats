@@ -14,28 +14,39 @@ teardown() { common_teardown; }
 # get_tag_pattern
 # =============================================================================
 
-@test "get_tag_pattern: no-timestamp fixture — no timestamp group, no prefix" {
+@test "get_tag_pattern: no-timestamp fixture — no timestamp, optional patch" {
+    # v0.6.3+: defaults.yml has patch.enabled: true, so the optional patch
+    # group (\.[0-9]+)? appears in the pattern for fixtures that don't
+    # explicitly opt out.
     source_config_parser "no-timestamp"
     run get_tag_pattern
-    assert_equals '^[0-9]+\.[0-9]+\.[0-9]+$' "$output"
+    assert_equals '^[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?$' "$output"
 }
 
-@test "get_tag_pattern: with-timestamp fixture — includes timestamp group" {
+@test "get_tag_pattern: with-timestamp fixture — includes timestamp group + optional patch" {
     source_config_parser "with-timestamp"
     run get_tag_pattern
-    assert_equals '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]{12,14}(-[0-9]+)?$' "$output"
+    assert_equals '^[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?\.[0-9]{12,14}(-[0-9]+)?$' "$output"
 }
 
-@test "get_tag_pattern: with-v-prefix fixture — starts with v, no timestamp" {
+@test "get_tag_pattern: with-v-prefix fixture — starts with v, no timestamp, optional patch" {
     source_config_parser "with-v-prefix"
     run get_tag_pattern
-    assert_equals '^v[0-9]+\.[0-9]+$' "$output"
+    assert_equals '^v[0-9]+\.[0-9]+(\.[0-9]+)?$' "$output"
 }
 
-@test "get_tag_pattern: all-components fixture — period+major+minor+timestamp" {
+@test "get_tag_pattern: all-components fixture — period+major+minor+timestamp + optional patch" {
     source_config_parser "all-components"
     run get_tag_pattern
-    assert_equals '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]{12,14}(-[0-9]+)?$' "$output"
+    assert_equals '^[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?\.[0-9]{12,14}(-[0-9]+)?$' "$output"
+}
+
+@test "get_tag_pattern: patch-disabled fixture — no optional patch group" {
+    # Consumer explicitly opts out of patch. Pattern should NOT contain
+    # the optional patch group.
+    source_config_parser "patch-disabled"
+    run get_tag_pattern
+    assert_equals '^[0-9]+\.[0-9]+$' "$output"
 }
 
 # =============================================================================

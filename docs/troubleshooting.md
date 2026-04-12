@@ -191,11 +191,19 @@ This is documented in [`docs/architecture/README.md`](architecture/README.md#ver
 
 ---
 
-## My hotfix wasn't detected — PATCH didn't bump
+## My hotfix commit produced no tag — nothing happened at all
 
-**Cause.** The `version.components.patch.enabled` flag is `false` (the default). The hotfix wire-up only takes the PATCH path when the component is opted in. With patch disabled, the flow falls back to the standard last-commit-wins bump — a `hotfix:` commit maps to `bump: "minor"` in [`scripts/defaults.yml`](../scripts/defaults.yml), so you get a MINOR release instead of a PATCH.
+**Cause.** The `version.components.patch.enabled` flag is explicitly set to `false` in `.versioning.yml`. As of v0.6.3, `patch.enabled` is `true` by default, so this only happens when the consumer has opted out deliberately. With the opt-out, hotfix commits are a **no-op** — the pipe detects the signal, emits a 3-line INFO log explaining why nothing happened, and creates no tag.
 
-**Fix.** Enable the component in `.versioning.yml`:
+Look for the INFO log in your CI run:
+
+```
+INFO: Hotfix commit detected ("hotfix: fix button") but version.components.patch.enabled is false.
+INFO: Skipping tag creation (consumer opted out of patch component).
+INFO: To enable hotfix tags, set version.components.patch.enabled: true in your .versioning.yml.
+```
+
+**Fix.** If you want hotfix tags, remove the `patch.enabled: false` line (or set it to `true`):
 
 ```yaml
 version:
@@ -205,24 +213,30 @@ version:
       initial: 0
 ```
 
-No other config changes are required. The next hotfix merged to `main` will bump PATCH and produce a tag like `v0.5.9.1`. See [`docs/adoption-guide.md`](adoption-guide.md) Step 5 for the full hotfix workflow.
+The next hotfix merged to your tag branch will bump PATCH and produce a tag like `v0.5.9.1`. See [`docs/adoption-guide.md`](adoption-guide.md) Step 5 for the full hotfix workflow.
+
+If you DO want hotfix commits to be a no-op (for example, if your repo uses a 3-component versioning scheme and hotfix is just a label without a distinct release channel), keep `patch.enabled: false` and treat the INFO log as expected behavior.
 
 ---
 
 ## My hotfix branch was merged but the scenario wasn't recognized
 
-**Cause.** `scripts/detection/detect-scenario.sh` in branch context (post-merge) looks for a hotfix signal in two places:
+**Cause.** As of v0.6.3, `scripts/detection/detect-scenario.sh` in branch context (post-merge) uses **pure git** to detect a hotfix — no API calls, no platform-specific tools. It looks in two places:
 
-1. **Primary**: the merge commit subject starts with `hotfix:` or `hotfix(...)`.
-2. **Fallback**: `gh api /repos/.../commits/{sha}/pulls` returns a PR whose head ref matches `hotfix.branch_prefix`.
+1. **Primary**: the merge commit subject at HEAD starts with `{keyword}:` or `{keyword}(`, where `{keyword}` comes from `hotfix.keyword` in your `.versioning.yml` (default `"hotfix"`).
+2. **Secondary (merge commit style only)**: if HEAD is a merge commit (has 2+ parents), the pipe also inspects the subject of the second parent — the tip of the branch that was merged in. This covers the traditional 3-way merge where HEAD's subject is "Merge pull request #N from ..." and the hotfix signal lives on the branch tip.
 
-The fallback only works when `gh` is available and `GITHUB_REPOSITORY` is exported into the pipe's container — which is NOT the case inside the pipe's own Alpine Docker image (gh is not installed). Consumers running the pipe on GitHub Actions get the commit-type path only.
+With **squash merge** (recommended), the merge commit subject is the PR title. If the PR title does not start with `hotfix:`, the primary detection misses and the pipe falls through to `development_release`.
 
-With squash merge (the recommended strategy), the merge commit subject is the PR title. If the PR title does not start with `hotfix:`, the primary detection misses and the pipe falls through to `development_release`.
+With **rebase merge**, the last replayed commit's subject is HEAD. If the last commit on the branch is `hotfix: foo`, detection fires.
 
-**Fix.** Start the PR title with `hotfix:` — for example `hotfix: patch auth token leak`. GitHub appends ` (#NN)` to the subject during the squash merge, which does not disrupt the prefix match. The branch name itself can still be `hotfix/whatever` (and should be, for PR-context detection), but the PR title is what survives into the merge commit.
+With **merge commit** style, the branch-tip subject is inspected automatically (secondary check).
 
-If you already merged and didn't set the PR title, the release is treated as a normal `development_release`. Roll the fix forward in the next regular release — there is no way to retroactively re-run the scenario detection without a new merge commit.
+**Fix.** Start the PR title with `hotfix:` — for example `hotfix: patch auth token leak`. GitHub and Bitbucket both append `(#NN)` or similar to the subject during squash merge, which does not disrupt the prefix match. The branch name itself can still be `hotfix/whatever` (and should be, for PR-context detection ergonomics), but the merge commit subject (or the branch tip subject for merge-commit style) is what survives into the post-merge detection.
+
+If you already merged and didn't set the PR title correctly, the release is treated as a normal `development_release`. Roll the fix forward in the next regular release — there is no way to retroactively re-run the scenario detection without a new merge commit.
+
+**Custom keyword.** If your team uses a different convention (e.g. `urgent:`, `critical:`), set `hotfix.keyword` in `.versioning.yml`. The match is a strict prefix — `hotfixed: foo` will NOT match when keyword is `hotfix`, and `urgent: foo` will NOT match when keyword is the default `hotfix`.
 
 ---
 

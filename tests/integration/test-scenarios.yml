@@ -136,17 +136,12 @@ scenarios:
       tag_created: false
 
   - name: hotfix-to-main-with-patch-bump
-    description: "Full hotfix wire-up end-to-end: a hotfix/ branch is merged to main (squash), the pipe bumps PATCH (not MINOR), tags v*.*.*.1, and the CHANGELOG header carries the (Hotfix) marker."
+    description: "Full hotfix wire-up end-to-end: a hotfix/ branch is merged to main (squash), the pipe bumps PATCH, tags v*.*.*.1, and the CHANGELOG header carries the (Hotfix) marker. Runs on BOTH GitHub and Bitbucket harnesses since detection is now pure-git (v0.6.3+)."
     merge_method: squash
-    # GitHub-specific: exercises the scenario + PATCH routing via the GH test
-    # harness (config_override, branch_prefix, pr_title, changelog_section_marker
-    # are only implemented in test_github.py for now).
-    skip_bitbucket: true
     branch_prefix: "hotfix/auto"
     # PR title must start with 'hotfix:' so the squash merge subject carries
-    # the signal — branch-context detect-scenario.sh inspects the merge-commit
-    # subject via its commit-type convention path (gh API fallback is not
-    # available inside the pipe's Alpine Docker image).
+    # the signal. branch-context detect-scenario.sh inspects the merge commit
+    # subject via the commit-type convention (purely git-based, v0.6.3+).
     pr_title: "hotfix: wire-up patch bump integration test"
     # FULL config_override — the test framework currently serializes
     # config_override as a REPLACEMENT of .versioning.yml, not a merge
@@ -154,7 +149,9 @@ scenarios:
     # back to defaults.yml, which for branches.tag_on defaults to
     # "development" — that skips tag creation on main. To prevent this
     # and restore the test repo's base config at the same time, the
-    # override carries every key the base config needs, plus patch.enabled.
+    # override carries every key the base config needs.
+    # NOTE: v0.6.3+ defaults patch.enabled to true, so opting in is automatic.
+    # The explicit patch block below is defensive clarity, not a requirement.
     config_override:
       commits:
         format: "conventional"
@@ -176,6 +173,8 @@ scenarios:
         development: "main"
         production: "main"
         tag_on: "main"
+      hotfix:
+        keyword: "hotfix"
       changelog:
         mode: "full"
         commit_url: "https://github.com/PanoraGrowth/panora-versioning-pipe-test/commit"

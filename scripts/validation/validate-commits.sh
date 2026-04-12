@@ -12,7 +12,7 @@ load_env "/tmp/scenario.env"
 
 # Only validate for development releases and hotfixes
 case "$SCENARIO" in
-    development_release|hotfix_to_main|hotfix_to_preprod)
+    development_release|hotfix)
         ;;
     *)
         exit 0

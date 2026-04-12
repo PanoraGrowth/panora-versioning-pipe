@@ -117,17 +117,26 @@ echo ""
 # =============================================================================
 # Detect bump type
 # =============================================================================
-# Hotfix scenarios (hotfix_to_main, hotfix_to_preprod) bump PATCH regardless of
-# the commit type, provided the patch component is enabled. When patch is
-# disabled, the flow falls through to standard last-commit-wins detection to
-# preserve backward compatibility with consumers that never opt in.
+# Hotfix scenario + patch.enabled=true → bump PATCH, produce .N tag.
+# Hotfix scenario + patch.enabled=false → NO-OP: skip tag creation entirely and
+#   emit a 3-line INFO log explaining why. The consumer opted out of the patch
+#   component explicitly, so honoring that opt-out is the expected behavior.
+# Non-hotfix scenarios → fall through to standard last-commit-wins detection.
 BUMP_TYPE="timestamp_only"
 
-if is_component_enabled "patch" && \
-   { [ "$SCENARIO" = "hotfix_to_main" ] || [ "$SCENARIO" = "hotfix_to_preprod" ]; }; then
-    BUMP_TYPE="patch"
-    PATCH=$((PATCH + 1))
-    log_info "Detected: PATCH bump (hotfix scenario: $SCENARIO)"
+if [ "$SCENARIO" = "hotfix" ]; then
+    if is_component_enabled "patch"; then
+        BUMP_TYPE="patch"
+        PATCH=$((PATCH + 1))
+        log_info "Detected: PATCH bump (hotfix scenario)"
+    else
+        log_info "Hotfix commit detected (\"$LAST_COMMIT\") but version.components.patch.enabled is false."
+        log_info "Skipping tag creation (consumer opted out of patch component)."
+        log_info "To enable hotfix tags, set version.components.patch.enabled: true in your .versioning.yml."
+        write_state "/tmp/next_version.txt" ""
+        write_state "/tmp/bump_type.txt" ""
+        exit 0
+    fi
 elif [ -n "$MAJOR_PATTERN" ] && echo "$LAST_COMMIT" | grep -qE "$MAJOR_PATTERN"; then
     BUMP_TYPE="major"
     MAJOR=$((MAJOR + 1))

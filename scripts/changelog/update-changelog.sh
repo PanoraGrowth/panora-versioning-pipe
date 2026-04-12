@@ -46,9 +46,7 @@ load_env "/tmp/scenario.env"
 # Handle development and hotfix releases through the same unified flow.
 # The (Hotfix) header marker is injected upstream by the CHANGELOG generators,
 # so the commit staging / messaging / push logic here is scenario-agnostic.
-if [ "$SCENARIO" = "development_release" ] || \
-   [ "$SCENARIO" = "hotfix_to_main" ] || \
-   [ "$SCENARIO" = "hotfix_to_preprod" ]; then
+if [ "$SCENARIO" = "development_release" ] || [ "$SCENARIO" = "hotfix" ]; then
     if [ ! -f "/tmp/next_version.txt" ]; then
         exit 0
     fi

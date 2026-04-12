@@ -450,27 +450,11 @@ get_ignore_patterns_regex() {
 # HOTFIX CONFIGURATION
 # =============================================================================
 
-get_hotfix_branch_prefix() {
-    config_get "hotfix.branch_prefix" "hotfix/"
-}
-
-hotfix_validate_commits() {
-    local validate=$(config_get "hotfix.validate_commits" "true")
-    [ "$validate" = "true" ]
-}
-
-hotfix_update_changelog_on_main() {
-    local update=$(config_get "hotfix.update_changelog_on_main" "true")
-    [ "$update" = "true" ]
-}
-
-hotfix_update_changelog_on_preprod() {
-    local update=$(config_get "hotfix.update_changelog_on_preprod" "true")
-    [ "$update" = "true" ]
-}
-
-get_hotfix_changelog_header() {
-    config_get "hotfix.changelog_header" "HOTFIX"
+# Commit type keyword that identifies a hotfix. Used by detect-scenario.sh to
+# match the merge commit subject against "{keyword}:" or "{keyword}(". Default
+# "hotfix" applies if the consumer does not override in .versioning.yml.
+get_hotfix_keyword() {
+    config_get "hotfix.keyword" "hotfix"
 }
 
 # =============================================================================

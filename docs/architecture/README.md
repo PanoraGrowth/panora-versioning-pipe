@@ -108,7 +108,7 @@ Versions are built from toggleable components:
 | Period | Manual / config change | off |
 | Major | Commit types with `bump: "major"` (defaults: `major`, `breaking`, `feat`, `feature`) | on |
 | Minor | Commit types with `bump: "minor"` (defaults: `minor`, `fix`, `hotfix`, `security`, `refactor`, `perf`, `docs`, `test`, `chore`, `build`, `ci`, `revert`, `style`) | on |
-| Patch | Scenario-driven: `hotfix_to_main` / `hotfix_to_preprod` bumps PATCH regardless of commit type (see "Hotfix flow") | off (opt-in) |
+| Patch | Scenario-driven: `hotfix` scenario (from commit subject convention) bumps PATCH regardless of commit type (see "Hotfix flow") | on (v0.6.3+) |
 | Timestamp | Auto-generated when no bump match | on |
 
 Only the LAST commit in a PR determines the version bump. Commit types with `bump: "none"` skip tag creation entirely. Use `commit_type_overrides` to retune individual types without redefining the whole list (the pipe itself sets `docs: { bump: none }` in `.versioning.yml`).
@@ -126,7 +126,7 @@ The pipe uses **last-commit-wins** semantics: only the most recent commit in the
 
 ## Hotfix flow
 
-The pipe supports hotfixes via a dedicated scenario and an opt-in PATCH version component. Hotfixes are an explicit out-of-band release path: they bump the PATCH component (not MINOR), carry a `(Hotfix)` marker in the CHANGELOG header, and produce distinct tags like `v0.5.9.1` / `v0.5.9.2`. Each hotfix release is a stand-alone Docker image tag, so rollback is a plain `docker pull ghcr.io/.../panora-versioning-pipe:v0.5.9`.
+The pipe supports hotfixes via a single unified scenario and a default-on PATCH version component (as of v0.6.3). Hotfixes are an explicit out-of-band release path: they bump the PATCH component (not MINOR), carry a `(Hotfix)` marker in the CHANGELOG header, and produce distinct tags like `v0.5.9.1` / `v0.5.9.2`. Each hotfix release is a stand-alone Docker image tag, so rollback is a plain `docker pull ghcr.io/.../panora-versioning-pipe:v0.5.9`.
 
 ### Detection
 
@@ -134,16 +134,24 @@ The pipe supports hotfixes via a dedicated scenario and an opt-in PATCH version 
 
 | Context | Signal | Detection strategy |
 |---------|--------|--------------------|
-| PR | `VERSIONING_TARGET_BRANCH` set | Dispatches on source/target branch names — `hotfix/*` → main/pre-production becomes `hotfix_to_main` / `hotfix_to_preprod`. |
-| Branch (post-merge) | No `VERSIONING_TARGET_BRANCH` | Primary: merge-commit subject starts with `hotfix:` or `hotfix(...)` (squash-merge-friendly). Fallback: GitHub API PR lookup (`gh api /repos/.../commits/{sha}/pulls`) checks the PR's head ref against `hotfix.branch_prefix`. The fallback degrades silently if `gh` is unavailable. |
+| PR | `VERSIONING_TARGET_BRANCH` set | Dispatches on source/target branch names — `hotfix/*` → main/pre-production becomes scenario `hotfix`. Heuristic uses `hotfix.keyword` as branch prefix. |
+| Branch (post-merge) | No `VERSIONING_TARGET_BRANCH` | **Pure git, platform-agnostic**. Primary: merge-commit subject starts with `{keyword}:` or `{keyword}(`, where keyword comes from `hotfix.keyword` (default `"hotfix"`). Secondary: for traditional 3-way merge commits (HEAD has 2+ parents), the second parent's subject is also inspected — covers the merge-commit merge style where HEAD is "Merge pull request #N from ...". No API calls, no env vars, no `gh`/`bb` CLI. |
 
 ### Bump rules
 
-| Scenario | What bumps | Patch behaviour |
-|---|---|---|
-| `development_release` | Last commit's type → major / minor (highest wins — see last-commit-wins above) | Patch resets to 0 when major or minor bumps |
-| `hotfix_to_main` / `hotfix_to_preprod` + patch enabled | Always PATCH regardless of commit type | Patch increments by 1 |
-| `hotfix_to_main` / `hotfix_to_preprod` + patch disabled | Falls back to last-commit-wins (e.g. `hotfix` → MINOR) | N/A (patch component not rendered) |
+| Scenario | `patch.enabled` | Bump | Tag | CHANGELOG | `(Hotfix)` marker |
+|---|---|---|---|---|---|
+| `development_release` | any | last-commit-wins (major/minor/none) | yes | yes | no |
+| `hotfix` | `true` (default) | patch (increments by 1) | yes | yes | yes |
+| `hotfix` | `false` (opt-out) | **no bump** | **no tag** | **no changelog** | n/a |
+
+When a hotfix is detected but the consumer has opted out of patch (`patch.enabled: false`), the pipe emits a 3-line INFO log:
+
+```
+INFO: Hotfix commit detected ("hotfix: fix button") but version.components.patch.enabled is false.
+INFO: Skipping tag creation (consumer opted out of patch component).
+INFO: To enable hotfix tags, set version.components.patch.enabled: true in your .versioning.yml.
+```
 
 ### Tag semantics (with `tag_prefix_v: true`)
 
@@ -165,20 +173,20 @@ Hotfix releases render with a `(Hotfix)` suffix in the version header so release
 
 Both the root CHANGELOG (`generate-changelog-last-commit.sh`) and per-folder CHANGELOGs (`generate-changelog-per-folder.sh`) inject the marker consistently. Dev releases render unchanged.
 
-### Opt-in configuration
+### Configuration
 
 ```yaml
 version:
   components:
     patch:
-      enabled: true    # required for hotfix PATCH bumping; default false
+      enabled: true    # default on (v0.6.3+). Set to false to opt out.
       initial: 0
 
 hotfix:
-  branch_prefix: "hotfix/"   # used for PR-context detection + gh API fallback
+  keyword: "hotfix"    # default. Customize with any single-word keyword.
 ```
 
-Consumers with `patch.enabled: false` (the default) see zero change — hotfix branches still get PR validation, but merges produce normal MINOR bumps exactly as before. Opt in only when you want the separate PATCH release lane.
+To opt out of the hotfix flow entirely, set `patch.enabled: false`. Hotfix commits then become a no-op with an INFO log (see the bump rules table above).
 
 ---
 
@@ -288,7 +296,7 @@ Scripts communicate via temp files:
 
 | File | Purpose |
 |------|---------|
-| `/tmp/scenario.env` | Pipeline scenario (`development_release`, `hotfix_to_main`, `hotfix_to_preprod`, `promotion_*`, `unknown`). Written by `detect-scenario.sh` before `calculate-version.sh` runs so the hotfix routing can drive the PATCH bump. |
+| `/tmp/scenario.env` | Pipeline scenario (`development_release`, `hotfix`, `promotion_*`, `unknown`). Written by `detect-scenario.sh` before `calculate-version.sh` runs so the hotfix routing can drive the PATCH bump. |
 | `/tmp/next_version.txt` | Calculated next version tag |
 | `/tmp/bump_type.txt` | Bump type (`major`, `minor`, `patch`, `timestamp_only`) |
 | `/tmp/latest_tag.txt` | Latest matching version tag |

@@ -1,33 +1,40 @@
-# Example: hotfix-enabled versioning
+# Example: hotfix-enabled versioning (v0.6.3+)
 #
-# Demonstrates the hotfix flow introduced in v0.6.0 (ticket 024).
-# Opts into the PATCH version component so that hotfix commits bump
-# PATCH instead of MINOR, producing tags like v1.2.3.1 without disturbing
-# the normal semver trajectory.
+# Demonstrates the pipe's hotfix flow. As of v0.6.3, the hotfix feature is
+# ON BY DEFAULT — consumers get patch bump on hotfix commits out of the box.
+# This example shows the full explicit configuration so you can see every
+# knob, but most of it matches the defaults.
 #
 # ----------------------------------------------------------------------
 # How the hotfix flow works
 # ----------------------------------------------------------------------
 #
-# 1. Create a branch from the production tag (for example from v1.2.3):
-#      git checkout -b hotfix/fix-auth-bypass v1.2.3
+# 1. Create a branch from production (by convention, prefix it "hotfix/"):
+#      git checkout -b hotfix/fix-auth-bypass main
 #
-# 2. Commit the fix using the "hotfix:" conventional commit type:
+# 2. Commit the fix (the message MUST start with the hotfix keyword):
 #      git commit -m "hotfix: patch critical auth bypass"
 #
-# 3. Open a PR against main and merge (squash is recommended).
+# 3. Open a PR against main. For GitHub/Bitbucket squash merges, ensure the
+#    PR title also starts with "hotfix:" so the squash commit subject carries
+#    the signal. For traditional "Merge commit" style merges, the branch-tip
+#    commit subject is inspected automatically (the pipe checks the merge
+#    commit's second parent).
 #
-# 4. On merge, the pipe detects the hotfix scenario via the commit
-#    subject convention (primary path) or via a GitHub API lookup of
-#    the PR's head_ref against hotfix_pattern (secondary path, used
-#    when gh CLI is available inside the pipe Docker image).
+# 4. Merge. The pipe runs via tag-on-merge.yml and:
+#    - Detects the `hotfix:` signal in the merge commit subject (or parent)
+#    - Bumps the PATCH component (e.g. v1.2.3 → v1.2.3.1)
+#    - Generates a CHANGELOG entry with the "(Hotfix)" marker in the header
+#    - Creates and pushes the new tag atomically with the CHANGELOG commit
 #
-# 5. The pipe bumps the PATCH component (not MINOR), producing a tag
-#    like v1.2.3.1 and a CHANGELOG header marked "(Hotfix)":
+# ----------------------------------------------------------------------
+# Detection is platform-agnostic — pure git, no APIs
+# ----------------------------------------------------------------------
 #
-#      ## v1.2.3.1 (Hotfix) - 2026-04-12
-#
-#      - hotfix: patch critical auth bypass
+# The pipe detects hotfix via `git log -1 --format='%s' HEAD` and, for merge
+# commits, also checks the second parent's subject. No GitHub API, no
+# Bitbucket API, no `gh` CLI — works identically on GitHub Actions,
+# Bitbucket Pipelines, GitLab CI, or any git host.
 #
 # ----------------------------------------------------------------------
 # Tag semantics with the PATCH component
@@ -44,15 +51,14 @@
 # "docker pull ghcr.io/.../pipe:v1.2.3" restores the pre-hotfix state.
 #
 # ----------------------------------------------------------------------
-# Backward compatibility
+# Opting out of hotfix
 # ----------------------------------------------------------------------
 #
-# The PATCH component is OPT-IN. Consumers that do not set
-# version.components.patch.enabled (default false) see zero change in
-# behavior. Tags continue to render without the fourth component
-# (v1.2.3, not v1.2.3.0), and the hotfix scenario falls back to a
-# minor bump if someone merges a hotfix commit into a repo that has
-# not opted in.
+# To disable the hotfix flow entirely, set version.components.patch.enabled
+# to false. Hotfix commits will then be treated as a no-op: the pipe detects
+# the signal, logs an INFO message explaining it is skipping, and creates no
+# tag. The opt-out is deliberate — the consumer is telling the pipe "I don't
+# want the 4th version component in my scheme, so a hotfix has no place to go".
 #
 # ======================================================================
 
@@ -71,34 +77,27 @@ version:
     minor:
       enabled: true
       initial: 0
-    # NEW in v0.6.0 — required for the hotfix flow.
-    # When enabled, hotfix_to_main and hotfix_to_preprod scenarios bump
-    # PATCH instead of MINOR. Patch resets to 0 on any major or minor
-    # bump and is omitted from the tag when its value is 0.
+    # patch.enabled defaults to true as of v0.6.3 — shown explicitly here
+    # for clarity. Set to false to opt out of the hotfix flow entirely.
     patch:
       enabled: true
       initial: 0
     timestamp:
       enabled: false
 
+# Hotfix detection keyword. Default is "hotfix". Change this if your team
+# uses a different convention (e.g. "urgent", "critical", "fixprod").
+# Detection is a strict prefix match on the merge commit subject:
+# "{keyword}:" or "{keyword}(". Example subjects that match when
+# keyword="hotfix": "hotfix: foo", "hotfix(scope): foo".
+# Example subjects that do NOT match: "hotfixed: foo", "pre-hotfix: foo",
+# "feat: foo".
+hotfix:
+  keyword: "hotfix"
+
 branches:
   production: "main"
   tag_on: "main"
-  # Branches matching this prefix activate the hotfix scenario when
-  # merged to the production branch. The commit subject convention
-  # (`hotfix:` or `hotfix(scope):`) takes precedence; this pattern is
-  # the secondary detection path used when the convention is absent
-  # and the pipe's Docker image has the gh CLI available.
-  hotfix_pattern: "hotfix/"
-
-# Override the "hotfix" commit type to explicitly mark it as the driver
-# of a PATCH bump. Without this override, the scenario detection in
-# branch-pipeline.sh takes precedence, but adding the override here
-# documents the intent and ensures consistent behavior even if the
-# scenario detection path is reworked.
-commit_type_overrides:
-  hotfix:
-    bump: "patch"
 
 changelog:
   file: "CHANGELOG.md"
@@ -125,4 +124,4 @@ changelog:
 #   the atomic CHANGELOG + tag. Direct pushes by GITHUB_TOKEN would be
 #   rejected even with --admin merges.
 # - Commit conventional commits on feature branches; commit `hotfix:`
-#   commits on hotfix/* branches to activate the patch bump path.
+#   commits on hotfix/* branches to trigger the patch bump.

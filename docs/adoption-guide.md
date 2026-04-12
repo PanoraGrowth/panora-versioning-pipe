@@ -1,6 +1,6 @@
 # Adoption Guide
 
-**Last updated:** 2026-04-11 (hotfix wire-up, ticket 024)
+**Last updated:** 2026-04-12 (platform-agnostic hotfix detection, ticket 031)
 
 This guide walks a new consumer repository through adopting `panora-versioning-pipe` end-to-end: prerequisites, config selection, workflow installation, and verification of the first release. It assumes familiarity with git, GitHub Actions, and conventional commits, but assumes nothing about this pipe.
 
@@ -148,47 +148,74 @@ After the first merge to `main` completes, verify:
 
 ## Step 5 — When and how to use hotfixes
 
-Hotfixes are an **opt-in** release lane for urgent production fixes. They bump a separate PATCH component (not MINOR), so a hotfix released on top of `v0.5.9` becomes `v0.5.9.1` instead of `v0.5.10`. This keeps the next planned minor release on its own version number and makes rollback trivial.
+Hotfixes are a dedicated release lane for urgent production fixes. They bump a separate PATCH component (not MINOR), so a hotfix released on top of `v0.5.9` becomes `v0.5.9.1` instead of `v0.5.10`. This keeps the next planned minor release on its own version number and makes rollback trivial.
+
+**Default behavior (v0.6.3+)**: the hotfix flow is ON by default. You don't need to enable anything — just follow the commit convention below. To opt out (if your repo uses a 3-component version scheme), set `version.components.patch.enabled: false` in `.versioning.yml`.
+
+**Detection is platform-agnostic**: pure git, no APIs. Works identically on GitHub Actions, Bitbucket Pipelines, GitLab CI, or any git host.
 
 ### When a hotfix is appropriate
 
 - **Yes:** a production bug that can't wait for the next regular release cycle (security bypass, outage, data corruption).
 - **No:** a routine bug you'd normally ship in the next release — use a normal `fix:` commit on the development branch.
 
-### How to ship a hotfix
+### How to ship a hotfix (GitHub example)
 
-1. **Enable the PATCH component** in `.versioning.yml` (one-time setup):
-
-   ```yaml
-   version:
-     components:
-       patch:
-         enabled: true
-         initial: 0
-   ```
-
-   Without this, hotfix commits fall through to the standard last-commit-wins flow and produce a MINOR bump — zero behavioural change from pre-wire-up, which is by design.
-
-2. **Create a branch off `main`** using the configured hotfix prefix (`hotfix/` by default):
+1. **Create a branch off `main`** using the hotfix/ prefix by convention (the branch name is a human signal, the actual detection fires on the commit subject below):
 
    ```bash
    git checkout main && git pull
    git checkout -b hotfix/patch-auth-bypass
    ```
 
-3. **Commit the fix with a `hotfix:` commit type** (this is the signal that survives a squash merge):
+2. **Commit the fix with a `hotfix:` prefix** (this is the signal the pipe detects):
 
    ```bash
    git commit -m "hotfix: patch auth token leak"
+   git push origin hotfix/patch-auth-bypass
    ```
 
-4. **Open a PR to `main`**. The PR check runs in PR context, detects the `hotfix/` branch prefix, and validates.
-5. **Squash-merge** the PR. The squash-commit subject carries the `hotfix:` prefix from the PR title; `branch-pipeline.sh` on `main` picks up the signal via the commit-type convention and bumps PATCH.
-6. **Result**: a new tag like `v0.5.9.1` and a CHANGELOG entry headed `## v0.5.9.1 (Hotfix) - YYYY-MM-DD`.
+3. **Open a PR to `main`**. **The PR title MUST start with `hotfix:`** — e.g. `hotfix: patch auth token leak`. This is because squash merge (recommended) uses the PR title as the squash commit subject, and the pipe's detection reads the merge commit subject post-merge.
 
-### Setting the PR title
+4. **Squash-merge** the PR. GitHub creates a commit on `main` with subject `hotfix: patch auth token leak (#NN)`. The `(#NN)` suffix does not break the prefix match.
 
-The squash-merge commit subject comes from the PR title (not the branch commit message). For detection to survive, **start the PR title with `hotfix:`** as well — e.g. `hotfix: patch auth token leak`. GitHub appends `(#NN)` to the subject, which does not disrupt the prefix match.
+5. **Result**: the pipe runs, detects `hotfix` scenario from the commit subject, bumps PATCH, creates a tag like `v0.5.9.1`, and commits a CHANGELOG entry headed `## v0.5.9.1 (Hotfix) - YYYY-MM-DD`.
+
+### How to ship a hotfix (Bitbucket example)
+
+Identical to the GitHub flow above. Create a branch, commit with `hotfix:` prefix, push, open PR on Bitbucket, set the PR title to start with `hotfix:`, and use the squash merge option. The pipe detects the signal via the same `git log -1 --format='%s' HEAD` check and behaves identically.
+
+### Merge styles and detection
+
+| Merge style | What HEAD.subject is after merge | Hotfix detection fires if... |
+|---|---|---|
+| Squash merge (recommended) | PR title (e.g. `hotfix: fix foo (#42)`) | **PR title** starts with `hotfix:` or `hotfix(` |
+| Rebase merge | Last replayed commit subject | **Last commit on the branch** starts with `hotfix:` or `hotfix(` |
+| Merge commit (traditional 3-way) | `Merge pull request #42 from ...` | The pipe auto-inspects the **branch tip** (merge commit's second parent). If ANY commit on the branch tip is `hotfix:`, detection fires. |
+
+### Custom keyword
+
+If your team uses a different convention (e.g. `urgent:`, `critical:`, `fixprod:`), configure it in `.versioning.yml`:
+
+```yaml
+hotfix:
+  keyword: "urgent"
+```
+
+Then commit with `urgent: fix critical bug` and set your PR title the same way. The pipe detects strictly on the configured keyword — `urgent:` matches, `hotfix:` does NOT match (unless you configure both).
+
+### Opting out
+
+If your repo doesn't need a 4th version component, opt out explicitly:
+
+```yaml
+version:
+  components:
+    patch:
+      enabled: false
+```
+
+Hotfix commits will then be detected but treated as a no-op: the pipe emits a 3-line INFO log and skips tag creation. This is useful for repos that use `hotfix:` as a documentation label but don't want a distinct PATCH release channel.
 
 ### Rollback
 

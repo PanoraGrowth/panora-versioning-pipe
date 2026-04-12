@@ -53,7 +53,7 @@ esac
 # EXECUTE SCENARIO
 # ============================================================================
 case "$SCENARIO" in
-    development_release|hotfix_to_main|hotfix_to_preprod)
+    development_release|hotfix)
         echo ""
         log_section "PR PIPELINE — ${SCENARIO}"
         echo ""

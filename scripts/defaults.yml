@@ -25,13 +25,15 @@ version:
     minor:
       enabled: true
       initial: 0
-    # patch: opt-in 4th component used by the hotfix flow.
-    # When enabled, hotfix scenarios bump PATCH (instead of MINOR) and the
-    # rendered tag appends ".N" only when patch > 0 (e.g. v0.5.9.1). Tags where
-    # patch=0 still render as v0.5.9, preserving backward compatibility for
-    # consumers that never opt in. Default false keeps existing behaviour.
+    # patch: 4th component used by the hotfix flow (v0.6.3+).
+    # When enabled (default), a hotfix commit bumps PATCH and the rendered tag
+    # appends ".N" only when patch > 0 (e.g. v0.5.9.1). Tags where patch=0 still
+    # render as v0.5.9, preserving backward compatibility for consumers that
+    # never produce a hotfix. Set to false to opt out of the hotfix flow —
+    # hotfix commits in opted-out consumers are treated as a no-op (no tag
+    # created, INFO log explaining why).
     patch:
-      enabled: false
+      enabled: true
       initial: 0
     timestamp:
       enabled: true
@@ -183,11 +185,13 @@ validation:
     - "^chore\\(hotfix\\)"
 
 hotfix:
-  branch_prefix: "hotfix/"
-  validate_commits: true
-  update_changelog_on_main: true
-  update_changelog_on_preprod: true
-  changelog_header: "HOTFIX"
+  # Commit type keyword that identifies a hotfix. The pipe detects a hotfix
+  # scenario when the merge commit subject (or, for merge-commit style merges,
+  # the second parent's subject) starts with "{keyword}:" or "{keyword}(".
+  # Customize if your team uses a different convention (e.g. "urgent", "critical").
+  # Detection is pure git — no platform APIs, works on GitHub, Bitbucket, GitLab,
+  # or any git host.
+  keyword: "hotfix"
 
 branches:
   development: "development"
