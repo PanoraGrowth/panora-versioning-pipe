@@ -21,14 +21,14 @@ load_env "/tmp/scenario.env"
 # Hotfix releases reuse this generator (the marker is injected into the header
 # below) so the entire release flow — dev or hotfix — goes through a single path.
 case "$SCENARIO" in
-    development_release|hotfix_to_main|hotfix_to_preprod) ;;
+    development_release|hotfix) ;;
     *) exit 0 ;;
 esac
 
 # Append a "(Hotfix)" marker to the version header when the release is a
 # hotfix. Dev releases render unchanged.
 HEADER_SUFFIX=""
-if [ "$SCENARIO" = "hotfix_to_main" ] || [ "$SCENARIO" = "hotfix_to_preprod" ]; then
+if [ "$SCENARIO" = "hotfix" ]; then
     HEADER_SUFFIX=" (Hotfix)"
 fi
 

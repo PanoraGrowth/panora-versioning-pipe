@@ -62,27 +62,31 @@ run_calculate() {
 # Hotfix scenarios with patch enabled
 # =============================================================================
 
-@test "hotfix_to_main + patch enabled: bumps patch 0 → 1" {
-    run_calculate "with-patch" "hotfix_to_main" "v0.5.9" "hotfix: patch auth"
+@test "hotfix scenario + patch enabled: bumps patch 0 → 1" {
+    run_calculate "with-patch" "hotfix" "v0.5.9" "hotfix: patch auth"
     [ "$status" -eq 0 ]
     assert_output_matches 'BUMP_TYPE=patch'
     assert_output_matches 'NEXT_VERSION=v0\.5\.9\.1'
 }
 
-@test "hotfix_to_main + patch enabled: bumps patch 1 → 2" {
-    run_calculate "with-patch" "hotfix_to_main" "v0.5.9.1" "hotfix: second patch"
+@test "hotfix scenario + patch enabled: bumps patch 1 → 2" {
+    run_calculate "with-patch" "hotfix" "v0.5.9.1" "hotfix: second patch"
     [ "$status" -eq 0 ]
     assert_output_matches 'BUMP_TYPE=patch'
     assert_output_matches 'NEXT_VERSION=v0\.5\.9\.2'
 }
 
-@test "hotfix_to_main + patch disabled: falls back to minor bump (backward compat)" {
-    # minimal fixture has patch disabled. Hotfix commit still bumps per commit
-    # type convention (fix → minor), preserving the pre-wire-up behaviour for
-    # consumers that never opt in.
-    run_calculate "minimal" "hotfix_to_main" "" "fix: something"
+@test "hotfix scenario + patch disabled: no-op (empty next_version, INFO log)" {
+    # patch-disabled fixture has patch.enabled: false explicitly. With the v0.6.3
+    # design, hotfix + patch disabled is a deliberate no-op — the script exits
+    # early with an INFO log and writes empty state files so downstream scripts
+    # skip tagging. (The old minimal fixture no longer represents "patch
+    # disabled" because defaults.yml now sets patch.enabled: true as of v0.6.3.)
+    run_calculate "patch-disabled" "hotfix" "" "hotfix: something"
     [ "$status" -eq 0 ]
-    assert_output_matches 'BUMP_TYPE=minor'
+    # BUMP_TYPE and NEXT_VERSION must be empty (no tag to create)
+    echo "$output" | grep -q '^BUMP_TYPE=$'
+    echo "$output" | grep -q '^NEXT_VERSION=$'
 }
 
 # =============================================================================
@@ -105,15 +109,8 @@ run_calculate() {
     assert_output_matches 'NEXT_VERSION=v0\.5\.10$'
 }
 
-@test "hotfix_to_preprod + patch enabled: bumps patch (same routing as _main)" {
-    run_calculate "with-patch" "hotfix_to_preprod" "v0.5.9" "hotfix: preprod patch"
-    [ "$status" -eq 0 ]
-    assert_output_matches 'BUMP_TYPE=patch'
-    assert_output_matches 'NEXT_VERSION=v0\.5\.9\.1'
-}
-
 @test "bump_type.txt contains 'patch' after hotfix bump" {
-    run_calculate "with-patch" "hotfix_to_main" "v0.5.9" "hotfix: check bump type file"
+    run_calculate "with-patch" "hotfix" "v0.5.9" "hotfix: check bump type file"
     [ "$status" -eq 0 ]
     # Explicit grep on the captured BUMP_TYPE line — anchored, no partial matches
     echo "$output" | grep -q '^BUMP_TYPE=patch$'

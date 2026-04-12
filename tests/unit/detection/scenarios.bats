@@ -51,11 +51,11 @@ assert_scenario() {
     assert_scenario "development_release"
 }
 
-@test "scenario: hotfix_to_preprod — hotfix to pre-production" {
+@test "scenario: hotfix (preprod target) — hotfix to pre-production" {
     run_detect "minimal" "hotfix/urgent-fix" "pre-production"
     [ "$status" -eq 0 ]
     assert_output_matches "Hotfix to Pre-production"
-    assert_scenario "hotfix_to_preprod"
+    assert_scenario "hotfix"
 }
 
 @test "scenario: promotion_to_preprod — development to pre-production" {
@@ -65,11 +65,11 @@ assert_scenario() {
     assert_scenario "promotion_to_preprod"
 }
 
-@test "scenario: hotfix_to_main — hotfix to main" {
+@test "scenario: hotfix (main target) — hotfix to main" {
     run_detect "minimal" "hotfix/critical" "main"
     [ "$status" -eq 0 ]
     assert_output_matches "Hotfix to Production"
-    assert_scenario "hotfix_to_main"
+    assert_scenario "hotfix"
 }
 
 @test "scenario: promotion_to_main — pre-production to main" {
@@ -102,13 +102,13 @@ assert_scenario() {
     assert_scenario "development_release"
 }
 
-@test "custom-branches: hotfix_to_preprod — hotfix to staging" {
-    # custom-branches.yml sets branches but NOT hotfix.branch_prefix,
-    # so hotfix prefix remains the default "hotfix/" (not "emergency/")
+@test "custom-branches: hotfix (staging target) — hotfix to staging" {
+    # custom-branches.yml sets branches but NOT hotfix.keyword,
+    # so hotfix keyword remains the default "hotfix" (matches branch "hotfix/*")
     run_detect "custom-branches" "hotfix/db-crash" "staging"
     [ "$status" -eq 0 ]
     assert_output_matches "Hotfix to Pre-production"
-    assert_scenario "hotfix_to_preprod"
+    assert_scenario "hotfix"
 }
 
 @test "custom-branches: promotion_to_main — staging to master" {
@@ -118,12 +118,12 @@ assert_scenario() {
     assert_scenario "promotion_to_main"
 }
 
-@test "custom-branches: hotfix_to_main — hotfix to master" {
-    # hotfix prefix is still "hotfix/" — see hotfix_to_preprod test comment
+@test "custom-branches: hotfix (master target) — hotfix to master" {
+    # hotfix keyword default "hotfix" matches branch prefix "hotfix/"
     run_detect "custom-branches" "hotfix/urgent" "master"
     [ "$status" -eq 0 ]
     assert_output_matches "Hotfix to Production"
-    assert_scenario "hotfix_to_main"
+    assert_scenario "hotfix"
 }
 
 @test "custom-branches: unknown — feature to pre-production (not configured)" {

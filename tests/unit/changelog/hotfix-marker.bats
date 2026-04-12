@@ -4,7 +4,7 @@
 #
 # Both generate-changelog-last-commit.sh (root) and generate-changelog-per-folder.sh
 # (subfolders) must inject " (Hotfix)" into the version header when the scenario
-# is hotfix_to_main or hotfix_to_preprod. Development releases render unchanged.
+# is hotfix. Development releases render unchanged.
 
 load '../../helpers/setup'
 load '../../helpers/assertions'
@@ -50,14 +50,8 @@ run_root_generator() {
 # Root CHANGELOG header marker
 # =============================================================================
 
-@test "hotfix_to_main: root CHANGELOG header includes ' (Hotfix)' marker" {
-    run_root_generator "minimal" "hotfix_to_main"
-    [ "$status" -eq 0 ]
-    echo "$output" | grep -qE '^## v0\.5\.9 \(Hotfix\) - [0-9]{4}-[0-9]{2}-[0-9]{2}$'
-}
-
-@test "hotfix_to_preprod: root CHANGELOG header includes ' (Hotfix)' marker" {
-    run_root_generator "minimal" "hotfix_to_preprod"
+@test "hotfix scenario: root CHANGELOG header includes ' (Hotfix)' marker" {
+    run_root_generator "minimal" "hotfix"
     [ "$status" -eq 0 ]
     echo "$output" | grep -qE '^## v0\.5\.9 \(Hotfix\) - [0-9]{4}-[0-9]{2}-[0-9]{2}$'
 }
@@ -75,7 +69,7 @@ run_root_generator() {
 # Per-folder CHANGELOG header marker — consistency check
 # =============================================================================
 
-@test "hotfix_to_main: per-folder generator applies marker consistently" {
+@test "hotfix scenario: per-folder generator applies marker consistently" {
     # Use a minimal inline fixture with per_folder enabled and a subfolder
     cat > "${BATS_TEST_TMPDIR}/repo/.versioning.yml" <<'EOF'
 commits:
@@ -104,7 +98,7 @@ EOF
     git add backend/ .versioning.yml >/dev/null
     git commit -q -m "feat(backend): hotfix marker test"
 
-    echo "SCENARIO=hotfix_to_main" > /tmp/scenario.env
+    echo "SCENARIO=hotfix" > /tmp/scenario.env
     echo "v0.5.9" > /tmp/next_version.txt
 
     run flock "$LOCKFILE" sh -c "

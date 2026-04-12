@@ -141,10 +141,12 @@ version:
       enabled: true    # Third component — bumped by commit types with bump: "minor"
       initial: 0
     patch:
-      enabled: false   # Opt-in 4th component used by the hotfix flow. When enabled,
-                       # hotfix_to_main / hotfix_to_preprod scenarios bump PATCH instead
-                       # of MINOR. Rendered only when > 0 (v0.5.9 stays v0.5.9 until a
-                       # hotfix lands, then becomes v0.5.9.1). See "Hotfix flow" below.
+      enabled: true    # 4th component used by the hotfix flow. When enabled (default
+                       # from v0.6.3), hotfix commits bump PATCH instead of MINOR.
+                       # Rendered only when > 0 (v0.5.9 stays v0.5.9 until a hotfix
+                       # lands, then becomes v0.5.9.1). Set to false to opt out —
+                       # hotfix commits become a no-op with an INFO log. See "Hotfix
+                       # flow" below.
       initial: 0
     timestamp:
       enabled: true    # Auto-generated timestamp appended to version
@@ -167,7 +169,7 @@ The default commit type list is built-in and covers the most common types. You c
 | `feat` / `feature` | Features | `major` |
 | `minor` | Release | `minor` — increments Minor |
 | `fix` | Bug Fixes | `minor` |
-| `hotfix` | Hotfixes | `minor` by default; bumps PATCH instead when `version.components.patch.enabled: true` AND the scenario is `hotfix_to_main` / `hotfix_to_preprod`. See "Hotfix flow" below. |
+| `hotfix` | Hotfixes | Bumps PATCH when `version.components.patch.enabled: true` (default) AND the merge commit subject starts with `hotfix:` or `hotfix(`. With patch disabled, hotfix commits become a no-op. See "Hotfix flow" below. |
 | `security` | Security | `minor` |
 | `refactor` | Refactoring | `minor` |
 | `perf` | Performance | `minor` |
@@ -226,11 +228,12 @@ validation:
 
 ```yaml
 hotfix:
-  branch_prefix: "hotfix/"          # Branches starting with this are treated as hotfix branches
-  validate_commits: true            # Validate commit format on hotfix branches
-  update_changelog_on_main: true    # Add a hotfix entry to the main branch changelog
-  update_changelog_on_preprod: true # Add a hotfix entry to the pre-production changelog
-  changelog_header: "HOTFIX"        # Section header used in hotfix changelog entries
+  keyword: "hotfix"  # Commit type keyword that triggers the hotfix flow.
+                     # Detection is a strict prefix match on the merge commit
+                     # subject: "{keyword}:" or "{keyword}(". Change this if your
+                     # team uses a different convention (e.g. "urgent", "critical",
+                     # "fixprod"). Platform-agnostic — works identically on
+                     # GitHub, Bitbucket, GitLab, and any git host.
 ```
 
 ### branches
@@ -316,14 +319,16 @@ With the defaults, `feat` / `feature` bump major, and `fix` / `refactor` / `chor
 
 ### Hotfix flow
 
-When `version.components.patch.enabled: true` is set in `.versioning.yml`, the pipe treats `hotfix_to_main` and `hotfix_to_preprod` scenarios as PATCH releases rather than MINOR ones:
+The pipe detects a hotfix release by inspecting the merge commit subject. Detection is **platform-agnostic** (pure git, no APIs) and enabled by default as of v0.6.3:
 
-- Branch naming: `hotfix/...` (configurable via `hotfix.branch_prefix`). PR-context detection matches the branch prefix.
-- Commit / PR title convention: start with `hotfix:` or `hotfix(scope):` so the squash-merge commit subject carries the signal into branch-context detection.
-- Tag output: `v0.5.9` → `v0.5.9.1` → `v0.5.9.2`, resetting to 0 (and being omitted) at the next minor release.
-- CHANGELOG header: the version section is suffixed with `(Hotfix)` — e.g. `## v0.5.9.1 (Hotfix) - 2026-04-12`.
+- **Detection**: the merge commit subject on the tag branch must start with `{keyword}:` or `{keyword}(`, where `{keyword}` is configured via `hotfix.keyword` (default `"hotfix"`). For squash merges, this means the **PR title** must start with the keyword. For rebase merges, the last replayed commit on the branch carries the signal. For traditional "merge commit" style, the branch tip (merge commit's second parent) is also inspected automatically.
+- **No platform APIs**: the pipe uses `git log -1 --format='%s' HEAD` and, for merge commits, the second parent subject. Works identically on GitHub Actions, Bitbucket Pipelines, GitLab CI, or any git host.
+- **Tag output**: `v0.5.9` → `v0.5.9.1` → `v0.5.9.2`, resetting to 0 (and being omitted) at the next minor release.
+- **CHANGELOG header**: the version section is suffixed with `(Hotfix)` — e.g. `## v0.5.9.1 (Hotfix) - 2026-04-12`.
+- **Strict prefix matching**: `hotfixed: foo`, `pre-hotfix: foo`, `a hotfix: foo` do NOT match. Only `hotfix:` or `hotfix(` at the start of the subject matches.
+- **Custom keyword**: set `hotfix.keyword: "urgent"` (or any other word) to use a team-specific convention.
 
-With `patch.enabled: false` (the default) the flow is **backward-compatible**: hotfix branches still get PR validation, but merges produce normal MINOR bumps exactly as before. There is no behavioural change for consumers who do not opt in.
+To disable the hotfix flow entirely, set `version.components.patch.enabled: false`. Hotfix commits will then be treated as a no-op: the pipe emits a 3-line INFO log explaining the opt-out and creates no tag.
 
 Full walkthrough: [`docs/adoption-guide.md`](docs/adoption-guide.md#step-5--when-and-how-to-use-hotfixes). Architecture deep-dive: [`docs/architecture/README.md`](docs/architecture/README.md#hotfix-flow).
 

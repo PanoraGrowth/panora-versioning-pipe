@@ -432,34 +432,10 @@ teardown() { common_teardown; }
 # HOTFIX CONFIGURATION
 # =============================================================================
 
-@test "get_hotfix_branch_prefix: default is hotfix/" {
+@test "get_hotfix_keyword: default is 'hotfix'" {
     source_config_parser "minimal"
-    run get_hotfix_branch_prefix
-    assert_equals "hotfix/" "$output"
-}
-
-@test "hotfix_validate_commits: true by default" {
-    source_config_parser "minimal"
-    run hotfix_validate_commits
-    [ "$status" -eq 0 ]
-}
-
-@test "hotfix_update_changelog_on_main: true by default" {
-    source_config_parser "minimal"
-    run hotfix_update_changelog_on_main
-    [ "$status" -eq 0 ]
-}
-
-@test "hotfix_update_changelog_on_preprod: true by default" {
-    source_config_parser "minimal"
-    run hotfix_update_changelog_on_preprod
-    [ "$status" -eq 0 ]
-}
-
-@test "get_hotfix_changelog_header: default is HOTFIX" {
-    source_config_parser "minimal"
-    run get_hotfix_changelog_header
-    assert_equals "HOTFIX" "$output"
+    run get_hotfix_keyword
+    assert_equals "hotfix" "$output"
 }
 
 # =============================================================================

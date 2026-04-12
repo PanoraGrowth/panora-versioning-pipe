@@ -16,13 +16,21 @@ teardown() { common_teardown; }
 # is_component_enabled "patch"
 # =============================================================================
 
-@test "patch component: disabled by default (minimal fixture)" {
+@test "patch component: enabled by default (minimal fixture, v0.6.3+)" {
+    # v0.6.3 flipped the default of patch.enabled from false → true. The
+    # minimal fixture inherits defaults, so the component is now enabled.
     source_config_parser "minimal"
+    run is_component_enabled "patch"
+    [ "$status" -eq 0 ]
+}
+
+@test "patch component: disabled when explicitly opted out (patch-disabled fixture)" {
+    source_config_parser "patch-disabled"
     run is_component_enabled "patch"
     [ "$status" -ne 0 ]
 }
 
-@test "patch component: enabled when with-patch fixture opts in" {
+@test "patch component: enabled when with-patch fixture opts in explicitly" {
     source_config_parser "with-patch"
     run is_component_enabled "patch"
     [ "$status" -eq 0 ]
@@ -39,10 +47,10 @@ teardown() { common_teardown; }
 }
 
 @test "build_version_string: omits patch entirely when patch.enabled=false" {
-    source_config_parser "minimal"
+    source_config_parser "patch-disabled"
     # Even when a positive patch arg is passed, disabled component means no render
     run build_version_string "0" "5" "9" "7"
-    # minimal fixture uses the defaults (period disabled, major+minor enabled)
+    # patch-disabled fixture has period=off, major+minor=on, patch=off
     assert_equals "5.9" "$output"
 }
 

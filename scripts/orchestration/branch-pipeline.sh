@@ -31,10 +31,11 @@ if [ "$VERSIONING_BRANCH" != "$TAG_BRANCH" ]; then
 fi
 
 # ============================================================================
-# Detect scenario (development_release vs hotfix_to_main) for the commit being
-# released. Writes /tmp/scenario.env which calculate-version.sh and the
-# CHANGELOG scripts downstream consume. MUST run before calculate-version.sh
-# so hotfix routing drives the PATCH bump.
+# Detect scenario (development_release vs hotfix) for the commit being released.
+# Writes /tmp/scenario.env which calculate-version.sh and the CHANGELOG scripts
+# downstream consume. MUST run before calculate-version.sh so hotfix routing
+# drives the PATCH bump (when patch.enabled is true) or the no-op path (when
+# patch.enabled is false).
 # ============================================================================
 "${AUTOMATIONS_DIR}/detection/detect-scenario.sh"
 

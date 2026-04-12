@@ -20,12 +20,12 @@ load_env "/tmp/scenario.env"
 # is appended to the version header below so per-folder CHANGELOGs match the
 # root CHANGELOG format for hotfix releases.
 case "$SCENARIO" in
-    development_release|hotfix_to_main|hotfix_to_preprod) ;;
+    development_release|hotfix) ;;
     *) exit 0 ;;
 esac
 
 HEADER_SUFFIX=""
-if [ "$SCENARIO" = "hotfix_to_main" ] || [ "$SCENARIO" = "hotfix_to_preprod" ]; then
+if [ "$SCENARIO" = "hotfix" ]; then
     HEADER_SUFFIX=" (Hotfix)"
 fi
 
