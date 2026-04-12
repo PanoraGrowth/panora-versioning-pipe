@@ -202,3 +202,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: 170ecf7](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/170ecf730ac6aaa5e31f554dff21cbdb8f65822f)
 
 
+## v0.6.4 - 2026-04-12
+
+- 🐛 fix: address review findings — set -e, write_state, stale doc reference (#50)
+  - _Agustín Manessi_
+  - [Commit: 6f1637e](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/6f1637e29068f6df284cf4037737b54a2747348e)
+
+
