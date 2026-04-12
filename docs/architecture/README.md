@@ -327,4 +327,4 @@ Tags: :latest, :vX.Y.Z (version-specific)
 
 3. **Tag format migration**: changing version format config (period, timestamp, v-prefix) causes old tags to be ignored. The pipe starts from initial values if no tags match the current pattern.
 
-4. **Orphaned hotfix generator**: `scripts/changelog/generate-hotfix-changelog.sh` predates the wire-up and is not called by any orchestrator — the unified wire-up (ticket 024) routes hotfix releases through `generate-changelog-last-commit.sh` with a header marker instead. The old generator remains in the tree and is still covered by `tests/unit/changelog/hotfix.bats`, but is scheduled for removal in a follow-up PR.
+4. **Orphaned hotfix generator (REMOVED in v0.6.3)**: `scripts/changelog/generate-hotfix-changelog.sh` and its test file `tests/unit/changelog/hotfix.bats` were deleted in PR #49 (ticket 031). The unified wire-up (ticket 024) already routed hotfix releases through `generate-changelog-last-commit.sh` with a `(Hotfix)` header marker — the old generator was dead code.
