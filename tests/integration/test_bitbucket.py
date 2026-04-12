@@ -19,7 +19,7 @@ import time
 import pytest
 import yaml
 
-from conftest import load_scenarios, scenario_ids
+from conftest import deep_merge, load_scenarios, scenario_ids
 
 
 SCENARIOS = [s for s in load_scenarios() if not s.get("skip_bitbucket", False)]
@@ -41,12 +41,17 @@ class TestPRValidation:
         try:
             bitbucket.create_branch(branch)
 
-            # If config_override, push .versioning.yml first
+            # If config_override, deep-merge with base .versioning.yml
             if "config_override" in scenario:
+                current_raw = bitbucket.get_file_content(
+                    ".versioning.yml", ref="main",
+                )
+                base = yaml.safe_load(current_raw) if current_raw else {}
+                merged = deep_merge(base, scenario["config_override"])
                 bitbucket.create_commit(
                     branch=branch,
                     message="chore: set test config",
-                    files={".versioning.yml": yaml.dump(scenario["config_override"])},
+                    files={".versioning.yml": yaml.dump(merged)},
                 )
 
             for commit in scenario["commits"]:
@@ -90,12 +95,17 @@ class TestMergeAndTag:
             # 1. Create branch and commits
             bitbucket.create_branch(branch)
 
-            # If config_override, push .versioning.yml first
+            # If config_override, deep-merge with base .versioning.yml
             if "config_override" in scenario:
+                current_raw = bitbucket.get_file_content(
+                    ".versioning.yml", ref="main",
+                )
+                base = yaml.safe_load(current_raw) if current_raw else {}
+                merged = deep_merge(base, scenario["config_override"])
                 bitbucket.create_commit(
                     branch=branch,
                     message="chore: set test config",
-                    files={".versioning.yml": yaml.dump(scenario["config_override"])},
+                    files={".versioning.yml": yaml.dump(merged)},
                 )
 
             for commit in scenario["commits"]:

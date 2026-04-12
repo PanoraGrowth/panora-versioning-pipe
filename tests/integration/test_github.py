@@ -18,7 +18,7 @@ import time
 
 import pytest
 
-from conftest import load_scenarios, scenario_ids
+from conftest import deep_merge, load_scenarios, scenario_ids
 
 
 SCENARIOS = load_scenarios()
@@ -48,8 +48,13 @@ class TestPRValidation:
                 files = dict(commit.get("files", {"test-artifact.txt": "test"}))
                 if config_override and idx == 0:
                     import yaml
+                    current_raw = github.get_file_content(
+                        ".versioning.yml", ref="main",
+                    )
+                    base = yaml.safe_load(current_raw) if current_raw else {}
+                    merged = deep_merge(base, config_override)
                     files[".versioning.yml"] = yaml.safe_dump(
-                        config_override, default_flow_style=False, sort_keys=False
+                        merged, default_flow_style=False, sort_keys=False,
                     )
                 github.create_commit(
                     branch=branch,
@@ -105,8 +110,13 @@ class TestMergeAndTag:
                 files = dict(commit.get("files", {"test-artifact.txt": "test"}))
                 if config_override and idx == 0:
                     import yaml
+                    current_raw = github.get_file_content(
+                        ".versioning.yml", ref="main",
+                    )
+                    base = yaml.safe_load(current_raw) if current_raw else {}
+                    merged = deep_merge(base, config_override)
                     files[".versioning.yml"] = yaml.safe_dump(
-                        config_override, default_flow_style=False, sort_keys=False
+                        merged, default_flow_style=False, sort_keys=False,
                     )
                 github.create_commit(
                     branch=branch,

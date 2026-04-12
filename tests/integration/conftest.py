@@ -14,6 +14,21 @@ from helpers.bitbucket_client import BitbucketClient
 SCENARIOS_FILE = Path(__file__).parent / "test-scenarios.yml"
 
 
+def deep_merge(base: dict, override: dict) -> dict:
+    """Recursively merge override into base. Override wins on conflicts."""
+    result = dict(base)
+    for key, value in override.items():
+        if (
+            key in result
+            and isinstance(result[key], dict)
+            and isinstance(value, dict)
+        ):
+            result[key] = deep_merge(result[key], value)
+        else:
+            result[key] = value
+    return result
+
+
 def load_scenarios() -> list[dict]:
     """Load test scenarios from YAML file."""
     with open(SCENARIOS_FILE) as f:
