@@ -1,4 +1,5 @@
 #!/bin/sh
+set -e
 # =============================================================================
 # write-version-file.sh - Write version to configured file(s)
 # =============================================================================
@@ -389,7 +390,7 @@ esac
 # =============================================================================
 # Save modified files list for update-changelog.sh
 # =============================================================================
-echo "$MODIFIED_FILES" > /tmp/version_files_modified.txt
+write_state "/tmp/version_files_modified.txt" "$MODIFIED_FILES"
 
 echo ""
 log_success "Version file update complete"
