@@ -195,3 +195,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: c032a00](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/c032a000e37436c1a66ea99b69698e90d8ee6e3b)
 
 
+## v0.6.3 - 2026-04-12
+
+- 🐛 fix(detection): platform-agnostic hotfix detection + scenario unification (#49)
+  - _Agustín Manessi_
+  - [Commit: 170ecf7](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/170ecf730ac6aaa5e31f554dff21cbdb8f65822f)
+
+
