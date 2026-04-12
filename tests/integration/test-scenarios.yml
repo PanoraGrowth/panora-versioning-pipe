@@ -163,3 +163,57 @@ scenarios:
       tag_pattern: '^v\d+\.\d+\.\d+\.1$'
       changelog_contains: "wire-up patch bump integration test"
       changelog_section_marker: "(Hotfix)"
+
+  - name: hotfix-scoped-patch-bump
+    description: "Hotfix with scope — hotfix(security): msg — validates the 'hotfix(*' glob pattern produces patch bump + (Hotfix) marker. Squash merge so PR title becomes the commit subject."
+    merge_method: squash
+    branch_prefix: "hotfix/auto"
+    pr_title: "hotfix(security): patch auth token validation"
+    config_override:
+      version:
+        components:
+          patch:
+            enabled: true
+    commits:
+      - message: "hotfix(security): patch auth token validation"
+        files:
+          test-artifact.txt: "hotfix scoped test"
+    expected:
+      pr_check: pass
+      tag_created: true
+      tag_pattern: '^v\d+\.\d+\.\d+\.1$'
+      changelog_contains: "patch auth token validation"
+      changelog_section_marker: "(Hotfix)"
+
+  - name: hotfix-uppercase-branch-prefix
+    description: "Hotfix with uppercase Hotfix/ branch prefix — validates the '[Hh]otfix/*' glob pattern. The commit uses a conventional message to pass PR validation, but merge_subject overrides the squash commit subject to 'Hotfix/...' (simulating repos where GitHub auto-generates the PR title from the branch name)."
+    merge_method: squash
+    branch_prefix: "Hotfix/auto"
+    pr_title: "Hotfix/urgent security patch"
+    # Force the squash merge commit subject to match the [Hh]otfix/* pattern.
+    # Without this, GitHub uses the single commit's message as the subject,
+    # which would be "fix: ..." and miss the hotfix detection.
+    merge_subject: "Hotfix/urgent security patch"
+    config_override:
+      version:
+        components:
+          patch:
+            enabled: true
+      # The test repo's .versioning.yml has hotfix.keyword as a scalar ("hotfix"),
+      # which auto-expands to only ["hotfix:*", "hotfix(*"] — missing the
+      # [Hh]otfix/* pattern. Override with the full array from defaults.yml.
+      hotfix:
+        keyword:
+          - "hotfix:*"
+          - "hotfix(*"
+          - "[Hh]otfix/*"
+    commits:
+      - message: "fix: urgent security patch for token leak"
+        files:
+          test-artifact.txt: "hotfix uppercase test"
+    expected:
+      pr_check: pass
+      tag_created: true
+      tag_pattern: '^v\d+\.\d+\.\d+\.1$'
+      changelog_contains: "urgent security patch"
+      changelog_section_marker: "(Hotfix)"

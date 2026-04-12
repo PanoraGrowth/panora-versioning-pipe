@@ -2,7 +2,7 @@
 
 Unit tests and integration tests validated before every release.
 
-**As of ticket 024 (hotfix wire-up)**: 272 unit tests (bats-core) and 10 end-to-end integration scenarios. Integration scenarios run against both GitHub and Bitbucket except for the hotfix-to-main-with-patch-bump scenario, which is GitHub-only while the bitbucket harness catches up with `branch_prefix` / `pr_title` / `config_override` support.
+**As of ticket 027 (deep-merge config_override)**: 292 unit tests (bats-core) and 12 end-to-end integration scenarios. Integration scenarios run against both GitHub and Bitbucket using a shared `test-scenarios.yml`. The `config_override` mechanism deep-merges deltas on top of the test repo's `.versioning.yml` (not a full replacement), so scenarios only specify keys they actually change.
 
 ---
 
@@ -44,7 +44,7 @@ Unit tests and integration tests validated before every release.
 - Hotfix → production = hotfix changelog
 - Unknown target branch = no action
 - Custom branch names (dev, staging, master, emergency/)
-- **Branch context** (post-merge, no PR target): hotfix detection via commit-type convention (`hotfix:` / `hotfix(...)`) and GitHub API PR lookup fallback
+- **Branch context** (post-merge, no PR target): pure-git hotfix detection via commit subject glob patterns (`hotfix:*`, `hotfix(*`, `[Hh]otfix/*`) — platform-agnostic, no API calls
 
 ### Platform Detection
 
@@ -72,17 +72,19 @@ These tests run against real repositories, creating actual PRs, merging, and ver
 - **Scoped commit → per-folder CHANGELOG**: `feat(backend):` writes to `backend/CHANGELOG.md`
 - **Scoped commit → different folder**: `fix(frontend):` writes to `frontend/CHANGELOG.md`
 - **Unscoped commit → root CHANGELOG**: commits without scope go to root
-- **Multi-commit PR → highest bump wins**: PR with fix + feat = major bump (feat wins)
+- **Multi-commit PR → last commit wins**: PR with fix + feat (feat last) = major bump under last-commit-only semantics; uses merge method (not squash) to preserve individual commits
 - **Invalid commit format → PR validation fails**: non-conventional commit is rejected
 - **Hotfix from production branch → PR check only**: validates the `hotfix` commit type through PR validation without merging (no tag created)
-- **Hotfix to main with PATCH bump → full end-to-end**: opts into the PATCH component via `config_override`, merges a `hotfix:` commit squash-style from a `hotfix/auto-*` branch, and verifies the resulting tag ends in `.1` and the CHANGELOG section header carries the `(Hotfix)` marker (GitHub only at v0.5.10)
+- **Hotfix to main with PATCH bump → full end-to-end**: merges a `hotfix:` commit squash-style from a `hotfix/auto-*` branch, verifies tag ends in `.1` and CHANGELOG header carries `(Hotfix)` marker
+- **Hotfix with scope → PATCH bump**: `hotfix(security):` commit via squash merge validates the `hotfix(*` glob pattern produces patch bump and `(Hotfix)` marker
+- **Hotfix uppercase branch prefix → PATCH bump**: `Hotfix/` branch prefix with PR title `Hotfix/description` validates the `[Hh]otfix/*` glob pattern — covers the real-world case where GitHub auto-generates the PR title from the branch name
 
 ---
 
 ## Platforms
 
-- **GitHub Actions** — unit tests + integration tests (10 scenarios)
-- **Bitbucket Pipelines** — unit tests + integration tests (9 scenarios, same `test-scenarios.yml`; the hotfix wire-up scenario is `skip_bitbucket: true` pending harness parity)
+- **GitHub Actions** — unit tests + integration tests (12 scenarios)
+- **Bitbucket Pipelines** — unit tests + integration tests (12 scenarios, same `test-scenarios.yml`)
 
 ### Bitbucket integration notes
 
