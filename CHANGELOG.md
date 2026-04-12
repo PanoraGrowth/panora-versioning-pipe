@@ -216,3 +216,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: 955288c](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/955288c2473571e05fdd0d71e05842cacd2da1ee)
 
 
+## v0.8.0 - 2026-04-12
+
+- 🚀 feat(tests): deep-merge config_override instead of replacing .versioning.yml (#51)
+  - _Agustín Manessi_
+  - [Commit: bda9815](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/bda98151a234f91151aa85514e619f5690edd387)
+
+
