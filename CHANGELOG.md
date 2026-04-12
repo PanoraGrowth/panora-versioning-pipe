@@ -223,3 +223,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: bda9815](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/bda98151a234f91151aa85514e619f5690edd387)
 
 
+## v0.9.0 - 2026-04-12
+
+- 🚀 feat(tests): add hotfix scoped and uppercase branch prefix integration scenarios (#52)
+  - _Agustín Manessi_
+  - [Commit: 1fb8796](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/1fb8796ee8b0888d31537e5cf70eb6ab2568d0d5)
+
+
