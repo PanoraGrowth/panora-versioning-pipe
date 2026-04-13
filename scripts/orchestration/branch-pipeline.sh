@@ -1,4 +1,5 @@
 #!/bin/sh
+# shellcheck shell=ash
 # ============================================================================
 # Script: branch-pipeline.sh
 # Description: Main orchestrator for branch pipeline (create tags)
@@ -12,7 +13,9 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 AUTOMATIONS_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
 # Load common functions and config
+# shellcheck source=../lib/common.sh
 . "${AUTOMATIONS_DIR}/lib/common.sh"
+# shellcheck source=../lib/config-parser.sh
 . "${AUTOMATIONS_DIR}/lib/config-parser.sh"
 
 log_section "BRANCH PIPELINE - TAG CREATION"

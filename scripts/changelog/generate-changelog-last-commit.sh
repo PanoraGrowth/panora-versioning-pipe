@@ -1,4 +1,5 @@
 #!/bin/sh
+# shellcheck shell=ash
 # =============================================================================
 # generate-changelog-last-commit.sh - Generate root CHANGELOG entry
 # =============================================================================
@@ -11,7 +12,9 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+# shellcheck source=../lib/common.sh
 . "${SCRIPT_DIR}/../lib/common.sh"
+# shellcheck source=../lib/config-parser.sh
 . "${SCRIPT_DIR}/../lib/config-parser.sh"
 
 # Load scenario
@@ -70,7 +73,7 @@ else
     GIT_RANGE="${CHANGELOG_BASE_REF}..HEAD"
 fi
 
-ALL_COMMITS=$(git log $GIT_RANGE \
+ALL_COMMITS=$(git log "$GIT_RANGE" \
     --no-merges \
     --pretty=format:"%H|%an|%s")
 

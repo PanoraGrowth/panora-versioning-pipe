@@ -1,4 +1,5 @@
 #!/bin/sh
+# shellcheck shell=ash
 set -e
 # =============================================================================
 # write-version-file.sh - Write version to configured file(s)
@@ -14,7 +15,9 @@ set -e
 # =============================================================================
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+# shellcheck source=../lib/common.sh
 . "${SCRIPT_DIR}/../lib/common.sh"
+# shellcheck source=../lib/config-parser.sh
 . "${SCRIPT_DIR}/../lib/config-parser.sh"
 
 # Find repository root
@@ -47,7 +50,8 @@ matches_glob() {
 
     # Convert glob pattern to regex
     # ** matches any path, * matches any name
-    local regex=$(echo "$pattern" | sed 's/\./\\./g' | sed 's/\*\*/DOUBLESTAR/g' | sed 's/\*/[^\/]*/g' | sed 's/DOUBLESTAR/.*/g')
+    local regex
+    regex=$(echo "$pattern" | sed 's/\./\\./g' | sed 's/\*\*/DOUBLESTAR/g' | sed 's/\*/[^\/]*/g' | sed 's/DOUBLESTAR/.*/g')
 
     echo "$file" | grep -qE "^${regex}$"
 }
@@ -59,7 +63,8 @@ group_matches_changes() {
     local group_index="$1"
     local changed_files="$2"
 
-    local trigger_paths=$(get_version_file_group_trigger_paths "$group_index")
+    local trigger_paths
+    trigger_paths=$(get_version_file_group_trigger_paths "$group_index")
 
     if [ -z "$trigger_paths" ]; then
         return 1
@@ -98,11 +103,12 @@ group_matches_changes() {
 # Logs: all informational messages go to stderr
 # =============================================================================
 get_files_to_update_from_groups() {
-    local changed_files=$(get_changed_files)
-    local groups_count=$(get_version_file_groups_count)
+    local changed_files
+    changed_files=$(get_changed_files)
+    local groups_count
+    groups_count=$(get_version_file_groups_count)
     local update_all_groups="false"
     local matched_groups=""
-    local all_changed_matched="true"
 
     # All log messages go to stderr to avoid mixing with file output
     log_info "Analyzing changed files for group matching..." >&2
@@ -123,7 +129,8 @@ get_files_to_update_from_groups() {
     # Check each group for matches
     local i=0
     while [ "$i" -lt "$groups_count" ]; do
-        local group_name=$(get_version_file_group_name "$i")
+        local group_name
+        group_name=$(get_version_file_group_name "$i")
 
         if group_matches_changes "$i" "$changed_files"; then
             log_info "Group '$group_name' matches changed files" >&2
@@ -146,10 +153,10 @@ get_files_to_update_from_groups() {
                 continue
             fi
 
-            local file_matched="false"
             local j=0
             while [ "$j" -lt "$groups_count" ]; do
-                local trigger_paths=$(get_version_file_group_trigger_paths "$j")
+                local trigger_paths
+                trigger_paths=$(get_version_file_group_trigger_paths "$j")
                 echo "$trigger_paths" | while read -r pattern; do
                     if [ -n "$pattern" ] && matches_glob "$changed_file" "$pattern"; then
                         touch /tmp/file_matched
@@ -167,7 +174,8 @@ get_files_to_update_from_groups() {
         done
 
         if [ -f /tmp/unmatched_files ]; then
-            local unmatched_behavior=$(get_unmatched_files_behavior)
+            local unmatched_behavior
+            unmatched_behavior=$(get_unmatched_files_behavior)
             log_warn "Some files didn't match any group trigger_paths:" >&2
             cat /tmp/unmatched_files | while read -r f; do
                 echo "  - $f" >&2
@@ -237,7 +245,7 @@ echo ""
 VERSION_PLAIN="$VERSION"
 TAG_PREFIX=$(get_tag_prefix)
 if [ -n "$TAG_PREFIX" ]; then
-    VERSION_PLAIN="${VERSION#$TAG_PREFIX}"
+    VERSION_PLAIN="${VERSION#"$TAG_PREFIX"}"
 fi
 
 # =============================================================================
@@ -253,8 +261,10 @@ MODIFIED_FILES=""
 # YAML Mode
 # =============================================================================
 write_yaml() {
-    local file_path="${REPO_ROOT}/$(get_version_file_path)"
-    local key=$(get_version_file_key)
+    local file_path
+    file_path="${REPO_ROOT}/$(get_version_file_path)"
+    local key
+    key=$(get_version_file_key)
 
     log_info "Writing to: $file_path"
     log_info "Key: $key"
@@ -277,8 +287,10 @@ write_yaml() {
 # JSON Mode
 # =============================================================================
 write_json() {
-    local file_path="${REPO_ROOT}/$(get_version_file_path)"
-    local key=$(get_version_file_key)
+    local file_path
+    file_path="${REPO_ROOT}/$(get_version_file_path)"
+    local key
+    key=$(get_version_file_key)
 
     log_info "Writing to: $file_path"
     log_info "Key: $key"
@@ -301,8 +313,10 @@ write_json() {
 # Regex Mode (for TypeScript, etc.)
 # =============================================================================
 write_regex() {
-    local pattern=$(get_version_file_pattern)
-    local replacement=$(get_version_file_replacement)
+    local pattern
+    pattern=$(get_version_file_pattern)
+    local replacement
+    replacement=$(get_version_file_replacement)
 
     if [ -z "$pattern" ]; then
         log_error "No pattern configured for regex mode"

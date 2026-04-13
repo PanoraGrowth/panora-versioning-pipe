@@ -1,4 +1,5 @@
 #!/bin/sh
+# shellcheck shell=ash
 # =============================================================================
 # generate-changelog-per-folder.sh - Generate per-folder CHANGELOGs from scope
 # =============================================================================
@@ -10,7 +11,9 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+# shellcheck source=../lib/common.sh
 . "${SCRIPT_DIR}/../lib/common.sh"
+# shellcheck source=../lib/config-parser.sh
 . "${SCRIPT_DIR}/../lib/config-parser.sh"
 
 # Load scenario
@@ -79,7 +82,7 @@ NEXT_VERSION=$(cat /tmp/next_version.txt)
 # =============================================================================
 # Initialize routed commits tracking
 # =============================================================================
-> /tmp/routed_commits.txt
+: > /tmp/routed_commits.txt
 
 # =============================================================================
 # Get commits
@@ -91,7 +94,7 @@ else
     GIT_RANGE="${CHANGELOG_BASE_REF}..HEAD"
 fi
 
-COMMITS=$(git log $GIT_RANGE \
+COMMITS=$(git log "$GIT_RANGE" \
     --no-merges \
     --pretty=format:"%H|%an|%s")
 
@@ -128,7 +131,7 @@ CHANGELOG_DATE=$(date +%Y-%m-%d)
 # =============================================================================
 # Use a temp file to avoid subshell variable scoping issues
 TEMP_ROUTING="/tmp/per_folder_routing.txt"
-> "$TEMP_ROUTING"
+: > "$TEMP_ROUTING"
 
 echo "$COMMITS_TO_PROCESS" | while IFS='|' read -r commit_hash commit_author commit_msg; do
     [ -z "$commit_hash" ] && continue

@@ -1,4 +1,5 @@
 #!/bin/sh
+# shellcheck shell=ash
 # =============================================================================
 # calculate-version.sh - Calculate next version based on commits
 # =============================================================================
@@ -10,7 +11,9 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+# shellcheck source=../lib/common.sh
 . "${SCRIPT_DIR}/../lib/common.sh"
+# shellcheck source=../lib/config-parser.sh
 . "${SCRIPT_DIR}/../lib/config-parser.sh"
 
 log_section "CALCULATING VERSION"
@@ -18,6 +21,7 @@ log_section "CALCULATING VERSION"
 # =============================================================================
 # Load configuration
 # =============================================================================
+# shellcheck disable=SC2034
 VERSION_SEP=$(get_version_separator)
 IGNORE_PATTERN=$(get_ignore_patterns_regex)
 
@@ -36,6 +40,7 @@ MINOR_PATTERN=$(build_bump_pattern "minor")
 # PR context may also pre-populate it. Missing file falls back to development_release.
 SCENARIO=""
 if [ -f /tmp/scenario.env ]; then
+    # shellcheck disable=SC1091
     . /tmp/scenario.env
 fi
 [ -z "${SCENARIO:-}" ] && SCENARIO="development_release"
@@ -92,12 +97,12 @@ fi
 # Get commits (excluding ignored patterns)
 # =============================================================================
 if [ -n "$IGNORE_PATTERN" ]; then
-    COMMITS=$(git log $COMMIT_RANGE \
+    COMMITS=$(git log "$COMMIT_RANGE" \
         --no-merges \
         --pretty=format:"%s" | \
         grep -vE "$IGNORE_PATTERN" || true)
 else
-    COMMITS=$(git log $COMMIT_RANGE \
+    COMMITS=$(git log "$COMMIT_RANGE" \
         --no-merges \
         --pretty=format:"%s")
 fi

@@ -1,10 +1,13 @@
 #!/bin/sh
+# shellcheck shell=ash
 # =============================================================================
 # validate-commits.sh - Validate commits follow configured format
 # =============================================================================
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+# shellcheck source=../lib/common.sh
 . "${SCRIPT_DIR}/../lib/common.sh"
+# shellcheck source=../lib/config-parser.sh
 . "${SCRIPT_DIR}/../lib/config-parser.sh"
 
 # Load scenario
@@ -35,12 +38,12 @@ EXAMPLE_PREFIX=$(get_example_prefix)
 # Get commits (excluding ignored patterns)
 # =============================================================================
 if [ -n "$IGNORE_PATTERN" ]; then
-    COMMITS=$(git log origin/${VERSIONING_TARGET_BRANCH}..HEAD \
+    COMMITS=$(git log "origin/${VERSIONING_TARGET_BRANCH}..HEAD" \
         --no-merges \
         --pretty=format:"%s" | \
         grep -vE "$IGNORE_PATTERN" || true)
 else
-    COMMITS=$(git log origin/${VERSIONING_TARGET_BRANCH}..HEAD \
+    COMMITS=$(git log "origin/${VERSIONING_TARGET_BRANCH}..HEAD" \
         --no-merges \
         --pretty=format:"%s")
 fi
@@ -125,7 +128,7 @@ if require_type_in_last_commit; then
         log_info "Last commit:"
         echo "  x $LAST_COMMIT"
         echo ""
-        log_info "Valid types: $(echo $COMMIT_TYPES | tr '|' ', ')"
+        log_info "Valid types: $(echo "$COMMIT_TYPES" | tr '|' ', ')"
         echo ""
         log_info "Examples:"
         if is_conventional_commits; then
