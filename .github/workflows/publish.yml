@@ -60,18 +60,13 @@ jobs:
         with:
           context: .
           push: true
-          # :latest kept temporarily for self-bootstrap (pipe's own workflows
-          # still use uses: docker://...:latest). Will be removed in a follow-up
-          # PR once floating tags exist and the pipe migrates to container.image.
           tags: |
             ghcr.io/${{ steps.version.outputs.OWNER_LC }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.VERSION }}
             ghcr.io/${{ steps.version.outputs.OWNER_LC }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.MINOR_SERIES }}
             ghcr.io/${{ steps.version.outputs.OWNER_LC }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.MAJOR_SERIES }}
-            ghcr.io/${{ steps.version.outputs.OWNER_LC }}/${{ env.IMAGE_NAME }}:latest
             public.ecr.aws/${{ secrets.ECR_PUBLIC_ALIAS }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.VERSION }}
             public.ecr.aws/${{ secrets.ECR_PUBLIC_ALIAS }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.MINOR_SERIES }}
             public.ecr.aws/${{ secrets.ECR_PUBLIC_ALIAS }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.MAJOR_SERIES }}
-            public.ecr.aws/${{ secrets.ECR_PUBLIC_ALIAS }}/${{ env.IMAGE_NAME }}:latest
           labels: |
             org.opencontainers.image.title=${{ env.IMAGE_NAME }}
             org.opencontainers.image.version=${{ steps.version.outputs.VERSION }}
