@@ -230,3 +230,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: 1fb8796](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/1fb8796ee8b0888d31537e5cf70eb6ab2568d0d5)
 
 
+## v0.9.1 - 2026-04-13
+
+- 🐛 fix(lint): resolve all shellcheck warnings and add lint to CI (#54)
+  - _Agustín Manessi_
+  - [Commit: b6f7fb3](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/b6f7fb3083dade0fb904a4c6dc3003c88d7982fd)
+
+
