@@ -28,7 +28,7 @@ Platform variables are auto-detected — no manual mapping needed.
 ```yaml
 - step:
     name: Versioning
-    image: public.ecr.aws/k5n8p2t3/panora-versioning-pipe:latest
+    image: public.ecr.aws/k5n8p2t3/panora-versioning-pipe:v0.9
     script:
       - /pipe/pipe.sh
 ```
@@ -36,8 +36,18 @@ Platform variables are auto-detected — no manual mapping needed.
 **GitHub Actions:**
 
 ```yaml
-- uses: docker://ghcr.io/panoragrowth/panora-versioning-pipe:latest
+- uses: docker://ghcr.io/panoragrowth/panora-versioning-pipe:v0.9
 ```
+
+The pipe publishes three tag levels per release — pin the one that matches your risk tolerance:
+
+| Tag | Example | Updates automatically |
+|-----|---------|-----------------------|
+| Specific | `:v0.9.1` | Never |
+| Minor series | `:v0.9` | On every 0.9.x patch |
+| Major series | `:v0` | On every 0.x release |
+
+`:latest` is not published. See [Version pinning strategy](docs/adoption-guide.md#step-6--version-pinning-strategy) for guidance.
 
 Place a `.versioning.yml` in your repository root. If the file doesn't exist, all defaults apply.
 
@@ -52,14 +62,16 @@ See [`examples/`](examples/) for full pipeline examples for both platforms.
 Pull the image from Amazon ECR Public:
 
 ```bash
-docker pull public.ecr.aws/k5n8p2t3/panora-versioning-pipe:latest
+docker pull public.ecr.aws/k5n8p2t3/panora-versioning-pipe:v0.9
 ```
 
 Or from GitHub Container Registry:
 
 ```bash
-docker pull ghcr.io/panoragrowth/panora-versioning-pipe:latest
+docker pull ghcr.io/panoragrowth/panora-versioning-pipe:v0.9
 ```
+
+Replace `:v0.9` with a specific tag (`:v0.9.1`) for a fully pinned build, or use `:v0` to track all 0.x releases. `:latest` is not published.
 
 No installation is needed in your pipeline — the image is referenced directly as the step runner.
 
@@ -379,8 +391,9 @@ jobs:
           fetch-depth: 0
           ref: ${{ github.head_ref }}   # required — do not drop
 
-      - uses: docker://public.ecr.aws/k5n8p2t3/panora-versioning-pipe:latest
-        # Alternative: docker://ghcr.io/panoragrowth/panora-versioning-pipe:latest
+      - uses: docker://public.ecr.aws/k5n8p2t3/panora-versioning-pipe:v0.9
+        # Alternative: docker://ghcr.io/panoragrowth/panora-versioning-pipe:v0.9
+        # Pin to :v0.9.1 for a fully immutable reference, or :v0 to track all 0.x releases.
 ```
 
 ```yaml
@@ -408,7 +421,8 @@ jobs:
           ref: main
           token: ${{ steps.ci-token.outputs.token }}
 
-      - uses: docker://public.ecr.aws/k5n8p2t3/panora-versioning-pipe:latest
+      - uses: docker://public.ecr.aws/k5n8p2t3/panora-versioning-pipe:v0.9
+        # Alternative: docker://ghcr.io/panoragrowth/panora-versioning-pipe:v0.9
         env:
           CI_GITHUB_TOKEN: ${{ steps.ci-token.outputs.token }}
 ```

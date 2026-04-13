@@ -1,6 +1,6 @@
 # Architecture
 
-**Last updated:** 2026-04-11 (hotfix wire-up, ticket 024)
+**Last updated:** 2026-04-13 (floating version tags, ticket 032)
 
 ---
 
@@ -314,8 +314,19 @@ Base: Alpine 3.19
 Tools: bash, git, curl, jq, yq v4.35.1
 Registries: ghcr.io/panoragrowth/panora-versioning-pipe
             public.ecr.aws/k5n8p2t3/panora-versioning-pipe
-Tags: :latest, :vX.Y.Z (version-specific)
 ```
+
+### Release tag strategy
+
+Each release publishes three tags. Push order within each registry is always specific → minor series → major series, so a consumer pulling a floating tag during a rollout gets either the previous or the new image, never a torn state.
+
+| Tag | Example | Mutability | Updated by hotfixes? |
+|-----|---------|------------|----------------------|
+| Specific | `:v0.9.1` | Immutable after publish | No |
+| Minor series | `:v0.9` | Mutable (overwritten each 0.9.x release) | Yes |
+| Major series | `:v0` | Mutable (overwritten each 0.x release) | Yes |
+
+`:latest` is **not published** by policy. Floating tags are the supported ergonomics alternative — consumers choose their risk tolerance. See [adoption-guide.md](../adoption-guide.md#step-6--version-pinning-strategy) for guidance.
 
 ---
 
