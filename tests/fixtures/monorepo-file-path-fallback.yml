@@ -1,0 +1,14 @@
+# Monorepo config with fallback: "file_path" for per-folder routing
+commits:
+  format: "conventional"
+
+changelog:
+  per_folder:
+    enabled: true
+    folders:
+      - api
+      - web
+      - shared
+    folder_pattern: ""
+    scope_matching: "exact"
+    fallback: "file_path"
