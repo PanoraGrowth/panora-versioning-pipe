@@ -1,0 +1,34 @@
+# Monorepo config with version_file groups and trigger_paths
+commits:
+  format: "conventional"
+
+version:
+  tag_prefix_v: true
+  components:
+    major: { enabled: true, initial: 0 }
+    minor: { enabled: true, initial: 0 }
+
+version_file:
+  enabled: true
+  type: "regex"
+  pattern: "__VERSION__"
+  replacement: "{{VERSION}}"
+  groups:
+    - name: "frontend"
+      trigger_paths:
+        - "packages/frontend/**"
+        - "packages/frontend/*"
+      files:
+        - "packages/frontend/src/version.ts"
+    - name: "backend"
+      trigger_paths:
+        - "packages/backend/**"
+      files:
+        - "packages/backend/version.txt"
+    - name: "shared"
+      trigger_paths:
+        - "packages/shared/**"
+      files:
+        - "packages/shared/version.txt"
+      update_all: true
+  unmatched_files_behavior: "update_all"

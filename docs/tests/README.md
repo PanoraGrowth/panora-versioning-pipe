@@ -2,7 +2,7 @@
 
 Unit tests and integration tests validated before every release.
 
-**As of ticket 027 (deep-merge config_override)**: 292 unit tests (bats-core) and 12 end-to-end integration scenarios. Integration scenarios run against both GitHub and Bitbucket using a shared `test-scenarios.yml`. The `config_override` mechanism deep-merges deltas on top of the test repo's `.versioning.yml` (not a full replacement), so scenarios only specify keys they actually change.
+**As of ticket 019 (monorepo gap tests)**: 321 unit tests (bats-core) and 12 end-to-end integration scenarios. Integration scenarios run against both GitHub and Bitbucket using a shared `test-scenarios.yml`. The `config_override` mechanism deep-merges deltas on top of the test repo's `.versioning.yml` (not a full replacement), so scenarios only specify keys they actually change.
 
 ---
 
@@ -61,6 +61,13 @@ Unit tests and integration tests validated before every release.
 - Exact matching (`api` → `api/`)
 - Unscoped commits fall back to root CHANGELOG
 - Subfolder discovery with folder patterns
+- `find_folder_by_file_path()` — file-path fallback routing: single-folder match, no match, ambiguous (multi-folder), nested files, root-only files, mixed root+folder files
+
+### Version File Groups (Monorepo)
+
+- `matches_glob()` — glob-to-regex conversion: exact match, wildcards (`*`, `**`), dot escaping, cross-directory boundary checks, empty patterns
+- Group config helpers: `has_version_file_groups`, `get_version_file_groups_count`, `get_version_file_group_trigger_paths`, `is_version_file_group_update_all`
+- `unmatched_files_behavior` modes: `update_all` (default), `update_none`, `error`
 
 ### End-to-End (Integration)
 
