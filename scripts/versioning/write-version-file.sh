@@ -177,9 +177,9 @@ get_files_to_update_from_groups() {
             local unmatched_behavior
             unmatched_behavior=$(get_unmatched_files_behavior)
             log_warn "Some files didn't match any group trigger_paths:" >&2
-            cat /tmp/unmatched_files | while read -r f; do
+            while read -r f; do
                 echo "  - $f" >&2
-            done
+            done < /tmp/unmatched_files
             rm -f /tmp/unmatched_files
 
             case "$unmatched_behavior" in
