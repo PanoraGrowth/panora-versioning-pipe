@@ -1,8 +1,8 @@
 # Tag on merge — create version tag + CHANGELOG when PR merges to main
 # Uses GitHub App token for pushing commits to protected branches
 #
-# Image tag controlled by org-level variable VERSIONING_PIPE_TAG.
-# The pipe versions itself using its own published image.
+# TODO: migrate to container.image + VERSIONING_PIPE_TAG once floating
+# tags exist (after the first release with the new publish.yml).
 
 name: Main - Create Version Tag
 
@@ -17,8 +17,6 @@ permissions:
 jobs:
   versioning:
     runs-on: ubuntu-latest
-    container:
-      image: ghcr.io/panoragrowth/panora-versioning-pipe:${{ vars.VERSIONING_PIPE_TAG }}
     steps:
       - name: Generate CI token
         id: ci-token
@@ -35,6 +33,6 @@ jobs:
           token: ${{ steps.ci-token.outputs.token }}
 
       - name: Run versioning pipe
-        run: /pipe/pipe.sh
+        uses: docker://ghcr.io/panoragrowth/panora-versioning-pipe:latest
         env:
           CI_GITHUB_TOKEN: ${{ steps.ci-token.outputs.token }}

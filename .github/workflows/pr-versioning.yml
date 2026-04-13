@@ -1,7 +1,7 @@
 # PR Versioning — validate commits and generate CHANGELOG
 #
-# Image tag controlled by org-level variable VERSIONING_PIPE_TAG.
-# The pipe versions itself using its own published image.
+# TODO: migrate to container.image + VERSIONING_PIPE_TAG once floating
+# tags exist (after the first release with the new publish.yml).
 
 name: PR - Versioning
 
@@ -17,8 +17,6 @@ jobs:
   versioning:
     name: Versioning Pipe
     runs-on: ubuntu-latest
-    container:
-      image: ghcr.io/panoragrowth/panora-versioning-pipe:${{ vars.VERSIONING_PIPE_TAG }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -27,4 +25,4 @@ jobs:
           ref: ${{ github.head_ref }}
 
       - name: Run versioning pipe
-        run: /pipe/pipe.sh
+        uses: docker://ghcr.io/panoragrowth/panora-versioning-pipe:latest
