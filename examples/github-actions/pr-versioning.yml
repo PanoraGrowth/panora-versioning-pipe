@@ -28,17 +28,17 @@ jobs:
           fetch-depth: 0
           ref: ${{ github.head_ref }}
 
-      # Public consumer image — hosted on ECR Public for zero-auth access
-      # from any downstream repository (no GHCR package-read permission
-      # needed). The `k5n8p2t3` alias is AWS auto-generated and will
-      # transition to `panoragrowth` once AWS approves the custom alias;
-      # the image will be available at both paths during the transition.
-      # In production, pin to a specific version tag (e.g. :v0.5.0) instead
-      # of :latest to get reproducible builds.
+      # Image tag controlled by the org-level variable VERSIONING_PIPE_TAG.
+      # Default: "v0" (tracks all 0.x releases). Override at repo level to
+      # pin a specific version (e.g. "v0.9.1") or minor series ("v0.9").
+      # Set it at: Org Settings → Secrets and variables → Actions → Variables.
+      #
+      # ECR Public registry — zero-auth access from any downstream repo.
+      # Alternative: ghcr.io/panoragrowth/panora-versioning-pipe
       #
       # The pipe auto-detects PR context from GitHub Actions environment
       # variables (GITHUB_EVENT_NAME, GITHUB_HEAD_REF, GITHUB_BASE_REF,
       # GITHUB_REF_NAME, GITHUB_SHA, GITHUB_EVENT_PATH). No explicit
       # VERSIONING_* env vars are needed here.
       - name: Run versioning pipe
-        uses: docker://public.ecr.aws/k5n8p2t3/panora-versioning-pipe:latest
+        uses: docker://public.ecr.aws/k5n8p2t3/panora-versioning-pipe:${{ vars.VERSIONING_PIPE_TAG }}

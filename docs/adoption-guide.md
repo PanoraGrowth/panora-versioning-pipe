@@ -82,6 +82,14 @@ Both files follow the **inline single-job pattern**: one job, linear steps, no r
 
 Change `branches: [main]` in both files if your tag branch is different.
 
+Both example workflows reference the pipe image as:
+
+```yaml
+uses: docker://public.ecr.aws/.../panora-versioning-pipe:${{ vars.VERSIONING_PIPE_TAG }}
+```
+
+The `VERSIONING_PIPE_TAG` variable controls which version of the pipe all your repos use. Set it once at the **organization level** and every repo inherits it automatically — no per-repo config needed. See Step 6 below for the full setup.
+
 ---
 
 ## Step 3 — First PR and first release
@@ -243,17 +251,41 @@ The pipe publishes three tags per release. Choose the one that matches your tole
 
 `:latest` is **not published** by policy. It breaks reproducibility, makes rollback impossible, and silently propagates default-behavior changes (see Motivation in the architecture docs). There is no workaround — the tag simply does not exist on either registry.
 
-### Choosing your pin
+### Centralized version control with an org variable (recommended)
+
+Instead of hardcoding the tag in every consumer workflow, set an **organization-level variable** that all repos inherit:
+
+1. Go to your GitHub org → **Settings → Secrets and variables → Actions → Variables**
+2. Create a variable named `VERSIONING_PIPE_TAG` with value `v0` (or `v0.9` for tighter control)
+3. In every consumer workflow, reference the image as:
+
+```yaml
+- uses: docker://public.ecr.aws/k5n8p2t3/panora-versioning-pipe:${{ vars.VERSIONING_PIPE_TAG }}
+```
+
+This gives you a single control point for the entire organization. When you're ready to upgrade (e.g. from `v0` to `v1`), change the variable once and every repo picks it up on their next CI run.
+
+**Precedence** (from [GitHub docs](https://docs.github.com/en/actions/reference/workflows-and-actions/variables)): repository variables override organization variables, and environment variables override both. This means a repo that needs a different version just sets the same `VERSIONING_PIPE_TAG` variable at the repo level — no workflow file changes needed.
+
+| Level | Set where | Example value | Use case |
+|-------|-----------|---------------|----------|
+| Organization | Org Settings → Variables | `v0` | Default for all repos |
+| Repository | Repo Settings → Variables | `v0.9.1` | Pin a specific repo to a known-good version |
+| Environment | Workflow `environment:` block | `v0.9` | Pin a specific deployment environment |
+
+### Choosing your pin (without the org variable)
+
+If you prefer to hardcode the tag directly:
 
 ```yaml
 # Most conservative — upgrade on your schedule
-- uses: docker://ghcr.io/panoragrowth/panora-versioning-pipe:v0.9.1
+- uses: docker://public.ecr.aws/k5n8p2t3/panora-versioning-pipe:v0.9.1
 
 # Patch fixes auto-applied — upgrade minor versions intentionally
-- uses: docker://ghcr.io/panoragrowth/panora-versioning-pipe:v0.9
+- uses: docker://public.ecr.aws/k5n8p2t3/panora-versioning-pipe:v0.9
 
 # All non-breaking updates auto-applied
-- uses: docker://ghcr.io/panoragrowth/panora-versioning-pipe:v0
+- uses: docker://public.ecr.aws/k5n8p2t3/panora-versioning-pipe:v0
 ```
 
 ### Automating specific-pin bumps with Dependabot
