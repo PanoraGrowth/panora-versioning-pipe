@@ -28,7 +28,7 @@ shell: build ## Open an interactive shell in the container
 
 lint: ## Run shellcheck on all scripts (requires shellcheck)
 	@command -v shellcheck >/dev/null 2>&1 || { echo "shellcheck not found. Install: brew install shellcheck"; exit 1; }
-	shellcheck -s sh scripts/**/*.sh pipe.sh
+	shellcheck --exclude=SC1091 scripts/**/*.sh pipe.sh
 
 build-test: build ## Build the test Docker image (bats-core)
 	docker build -f tests/Dockerfile.test --build-arg BASE_IMAGE=$(IMAGE_NAME):$(IMAGE_TAG) -t $(IMAGE_NAME)-test:$(IMAGE_TAG) .

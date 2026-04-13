@@ -1,4 +1,5 @@
 #!/bin/sh
+# shellcheck shell=ash
 # ============================================================================
 # Script: pr-pipeline.sh
 # Description: Main orchestrator for PR pipeline
@@ -12,7 +13,9 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 AUTOMATIONS_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
 # Load common functions and config
+# shellcheck source=../lib/common.sh
 . "${AUTOMATIONS_DIR}/lib/common.sh"
+# shellcheck source=../lib/config-parser.sh
 . "${AUTOMATIONS_DIR}/lib/config-parser.sh"
 
 # Get branch names from config
@@ -47,6 +50,7 @@ esac
 "${AUTOMATIONS_DIR}/detection/detect-scenario.sh"
 
 # Load scenario for routing
+# shellcheck disable=SC1091
 . /tmp/scenario.env
 
 # ============================================================================

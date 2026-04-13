@@ -1,4 +1,5 @@
 #!/bin/sh
+# shellcheck shell=ash
 # ------------------------------------------------------------------------------
 # common.sh
 #
@@ -40,6 +41,7 @@ log_error() {
 load_env() {
     local file="$1"
     if [ -f "$file" ]; then
+        # shellcheck disable=SC1090
         . "$file"
         return 0
     else

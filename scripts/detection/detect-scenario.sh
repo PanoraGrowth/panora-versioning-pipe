@@ -1,4 +1,5 @@
 #!/bin/sh
+# shellcheck shell=ash
 set -e
 # ------------------------------------------------------------------------------
 # detect-scenario.sh
@@ -28,7 +29,9 @@ set -e
 # ------------------------------------------------------------------------------
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+# shellcheck source=../lib/common.sh
 . "${SCRIPT_DIR}/../lib/common.sh"
+# shellcheck source=../lib/config-parser.sh
 . "${SCRIPT_DIR}/../lib/config-parser.sh"
 
 log_section "DETECTING PIPELINE SCENARIO"
@@ -57,8 +60,8 @@ matches_hotfix_keyword() {
     local subject="$1"
     echo "$HOTFIX_KEYWORDS" | while IFS= read -r pattern; do
         [ -z "$pattern" ] && continue
+        # shellcheck disable=SC2254
         case "$subject" in
-            # shellcheck disable=SC2254 — glob expansion is intentional
             $pattern) echo "match"; return 0 ;;
         esac
     done | grep -q "match"

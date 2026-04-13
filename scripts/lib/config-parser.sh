@@ -1,4 +1,5 @@
 #!/bin/sh
+# shellcheck shell=ash
 # =============================================================================
 # config-parser.sh - Parser for versioning configuration
 # Reads defaults.yml and merges with .versioning.yml overrides
@@ -53,7 +54,8 @@ load_config() {
 # - If a type name doesn't exist → append as new entry
 # This avoids the yq array-replace problem: users only specify what they want to change
 apply_commit_type_overrides() {
-    local has_overrides=$(yq -r '.commit_type_overrides // null' "$MERGED_CONFIG" 2>/dev/null)
+    local has_overrides
+    has_overrides=$(yq -r '.commit_type_overrides // null' "$MERGED_CONFIG" 2>/dev/null)
     if [ -z "$has_overrides" ] || [ "$has_overrides" = "null" ]; then
         return
     fi
@@ -63,13 +65,15 @@ apply_commit_type_overrides() {
         [ -z "$type_name" ] && continue
 
         # Check if type already exists in commit_types array
-        local exists=$(yq -r ".commit_types[] | select(.name == \"$type_name\") | .name" "$MERGED_CONFIG" 2>/dev/null)
+        local exists
+        exists=$(yq -r ".commit_types[] | select(.name == \"$type_name\") | .name" "$MERGED_CONFIG" 2>/dev/null)
 
         if [ -n "$exists" ]; then
             # Patch existing type: update each override field
             yq -r ".commit_type_overrides.$type_name | keys | .[]" "$MERGED_CONFIG" 2>/dev/null | while IFS= read -r field; do
                 [ -z "$field" ] && continue
-                local value=$(yq -r ".commit_type_overrides.$type_name.$field" "$MERGED_CONFIG" 2>/dev/null)
+                local value
+                value=$(yq -r ".commit_type_overrides.$type_name.$field" "$MERGED_CONFIG" 2>/dev/null)
                 yq -i "(.commit_types[] | select(.name == \"$type_name\")).$field = \"$value\"" "$MERGED_CONFIG" 2>/dev/null
             done
         else
@@ -87,7 +91,8 @@ config_get() {
     local path="$1"
     local default="$2"
 
-    local value=$(yq -r ".$path // \"\"" "$MERGED_CONFIG" 2>/dev/null)
+    local value
+    value=$(yq -r ".$path // \"\"" "$MERGED_CONFIG" 2>/dev/null)
     if [ -n "$value" ] && [ "$value" != "null" ]; then
         echo "$value"
     elif [ -n "$default" ]; then
@@ -98,7 +103,8 @@ config_get() {
 # Read array as space-separated values
 config_get_array() {
     local path="$1"
-    local result=$(yq -r ".$path // []" "$MERGED_CONFIG" 2>/dev/null | yq -r '.[]' 2>/dev/null | tr '\n' ' ' | sed 's/ $//')
+    local result
+    result=$(yq -r ".$path // []" "$MERGED_CONFIG" 2>/dev/null | yq -r '.[]' 2>/dev/null | tr '\n' ' ' | sed 's/ $//')
     echo "$result"
 }
 
@@ -122,7 +128,8 @@ is_conventional_commits() {
 
 # Get ticket prefixes as pipe-separated pattern (empty if none defined)
 get_ticket_prefixes_pattern() {
-    local prefixes=$(config_get_array "tickets.prefixes")
+    local prefixes
+    prefixes=$(config_get_array "tickets.prefixes")
     if [ -n "$prefixes" ]; then
         echo "$prefixes" | tr ' ' '|'
     fi
@@ -131,13 +138,15 @@ get_ticket_prefixes_pattern() {
 
 # Check if ticket prefixes are configured
 has_ticket_prefixes() {
-    local prefixes=$(get_ticket_prefixes_pattern)
+    local prefixes
+    prefixes=$(get_ticket_prefixes_pattern)
     [ -n "$prefixes" ]
 }
 
 # Check if ticket prefix is required
 is_ticket_required() {
-    local required=$(config_get "tickets.required" "false")
+    local required
+    required=$(config_get "tickets.required" "false")
     [ "$required" = "true" ]
 }
 
@@ -152,7 +161,8 @@ get_ticket_url() {
 
 is_component_enabled() {
     local component="$1"
-    local enabled=$(config_get "version.components.${component}.enabled" "false")
+    local enabled
+    enabled=$(config_get "version.components.${component}.enabled" "false")
     [ "$enabled" = "true" ]
 }
 
@@ -183,7 +193,8 @@ get_tag_suffix() {
 }
 
 use_tag_prefix_v() {
-    local enabled=$(config_get "version.tag_prefix_v" "false")
+    local enabled
+    enabled=$(config_get "version.tag_prefix_v" "false")
     [ "$enabled" = "true" ]
 }
 
@@ -199,7 +210,8 @@ get_tag_prefix() {
 
 # Get all commit type names as pipe-separated pattern
 get_commit_types_pattern() {
-    local types=$(yq -r '.commit_types[].name' "$MERGED_CONFIG" 2>/dev/null | tr '\n' '|' | sed 's/|$//')
+    local types
+    types=$(yq -r '.commit_types[].name' "$MERGED_CONFIG" 2>/dev/null | tr '\n' '|' | sed 's/|$//')
     if [ -n "$types" ]; then
         echo "$types"
     fi
@@ -208,7 +220,8 @@ get_commit_types_pattern() {
 # Get bump action for a commit type
 get_bump_action() {
     local type="$1"
-    local bump=$(yq -r ".commit_types[] | select(.name == \"$type\") | .bump // \"none\"" "$MERGED_CONFIG" 2>/dev/null)
+    local bump
+    bump=$(yq -r ".commit_types[] | select(.name == \"$type\") | .bump // \"none\"" "$MERGED_CONFIG" 2>/dev/null)
     if [ -n "$bump" ] && [ "$bump" != "null" ]; then
         echo "$bump"
     else
@@ -245,22 +258,26 @@ get_changelog_format() {
 }
 
 use_changelog_emojis() {
-    local use=$(config_get "changelog.use_emojis" "false")
+    local use
+    use=$(config_get "changelog.use_emojis" "false")
     [ "$use" = "true" ]
 }
 
 include_commit_link() {
-    local include=$(config_get "changelog.include_commit_link" "true")
+    local include
+    include=$(config_get "changelog.include_commit_link" "true")
     [ "$include" = "true" ]
 }
 
 include_ticket_link() {
-    local include=$(config_get "changelog.include_ticket_link" "true")
+    local include
+    include=$(config_get "changelog.include_ticket_link" "true")
     [ "$include" = "true" ]
 }
 
 include_author() {
-    local include=$(config_get "changelog.include_author" "true")
+    local include
+    include=$(config_get "changelog.include_author" "true")
     [ "$include" = "true" ]
 }
 
@@ -292,14 +309,16 @@ is_full_changelog_mode() {
 
 # Check if per-folder changelogs are enabled
 is_per_folder_changelog_enabled() {
-    local enabled=$(config_get "changelog.per_folder.enabled" "false")
+    local enabled
+    enabled=$(config_get "changelog.per_folder.enabled" "false")
     [ "$enabled" = "true" ]
 }
 
 # Get configured folders for per-folder changelogs (space-separated)
 # Supports both "folders" (new) and "root_folders" (legacy) config keys
 get_per_folder_folders() {
-    local folders=$(config_get_array "changelog.per_folder.folders")
+    local folders
+    folders=$(config_get_array "changelog.per_folder.folders")
     if [ -n "$folders" ]; then
         echo "$folders"
     else
@@ -350,7 +369,8 @@ find_folder_for_scope() {
             continue
         fi
 
-        local folder_name=$(basename "$folder")
+        local folder_name
+        folder_name=$(basename "$folder")
 
         if [ "$scope_matching" = "exact" ]; then
             # Step 2: Exact match — scope IS the configured folder name
@@ -369,7 +389,8 @@ find_folder_for_scope() {
             # Suffix match: search subfolders whose name ends with the scope
             for subfolder in "$folder_path"/*/; do
                 [ -d "$subfolder" ] || continue
-                local subfolder_name=$(basename "$subfolder")
+                local subfolder_name
+                subfolder_name=$(basename "$subfolder")
 
                 # Apply folder_pattern filter if set
                 if [ -n "$folder_pattern" ]; then
@@ -393,7 +414,8 @@ find_folder_by_file_path() {
     local folders="$2"
 
     # Get files modified by this commit
-    local changed_files=$(git diff-tree --no-commit-id --name-only -r "$commit_hash" 2>/dev/null)
+    local changed_files
+    changed_files=$(git diff-tree --no-commit-id --name-only -r "$commit_hash" 2>/dev/null)
     if [ -z "$changed_files" ]; then
         return
     fi
@@ -434,13 +456,15 @@ require_ticket_prefix() {
 }
 
 require_type_in_last_commit() {
-    local required=$(config_get "validation.require_type_in_last_commit" "true")
+    local required
+    required=$(config_get "validation.require_type_in_last_commit" "true")
     [ "$required" = "true" ]
 }
 
 # Get ignore patterns as pipe-separated regex for grep -E
 get_ignore_patterns_regex() {
-    local patterns=$(config_get_array "validation.ignore_patterns")
+    local patterns
+    patterns=$(config_get_array "validation.ignore_patterns")
     if [ -n "$patterns" ]; then
         echo "$patterns" | tr ' ' '|'
     fi
@@ -516,7 +540,8 @@ get_tag_pattern() {
     local prefix=""
     use_tag_prefix_v && prefix="v"
 
-    local parts=$(get_enabled_component_count)
+    local parts
+    parts=$(get_enabled_component_count)
     # Build base pattern: [0-9]+ repeated for each enabled component
     local base="[0-9]+"
     local i=1
@@ -544,7 +569,8 @@ get_tag_pattern() {
 # stay identical to the pre-patch-component behaviour.
 build_version_string() {
     local period="$1" major="$2" minor="$3" patch="${4:-0}"
-    local sep=$(get_version_separator)
+    local sep
+    sep=$(get_version_separator)
     local version=""
 
     if is_component_enabled "period"; then
@@ -578,7 +604,8 @@ parse_tag_to_version() {
     if is_component_enabled "timestamp"; then
         echo "$stripped" | sed -E 's/\.[0-9]{12,14}(-[0-9]+)?$//'
     else
-        local suffix=$(get_tag_suffix)
+        local suffix
+        suffix=$(get_tag_suffix)
         if [ -n "$suffix" ]; then
             echo "$stripped" | sed "s/${suffix}\$//"
         else
@@ -589,26 +616,27 @@ parse_tag_to_version() {
 
 # Parse version string into PARSED_PERIOD, PARSED_MAJOR, PARSED_MINOR, PARSED_PATCH
 # Sets global variables — call after parse_tag_to_version
+# shellcheck disable=SC2034
 parse_version_components() {
     local version="$1"
     local pos=1
 
     if is_component_enabled "period"; then
-        PARSED_PERIOD=$(echo "$version" | cut -d. -f${pos})
+        PARSED_PERIOD=$(echo "$version" | cut -d. -f"${pos}")
         pos=$((pos + 1))
     else
         PARSED_PERIOD="0"
     fi
 
     if is_component_enabled "major"; then
-        PARSED_MAJOR=$(echo "$version" | cut -d. -f${pos})
+        PARSED_MAJOR=$(echo "$version" | cut -d. -f"${pos}")
         pos=$((pos + 1))
     else
         PARSED_MAJOR="0"
     fi
 
     if is_component_enabled "minor"; then
-        PARSED_MINOR=$(echo "$version" | cut -d. -f${pos})
+        PARSED_MINOR=$(echo "$version" | cut -d. -f"${pos}")
         pos=$((pos + 1))
     else
         PARSED_MINOR="0"
@@ -616,9 +644,10 @@ parse_version_components() {
 
     # Patch: optional trailing field — absent for v0.5.9, present for v0.5.9.1
     if is_component_enabled "patch"; then
-        local total_fields=$(echo "$version" | awk -F. '{print NF}')
+        local total_fields
+        total_fields=$(echo "$version" | awk -F. '{print NF}')
         if [ "$total_fields" -ge "$pos" ]; then
-            PARSED_PATCH=$(echo "$version" | cut -d. -f${pos})
+            PARSED_PATCH=$(echo "$version" | cut -d. -f"${pos}")
         else
             PARSED_PATCH="0"
         fi
@@ -630,15 +659,21 @@ parse_version_components() {
 # Build full tag: prefix + version + timestamp (if enabled) + suffix
 build_full_tag() {
     local version="$1"
-    local prefix=$(get_tag_prefix)
-    local suffix=$(get_tag_suffix)
+    local prefix
+    prefix=$(get_tag_prefix)
+    local suffix
+    suffix=$(get_tag_suffix)
 
     if is_component_enabled "timestamp"; then
-        local ts_sep=$(get_timestamp_separator)
-        local tz=$(get_timezone)
-        local fmt=$(get_timestamp_format)
+        local ts_sep
+        ts_sep=$(get_timestamp_separator)
+        local tz
+        tz=$(get_timezone)
+        local fmt
+        fmt=$(get_timestamp_format)
         export TZ="$tz"
-        local timestamp=$(date +"$fmt")
+        local timestamp
+        timestamp=$(date +"$fmt")
         echo "${prefix}${version}${ts_sep}${timestamp}${suffix}"
     else
         echo "${prefix}${version}${suffix}"
@@ -654,7 +689,8 @@ build_ticket_prefix_pattern() {
         return
     fi
 
-    local prefixes=$(get_ticket_prefixes_pattern)
+    local prefixes
+    prefixes=$(get_ticket_prefixes_pattern)
     if [ -n "$prefixes" ]; then
         echo "^(${prefixes})-[0-9]+ - "
     fi
@@ -664,7 +700,8 @@ build_ticket_prefix_pattern() {
 # Ticket: "^(AM|TECH)-[0-9]+ - (feat|fix|...): "
 # Conventional: "^(feat|fix|...)(\\(.+\\))?: "
 build_ticket_full_pattern() {
-    local types=$(get_commit_types_pattern)
+    local types
+    types=$(get_commit_types_pattern)
 
     if is_conventional_commits; then
         # Conventional commits: type(scope): message (scope optional)
@@ -672,7 +709,8 @@ build_ticket_full_pattern() {
         return
     fi
 
-    local prefixes=$(get_ticket_prefixes_pattern)
+    local prefixes
+    prefixes=$(get_ticket_prefixes_pattern)
     if [ -n "$prefixes" ]; then
         echo "^(${prefixes})-[0-9]+ - (${types}):"
     else
@@ -684,7 +722,8 @@ build_ticket_full_pattern() {
 # Build pattern to detect bump types
 build_bump_pattern() {
     local bump_type="$1"
-    local types=$(get_types_for_bump "$bump_type")
+    local types
+    types=$(get_types_for_bump "$bump_type")
 
     if [ -z "$types" ]; then
         return
@@ -695,7 +734,8 @@ build_bump_pattern() {
         return
     fi
 
-    local prefixes=$(get_ticket_prefixes_pattern)
+    local prefixes
+    prefixes=$(get_ticket_prefixes_pattern)
     if [ -n "$prefixes" ]; then
         echo "^(${prefixes})-[0-9]+ - (${types}):"
     else
@@ -710,8 +750,10 @@ get_example_prefix() {
         return
     fi
 
-    local prefixes=$(config_get_array "tickets.prefixes")
-    local first=$(echo "$prefixes" | awk '{print $1}')
+    local prefixes
+    prefixes=$(config_get_array "tickets.prefixes")
+    local first
+    first=$(echo "$prefixes" | awk '{print $1}')
     if [ -n "$first" ]; then
         echo "$first"
     else
@@ -725,7 +767,8 @@ get_example_prefix() {
 
 # Check if version file feature is enabled
 is_version_file_enabled() {
-    local enabled=$(config_get "version_file.enabled" "false")
+    local enabled
+    enabled=$(config_get "version_file.enabled" "false")
     [ "$enabled" = "true" ]
 }
 
@@ -765,7 +808,8 @@ get_version_file_replacement() {
 
 # Check if groups are configured
 has_version_file_groups() {
-    local count=$(yq -r '.version_file.groups // [] | length' "$MERGED_CONFIG" 2>/dev/null)
+    local count
+    count=$(yq -r '.version_file.groups // [] | length' "$MERGED_CONFIG" 2>/dev/null)
     [ "$count" -gt 0 ]
 }
 
@@ -795,7 +839,8 @@ get_version_file_group_files() {
 # Check if group has update_all flag
 is_version_file_group_update_all() {
     local index="$1"
-    local update_all=$(yq -r ".version_file.groups[$index].update_all // false" "$MERGED_CONFIG" 2>/dev/null)
+    local update_all
+    update_all=$(yq -r ".version_file.groups[$index].update_all // false" "$MERGED_CONFIG" 2>/dev/null)
     [ "$update_all" = "true" ]
 }
 

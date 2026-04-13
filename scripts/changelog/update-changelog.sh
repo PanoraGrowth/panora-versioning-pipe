@@ -1,4 +1,5 @@
 #!/bin/sh
+# shellcheck shell=ash
 # ============================================================================
 # Script: update-changelog.sh
 # Description: Commit and push changelog to feature/hotfix branch
@@ -9,11 +10,14 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+# shellcheck source=../lib/common.sh
 . "${SCRIPT_DIR}/../lib/common.sh"
+# shellcheck source=../lib/config-parser.sh
 . "${SCRIPT_DIR}/../lib/config-parser.sh"
 
 # Load configuration
 CHANGELOG_FILE=$(get_changelog_file)
+# shellcheck disable=SC2034
 CHANGELOG_TITLE=$(get_changelog_title)
 
 # Check if CHANGELOG has changes (modified or new file)
@@ -36,7 +40,8 @@ get_version_files_modified() {
 
 # Check if any version files were modified
 has_version_files_modified() {
-    local files=$(get_version_files_modified)
+    local files
+    files=$(get_version_files_modified)
     [ -n "$files" ]
 }
 

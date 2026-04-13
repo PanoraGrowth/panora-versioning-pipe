@@ -1,4 +1,5 @@
 #!/bin/sh
+# shellcheck shell=ash
 # =============================================================================
 # notify-teams.sh - Send notification to Microsoft Teams
 # =============================================================================
@@ -126,10 +127,12 @@ echo "Sending Teams notification ($TRIGGER_TYPE)..."
 
 # Export additional variables for envsubst
 # Core pipeline context — sourced from generic VERSIONING_* vars
-export BITBUCKET_COMMIT_SHORT=$(echo ${VERSIONING_COMMIT:-"unknown"} | cut -c1-7)
-export BITBUCKET_PR_AUTHOR=$(git log -1 --format='%an' 2>/dev/null || echo "N/A")
-export BITBUCKET_PR_ID=${VERSIONING_PR_ID:-"N/A"}
-export BITBUCKET_BRANCH=${VERSIONING_BRANCH:-""}
+export BITBUCKET_COMMIT_SHORT
+BITBUCKET_COMMIT_SHORT=$(echo "${VERSIONING_COMMIT:-unknown}" | cut -c1-7)
+export BITBUCKET_PR_AUTHOR
+BITBUCKET_PR_AUTHOR=$(git log -1 --format='%an' 2>/dev/null || echo "N/A")
+export BITBUCKET_PR_ID="${VERSIONING_PR_ID:-N/A}"
+export BITBUCKET_BRANCH="${VERSIONING_BRANCH:-}"
 
 # Platform-specific reporting vars (BITBUCKET_REPO_SLUG, BITBUCKET_WORKSPACE,
 # BITBUCKET_BUILD_NUMBER) must be passed through from the CI environment directly.
@@ -137,6 +140,7 @@ export BITBUCKET_BRANCH=${VERSIONING_BRANCH:-""}
 
 # Generate payload from template (only substitute specific variables)
 PAYLOAD_FILE="/tmp/teams_payload.json"
+# shellcheck disable=SC2016
 VARS_TO_SUBSTITUTE='$NOTIFICATION_STYLE $NOTIFICATION_ICON $NOTIFICATION_TITLE $NOTIFICATION_SUBTITLE $BITBUCKET_REPO_SLUG $BITBUCKET_BRANCH $BITBUCKET_PR_ID $BITBUCKET_COMMIT_SHORT $BITBUCKET_PR_AUTHOR $BITBUCKET_WORKSPACE $BITBUCKET_BUILD_NUMBER'
 envsubst "$VARS_TO_SUBSTITUTE" < "$PAYLOAD_TEMPLATE" > "$PAYLOAD_FILE"
 
