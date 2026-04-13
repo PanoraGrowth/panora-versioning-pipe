@@ -244,3 +244,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: b81df77](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/b81df7707b98c1674c0eddf3233e58b9c1a3d738)
 
 
+## v0.10.1 - 2026-04-13
+
+- 🔨 refactor(ci): remove :latest and migrate pipe to container.image (#56)
+  - _Agustín Manessi_
+  - [Commit: 78da33e](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/78da33e461d7ec80f5e75dca0ba43fbc4c4ea217)
+
+
