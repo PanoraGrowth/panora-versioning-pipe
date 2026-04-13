@@ -8,18 +8,25 @@
 #
 # Platform variables (BITBUCKET_BRANCH, BITBUCKET_PR_ID, etc.) are
 # auto-detected — no manual mapping needed.
+#
+# Image tag: pin to a version tag instead of :latest. Options:
+#   :v0     — tracks all 0.x releases (recommended for most teams)
+#   :v0.9   — tracks 0.9.x patches only
+#   :v0.9.1 — fully pinned, never changes
+# Bitbucket does not support org-level variables, so set
+# VERSIONING_PIPE_TAG as a workspace variable or hardcode the tag.
 
 definitions:
   steps:
     - step: &pr-versioning
         name: Versioning (PR)
-        image: public.ecr.aws/k5n8p2t3/panora-versioning-pipe:latest
+        image: public.ecr.aws/k5n8p2t3/panora-versioning-pipe:v0
         script:
           - /pipe/pipe.sh
 
     - step: &branch-versioning
         name: Versioning (Tag)
-        image: public.ecr.aws/k5n8p2t3/panora-versioning-pipe:latest
+        image: public.ecr.aws/k5n8p2t3/panora-versioning-pipe:v0
         script:
           - /pipe/pipe.sh
 

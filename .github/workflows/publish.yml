@@ -32,9 +32,14 @@ jobs:
         run: |
           VERSION=$(git describe --tags --abbrev=0)
           OWNER_LC="${GITHUB_REPOSITORY_OWNER,,}"
+          # Derive floating tags: v0.6.3 → v0.6 → v0
+          MINOR_SERIES="${VERSION%.*}"
+          MAJOR_SERIES="${MINOR_SERIES%.*}"
           echo "VERSION=$VERSION" >> "$GITHUB_OUTPUT"
           echo "OWNER_LC=$OWNER_LC" >> "$GITHUB_OUTPUT"
-          echo "Building version: $VERSION (owner: $OWNER_LC)"
+          echo "MINOR_SERIES=$MINOR_SERIES" >> "$GITHUB_OUTPUT"
+          echo "MAJOR_SERIES=$MAJOR_SERIES" >> "$GITHUB_OUTPUT"
+          echo "Building version: $VERSION (minor series: $MINOR_SERIES, major series: $MAJOR_SERIES, owner: $OWNER_LC)"
 
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
@@ -55,10 +60,17 @@ jobs:
         with:
           context: .
           push: true
+          # :latest kept temporarily for self-bootstrap (pipe's own workflows
+          # still use uses: docker://...:latest). Will be removed in a follow-up
+          # PR once floating tags exist and the pipe migrates to container.image.
           tags: |
             ghcr.io/${{ steps.version.outputs.OWNER_LC }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.VERSION }}
+            ghcr.io/${{ steps.version.outputs.OWNER_LC }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.MINOR_SERIES }}
+            ghcr.io/${{ steps.version.outputs.OWNER_LC }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.MAJOR_SERIES }}
             ghcr.io/${{ steps.version.outputs.OWNER_LC }}/${{ env.IMAGE_NAME }}:latest
             public.ecr.aws/${{ secrets.ECR_PUBLIC_ALIAS }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.VERSION }}
+            public.ecr.aws/${{ secrets.ECR_PUBLIC_ALIAS }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.MINOR_SERIES }}
+            public.ecr.aws/${{ secrets.ECR_PUBLIC_ALIAS }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.MAJOR_SERIES }}
             public.ecr.aws/${{ secrets.ECR_PUBLIC_ALIAS }}/${{ env.IMAGE_NAME }}:latest
           labels: |
             org.opencontainers.image.title=${{ env.IMAGE_NAME }}

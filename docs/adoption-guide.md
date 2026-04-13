@@ -1,6 +1,6 @@
 # Adoption Guide
 
-**Last updated:** 2026-04-12 (platform-agnostic hotfix detection, ticket 031)
+**Last updated:** 2026-04-13 (floating version tags, ticket 032)
 
 This guide walks a new consumer repository through adopting `panora-versioning-pipe` end-to-end: prerequisites, config selection, workflow installation, and verification of the first release. It assumes familiarity with git, GitHub Actions, and conventional commits, but assumes nothing about this pipe.
 
@@ -81,6 +81,15 @@ Copy the two example workflows verbatim into `.github/workflows/`:
 Both files follow the **inline single-job pattern**: one job, linear steps, no reusable-workflow indirection. This was a deliberate choice (`Finding #17` in the internal review log) — reusable workflows with a single caller add indirection without reuse payoff, so they were removed.
 
 Change `branches: [main]` in both files if your tag branch is different.
+
+Both example workflows run inside the pipe container via `container.image`:
+
+```yaml
+container:
+  image: ghcr.io/panoragrowth/panora-versioning-pipe:${{ vars.VERSIONING_PIPE_TAG }}
+```
+
+The `VERSIONING_PIPE_TAG` variable controls which version of the pipe all your repos use. Set it once at the **organization level** and every repo inherits it automatically — no per-repo config needed. See Step 6 below for the full setup.
 
 ---
 
@@ -228,6 +237,116 @@ docker pull ghcr.io/panoragrowth/panora-versioning-pipe:v0.5.9.1  # post-hotfix
 ```
 
 The next minor release resets PATCH to 0 and omits it from the tag: `v0.5.9.2` → `v0.5.10`.
+
+---
+
+## Step 6 — Version pinning strategy
+
+The pipe publishes three tags per release. Choose the one that matches your tolerance for automatic updates:
+
+| Tag | Example | Updates when... | Recommended for |
+|-----|---------|-----------------|-----------------|
+| Specific pin | `:v0.9.1` | Never — you control every upgrade | Production systems, compliance-sensitive repos |
+| Minor-series float | `:v0.9` | A new patch in the 0.9 series ships (bug fixes only within the series) | Teams that want patch fixes automatically with minimal risk |
+| Major-series float | `:v0` | Any 0.x release ships (features + bug fixes, no breaking config changes) | Internal tools where friction matters more than strict reproducibility |
+
+`:latest` is **not published** by policy. It breaks reproducibility, makes rollback impossible, and silently propagates default-behavior changes (see Motivation in the architecture docs). There is no workaround — the tag simply does not exist on either registry.
+
+### Centralized version control with an org variable (recommended)
+
+Instead of hardcoding the tag in every consumer workflow, set an **organization-level variable** that all repos inherit:
+
+1. Go to your GitHub org → **Settings → Secrets and variables → Actions → Variables**
+2. Create a variable named `VERSIONING_PIPE_TAG` with value `v0` (or `v0.9` for tighter control)
+3. In every consumer workflow, use `container.image` at the job level:
+
+```yaml
+jobs:
+  versioning:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/panoragrowth/panora-versioning-pipe:${{ vars.VERSIONING_PIPE_TAG }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - run: /pipe/pipe.sh
+```
+
+> **Note:** `uses: docker://` does not support `${{ vars.* }}` — GitHub parses it statically before resolving contexts ([discussion](https://github.com/orgs/community/discussions/27048)). The `container.image` field resolves vars at runtime. The entrypoint `/pipe/pipe.sh` is a stable public contract covered by semver.
+
+This gives you a single control point for the entire organization. When you're ready to upgrade (e.g. from `v0` to `v1`), change the variable once and every repo picks it up on their next CI run.
+
+**Precedence** (from [GitHub docs](https://docs.github.com/en/actions/reference/workflows-and-actions/variables)): repository variables override organization variables, and environment variables override both. This means a repo that needs a different version just sets the same `VERSIONING_PIPE_TAG` variable at the repo level — no workflow file changes needed.
+
+| Level | Set where | Example value | Use case |
+|-------|-----------|---------------|----------|
+| Organization | Org Settings → Variables | `v0` | Default for all repos |
+| Repository | Repo Settings → Variables | `v0.9.1` | Pin a specific repo to a known-good version |
+| Environment | Workflow `environment:` block | `v0.9` | Pin a specific deployment environment |
+
+### Choosing your pin (without the org variable)
+
+If you prefer to hardcode the tag directly in `container.image`:
+
+```yaml
+# Most conservative — upgrade on your schedule
+container:
+  image: ghcr.io/panoragrowth/panora-versioning-pipe:v0.9.1
+
+# Patch fixes auto-applied — upgrade minor versions intentionally
+container:
+  image: ghcr.io/panoragrowth/panora-versioning-pipe:v0.9
+
+# All non-breaking updates auto-applied
+container:
+  image: ghcr.io/panoragrowth/panora-versioning-pipe:v0
+```
+
+### Automating specific-pin bumps with Dependabot
+
+If you pin to a specific tag (`:v0.9.1`) and want Dependabot to open PRs when a new release ships, add this to `.github/dependabot.yml` in your consumer repo:
+
+```yaml
+version: 2
+updates:
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    # Dependabot will detect new tags on ghcr.io and open a PR
+    # bumping your pin from :v0.9.1 → :v0.9.2 automatically.
+```
+
+Dependabot scans the `uses: docker://` lines in your workflows and opens a PR for each new image tag. Combined with branch auto-merge rules, this gives you automated patch upgrades with full audit trail.
+
+### Automating with Renovate
+
+For teams already using Renovate, the equivalent config is:
+
+```json
+{
+  "docker": {
+    "enabled": true,
+    "fileMatch": ["\\.github/workflows/.*\\.ya?ml$"],
+    "automerge": true,
+    "automergeType": "pr",
+    "matchUpdateTypes": ["patch"]
+  }
+}
+```
+
+With `matchUpdateTypes: ["patch"]`, Renovate auto-merges patch bumps and opens PRs for minor/major — which mirrors the floating-tag philosophy but keeps the diff visible in your git history.
+
+### Hotfix tags and floating pins
+
+When a hotfix ships (e.g. `v0.9.1.1`), the floating tags update as follows:
+
+- `:v0.9.1` — **never updated** (specific pins are immutable)
+- `:v0.9` — **updated** to point to `v0.9.1.1` (consumers on the minor float get the fix)
+- `:v0` — **updated** to point to `v0.9.1.1`
+
+This means consumers on `:v0.9` pick up hotfixes automatically, which is the intent. If you need the pre-hotfix build, pin to the specific tag.
 
 ---
 

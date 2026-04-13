@@ -1,5 +1,21 @@
 # PR Versioning — validate commits and generate CHANGELOG
 # Copy this to .github/workflows/pr-versioning.yml
+#
+# ------------------------------------------------------------------------------
+# Dynamic image tag via org variable
+# ------------------------------------------------------------------------------
+# The job runs inside the pipe container using container.image, which supports
+# ${{ vars.* }} expressions. The uses: docker:// syntax does NOT support
+# dynamic variables (GitHub parses it statically before resolving contexts).
+#
+# Set VERSIONING_PIPE_TAG as an organization variable:
+#   Org Settings → Secrets and variables → Actions → Variables
+#   Recommended value: "v0" (tracks all 0.x releases)
+# Override at repo level to pin a specific version (e.g. "v0.9.1").
+#
+# The entrypoint /pipe/pipe.sh is the pipe's public contract, stable and
+# covered by semver. This mirrors Bitbucket's image: + script: pattern.
+# ------------------------------------------------------------------------------
 
 name: PR - Versioning
 
@@ -15,6 +31,8 @@ jobs:
   versioning:
     name: Versioning Pipe
     runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/panoragrowth/panora-versioning-pipe:${{ vars.VERSIONING_PIPE_TAG }}
     steps:
       # fetch-depth: 0 is required so the pipe can read the full commit
       # history for changelog generation and version detection.
@@ -28,17 +46,9 @@ jobs:
           fetch-depth: 0
           ref: ${{ github.head_ref }}
 
-      # Public consumer image — hosted on ECR Public for zero-auth access
-      # from any downstream repository (no GHCR package-read permission
-      # needed). The `k5n8p2t3` alias is AWS auto-generated and will
-      # transition to `panoragrowth` once AWS approves the custom alias;
-      # the image will be available at both paths during the transition.
-      # In production, pin to a specific version tag (e.g. :v0.5.0) instead
-      # of :latest to get reproducible builds.
-      #
       # The pipe auto-detects PR context from GitHub Actions environment
       # variables (GITHUB_EVENT_NAME, GITHUB_HEAD_REF, GITHUB_BASE_REF,
       # GITHUB_REF_NAME, GITHUB_SHA, GITHUB_EVENT_PATH). No explicit
       # VERSIONING_* env vars are needed here.
       - name: Run versioning pipe
-        uses: docker://public.ecr.aws/k5n8p2t3/panora-versioning-pipe:latest
+        run: /pipe/pipe.sh

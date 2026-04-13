@@ -1,5 +1,8 @@
 # Tag on merge — create version tag + CHANGELOG when PR merges to main
 # Uses GitHub App token for pushing commits to protected branches
+#
+# TODO: migrate to container.image + VERSIONING_PIPE_TAG once floating
+# tags exist (after the first release with the new publish.yml).
 
 name: Main - Create Version Tag
 

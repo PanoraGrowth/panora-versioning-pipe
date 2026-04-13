@@ -28,16 +28,40 @@ Platform variables are auto-detected — no manual mapping needed.
 ```yaml
 - step:
     name: Versioning
-    image: public.ecr.aws/k5n8p2t3/panora-versioning-pipe:latest
+    image: public.ecr.aws/k5n8p2t3/panora-versioning-pipe:v0
     script:
       - /pipe/pipe.sh
 ```
 
-**GitHub Actions:**
+**GitHub Actions (with org-level variable):**
 
 ```yaml
-- uses: docker://ghcr.io/panoragrowth/panora-versioning-pipe:latest
+jobs:
+  versioning:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/panoragrowth/panora-versioning-pipe:${{ vars.VERSIONING_PIPE_TAG }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.head_ref }}
+      - run: /pipe/pipe.sh
 ```
+
+Set `VERSIONING_PIPE_TAG` as an **organization variable** (Settings → Secrets and variables → Actions → Variables) to control the pipe version for all repos from one place. Override at repo level to pin a specific version.
+
+> **Why `container.image` + `run:` instead of `uses: docker://`?** GitHub Actions does not support `${{ vars.* }}` expressions in the `uses:` key — it is parsed statically before contexts are resolved ([discussion](https://github.com/orgs/community/discussions/27048)). The `container.image` field does support vars, and the pattern mirrors Bitbucket's `image:` + `script:` approach. The entrypoint `/pipe/pipe.sh` is a stable public contract covered by semver.
+
+The pipe publishes three tag levels per release — pin the one that matches your risk tolerance:
+
+| Tag | Example | Updates automatically |
+|-----|---------|-----------------------|
+| Specific | `:v0.9.1` | Never |
+| Minor series | `:v0.9` | On every 0.9.x patch |
+| Major series | `:v0` | On every 0.x release |
+
+`:latest` is not published. See [Version pinning strategy](docs/adoption-guide.md#step-6--version-pinning-strategy) for guidance.
 
 Place a `.versioning.yml` in your repository root. If the file doesn't exist, all defaults apply.
 
@@ -52,14 +76,16 @@ See [`examples/`](examples/) for full pipeline examples for both platforms.
 Pull the image from Amazon ECR Public:
 
 ```bash
-docker pull public.ecr.aws/k5n8p2t3/panora-versioning-pipe:latest
+docker pull public.ecr.aws/k5n8p2t3/panora-versioning-pipe:v0
 ```
 
 Or from GitHub Container Registry:
 
 ```bash
-docker pull ghcr.io/panoragrowth/panora-versioning-pipe:latest
+docker pull ghcr.io/panoragrowth/panora-versioning-pipe:v0
 ```
+
+Replace `:v0` with a minor series (`:v0.9`) or a specific tag (`:v0.9.1`) for tighter pinning. `:latest` is not published.
 
 No installation is needed in your pipeline — the image is referenced directly as the step runner.
 
@@ -373,14 +399,15 @@ permissions:
 jobs:
   versioning:
     runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/panoragrowth/panora-versioning-pipe:${{ vars.VERSIONING_PIPE_TAG }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
           ref: ${{ github.head_ref }}   # required — do not drop
 
-      - uses: docker://public.ecr.aws/k5n8p2t3/panora-versioning-pipe:latest
-        # Alternative: docker://ghcr.io/panoragrowth/panora-versioning-pipe:latest
+      - run: /pipe/pipe.sh
 ```
 
 ```yaml
@@ -395,6 +422,8 @@ permissions:
 jobs:
   versioning:
     runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/panoragrowth/panora-versioning-pipe:${{ vars.VERSIONING_PIPE_TAG }}
     steps:
       - id: ci-token
         uses: actions/create-github-app-token@v1
@@ -408,7 +437,7 @@ jobs:
           ref: main
           token: ${{ steps.ci-token.outputs.token }}
 
-      - uses: docker://public.ecr.aws/k5n8p2t3/panora-versioning-pipe:latest
+      - run: /pipe/pipe.sh
         env:
           CI_GITHUB_TOKEN: ${{ steps.ci-token.outputs.token }}
 ```

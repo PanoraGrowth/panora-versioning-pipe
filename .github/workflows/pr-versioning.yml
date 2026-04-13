@@ -1,4 +1,7 @@
 # PR Versioning — validate commits and generate CHANGELOG
+#
+# TODO: migrate to container.image + VERSIONING_PIPE_TAG once floating
+# tags exist (after the first release with the new publish.yml).
 
 name: PR - Versioning
 
