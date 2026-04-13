@@ -237,3 +237,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: b6f7fb3](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/b6f7fb3083dade0fb904a4c6dc3003c88d7982fd)
 
 
+## v0.10.0 - 2026-04-13
+
+- 🚀 feat(publish): add floating version tags per release (#55)
+  - _Agustín Manessi_
+  - [Commit: b81df77](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/b81df7707b98c1674c0eddf3233e58b9c1a3d738)
+
+
