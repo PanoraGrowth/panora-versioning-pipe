@@ -82,10 +82,11 @@ Both files follow the **inline single-job pattern**: one job, linear steps, no r
 
 Change `branches: [main]` in both files if your tag branch is different.
 
-Both example workflows reference the pipe image as:
+Both example workflows run inside the pipe container via `container.image`:
 
 ```yaml
-uses: docker://public.ecr.aws/.../panora-versioning-pipe:${{ vars.VERSIONING_PIPE_TAG }}
+container:
+  image: ghcr.io/panoragrowth/panora-versioning-pipe:${{ vars.VERSIONING_PIPE_TAG }}
 ```
 
 The `VERSIONING_PIPE_TAG` variable controls which version of the pipe all your repos use. Set it once at the **organization level** and every repo inherits it automatically — no per-repo config needed. See Step 6 below for the full setup.
@@ -257,11 +258,22 @@ Instead of hardcoding the tag in every consumer workflow, set an **organization-
 
 1. Go to your GitHub org → **Settings → Secrets and variables → Actions → Variables**
 2. Create a variable named `VERSIONING_PIPE_TAG` with value `v0` (or `v0.9` for tighter control)
-3. In every consumer workflow, reference the image as:
+3. In every consumer workflow, use `container.image` at the job level:
 
 ```yaml
-- uses: docker://public.ecr.aws/k5n8p2t3/panora-versioning-pipe:${{ vars.VERSIONING_PIPE_TAG }}
+jobs:
+  versioning:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/panoragrowth/panora-versioning-pipe:${{ vars.VERSIONING_PIPE_TAG }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - run: /pipe/pipe.sh
 ```
+
+> **Note:** `uses: docker://` does not support `${{ vars.* }}` — GitHub parses it statically before resolving contexts ([discussion](https://github.com/orgs/community/discussions/27048)). The `container.image` field resolves vars at runtime. The entrypoint `/pipe/pipe.sh` is a stable public contract covered by semver.
 
 This gives you a single control point for the entire organization. When you're ready to upgrade (e.g. from `v0` to `v1`), change the variable once and every repo picks it up on their next CI run.
 
@@ -275,17 +287,20 @@ This gives you a single control point for the entire organization. When you're r
 
 ### Choosing your pin (without the org variable)
 
-If you prefer to hardcode the tag directly:
+If you prefer to hardcode the tag directly in `container.image`:
 
 ```yaml
 # Most conservative — upgrade on your schedule
-- uses: docker://public.ecr.aws/k5n8p2t3/panora-versioning-pipe:v0.9.1
+container:
+  image: ghcr.io/panoragrowth/panora-versioning-pipe:v0.9.1
 
 # Patch fixes auto-applied — upgrade minor versions intentionally
-- uses: docker://public.ecr.aws/k5n8p2t3/panora-versioning-pipe:v0.9
+container:
+  image: ghcr.io/panoragrowth/panora-versioning-pipe:v0.9
 
 # All non-breaking updates auto-applied
-- uses: docker://public.ecr.aws/k5n8p2t3/panora-versioning-pipe:v0
+container:
+  image: ghcr.io/panoragrowth/panora-versioning-pipe:v0
 ```
 
 ### Automating specific-pin bumps with Dependabot

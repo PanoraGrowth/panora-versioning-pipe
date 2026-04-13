@@ -18,20 +18,28 @@
 # step-by-step instructions on creating and installing the App.
 #
 # ------------------------------------------------------------------------------
-# Atomic push + [skip ci] behavior
+# Dynamic image tag via org variable
 # ------------------------------------------------------------------------------
-# The pipe creates the CHANGELOG commit with a `[skip ci]` marker in the subject
+# The job runs inside the pipe container using container.image, which supports
+# ${{ vars.* }} expressions. The uses: docker:// syntax does NOT support
+# dynamic variables (GitHub parses it statically before resolving contexts).
+#
+# Set VERSIONING_PIPE_TAG as an organization variable:
+#   Org Settings → Secrets and variables → Actions → Variables
+#   Recommended value: "v0" (tracks all 0.x releases)
+# Override at repo level to pin a specific version (e.g. "v0.9.1").
+#
+# The entrypoint /pipe/pipe.sh is the pipe's public contract, stable and
+# covered by semver. This mirrors Bitbucket's image: + script: pattern.
+# ------------------------------------------------------------------------------
+#
+# ------------------------------------------------------------------------------
+# Atomic push + CI-skip behavior
+# ------------------------------------------------------------------------------
+# The pipe creates the CHANGELOG commit with a CI-skip marker in the subject
 # and pushes the commit and the version tag atomically in a single `git push`.
 # This prevents infinite CI loops (the CHANGELOG push does NOT re-trigger this
 # workflow) while keeping the tag and CHANGELOG consistent at all times.
-#
-# ------------------------------------------------------------------------------
-# Single-job inline pattern
-# ------------------------------------------------------------------------------
-# Token generation, checkout, and the pipe Docker run all live as linear steps
-# in a single job. This mirrors the pipe's own .github/workflows/tag-on-merge.yml
-# and keeps each trigger workflow self-contained — no reusable indirection
-# needed.
 # ------------------------------------------------------------------------------
 
 name: Main - Create Version Tag
@@ -47,6 +55,8 @@ permissions:
 jobs:
   versioning:
     runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/panoragrowth/panora-versioning-pipe:${{ vars.VERSIONING_PIPE_TAG }}
     steps:
       - name: Generate CI token
         id: ci-token
@@ -62,19 +72,11 @@ jobs:
           ref: main
           token: ${{ steps.ci-token.outputs.token }}
 
-      # Image tag controlled by the org-level variable VERSIONING_PIPE_TAG.
-      # Default: "v0" (tracks all 0.x releases). Override at repo level to
-      # pin a specific version (e.g. "v0.9.1") or minor series ("v0.9").
-      # Set it at: Org Settings → Secrets and variables → Actions → Variables.
-      #
-      # ECR Public registry — zero-auth access from any downstream repo.
-      # Alternative: ghcr.io/panoragrowth/panora-versioning-pipe
-      #
       # The pipe auto-detects branch context from GitHub Actions environment
       # variables (GITHUB_EVENT_NAME, GITHUB_REF_NAME, GITHUB_SHA). No
       # explicit VERSIONING_BRANCH / VERSIONING_COMMIT env vars are needed
       # here — only CI_GITHUB_TOKEN for the push operations.
       - name: Run versioning pipe
-        uses: docker://public.ecr.aws/k5n8p2t3/panora-versioning-pipe:${{ vars.VERSIONING_PIPE_TAG }}
+        run: /pipe/pipe.sh
         env:
           CI_GITHUB_TOKEN: ${{ steps.ci-token.outputs.token }}

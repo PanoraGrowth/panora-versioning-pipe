@@ -36,10 +36,22 @@ Platform variables are auto-detected — no manual mapping needed.
 **GitHub Actions (with org-level variable):**
 
 ```yaml
-- uses: docker://public.ecr.aws/k5n8p2t3/panora-versioning-pipe:${{ vars.VERSIONING_PIPE_TAG }}
+jobs:
+  versioning:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/panoragrowth/panora-versioning-pipe:${{ vars.VERSIONING_PIPE_TAG }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.head_ref }}
+      - run: /pipe/pipe.sh
 ```
 
 Set `VERSIONING_PIPE_TAG` as an **organization variable** (Settings → Secrets and variables → Actions → Variables) to control the pipe version for all repos from one place. Override at repo level to pin a specific version.
+
+> **Why `container.image` + `run:` instead of `uses: docker://`?** GitHub Actions does not support `${{ vars.* }}` expressions in the `uses:` key — it is parsed statically before contexts are resolved ([discussion](https://github.com/orgs/community/discussions/27048)). The `container.image` field does support vars, and the pattern mirrors Bitbucket's `image:` + `script:` approach. The entrypoint `/pipe/pipe.sh` is a stable public contract covered by semver.
 
 The pipe publishes three tag levels per release — pin the one that matches your risk tolerance:
 
@@ -387,13 +399,15 @@ permissions:
 jobs:
   versioning:
     runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/panoragrowth/panora-versioning-pipe:${{ vars.VERSIONING_PIPE_TAG }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
           ref: ${{ github.head_ref }}   # required — do not drop
 
-      - uses: docker://public.ecr.aws/k5n8p2t3/panora-versioning-pipe:${{ vars.VERSIONING_PIPE_TAG }}
+      - run: /pipe/pipe.sh
 ```
 
 ```yaml
@@ -408,6 +422,8 @@ permissions:
 jobs:
   versioning:
     runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/panoragrowth/panora-versioning-pipe:${{ vars.VERSIONING_PIPE_TAG }}
     steps:
       - id: ci-token
         uses: actions/create-github-app-token@v1
@@ -421,7 +437,7 @@ jobs:
           ref: main
           token: ${{ steps.ci-token.outputs.token }}
 
-      - uses: docker://public.ecr.aws/k5n8p2t3/panora-versioning-pipe:${{ vars.VERSIONING_PIPE_TAG }}
+      - run: /pipe/pipe.sh
         env:
           CI_GITHUB_TOKEN: ${{ steps.ci-token.outputs.token }}
 ```
