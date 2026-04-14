@@ -147,6 +147,7 @@ class TestMergeAndTag:
             #    GitHub may not trigger the workflow if the previous push was
             #    a CHANGELOG *.md commit (paths-ignore race). If no new run
             #    appears within 30s, manually dispatch it.
+            image_tag = scenario.get("image_tag")
             time.sleep(10)
             try:
                 github.wait_for_tag_workflow(
@@ -154,7 +155,7 @@ class TestMergeAndTag:
                 )
             except TimeoutError:
                 # Workflow didn't trigger — dispatch manually
-                github.dispatch_tag_workflow()
+                github.dispatch_tag_workflow(image_tag=image_tag)
                 time.sleep(5)
                 github.wait_for_tag_workflow(
                     previous_run_id=run_before, timeout=180,

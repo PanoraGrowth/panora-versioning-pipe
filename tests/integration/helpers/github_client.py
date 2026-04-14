@@ -198,17 +198,20 @@ class GitHubClient:
 
         raise TimeoutError(f"PR #{pr_number} checks did not complete within {timeout}s")
 
-    def dispatch_tag_workflow(self) -> None:
+    def dispatch_tag_workflow(self, image_tag: str | None = None) -> None:
         """Manually trigger tag-on-merge via workflow_dispatch.
 
         Used as fallback when the push event doesn't trigger the workflow
         (GitHub race condition with paths-ignore after CHANGELOG pushes).
+
+        image_tag: if set, passes the image_tag input to the workflow so it
+        runs a preview image instead of the default VERSIONING_PIPE_TAG.
         """
-        subprocess.run(
-            ["gh", "workflow", "run", "tag-on-merge.yml", "-R", self.repo,
-             "--ref", "main"],
-            capture_output=True, text=True, timeout=60,
-        )
+        cmd = ["gh", "workflow", "run", "tag-on-merge.yml", "-R", self.repo,
+               "--ref", "main"]
+        if image_tag:
+            cmd += ["-f", f"image_tag={image_tag}"]
+        subprocess.run(cmd, capture_output=True, text=True, timeout=60)
 
     def get_latest_workflow_run_id(self) -> int | None:
         """Get the database ID of the latest tag-on-merge workflow run."""
