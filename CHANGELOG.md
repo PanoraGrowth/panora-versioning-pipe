@@ -265,3 +265,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: fca712f](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/fca712f5992aac7ec8ffa1c0d03c6e000d0b65f1)
 
 
+## v0.11.2 - 2026-04-14
+
+- 🐛 fix(validation): replace require_type_in_last_commit with require_commit_types (#59)
+  - _Agustín Manessi_
+  - [Commit: d281623](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/d2816232424924cccd32ac7b6d3c835c332e7f1a)
+
+
