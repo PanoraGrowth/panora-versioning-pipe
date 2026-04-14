@@ -251,3 +251,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: 78da33e](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/78da33e461d7ec80f5e75dca0ba43fbc4c4ea217)
 
 
+## v0.11.0 - 2026-04-14
+
+- 🚀 feat(tests): add preview image support for integration tests (#57)
+  - _Agustín Manessi_
+  - [Commit: 0c2ddcd](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/0c2ddcdd201c78de405a0eb18c4156ca454f7754)
+
+
