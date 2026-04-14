@@ -46,11 +46,10 @@ run_calculate() {
     git add artifact.txt .versioning.yml >/dev/null
     git commit -q -m "$commit_msg"
 
-    echo "SCENARIO=${scenario}" > /tmp/scenario.env
-
     # Capture state files INSIDE the lock so parallel jobs cannot overwrite
     # them between the script finishing and our cat.
     run flock "$LOCKFILE" sh -c "
+        echo 'SCENARIO=${scenario}' > /tmp/scenario.env ; \
         cd '${BATS_TEST_TMPDIR}/repo' && \
         sh '${PIPE_DIR}/versioning/calculate-version.sh' >/dev/null 2>&1 ; \
         echo BUMP_TYPE=\$(cat /tmp/bump_type.txt 2>/dev/null) ; \
