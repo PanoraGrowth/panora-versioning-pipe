@@ -92,7 +92,8 @@ config_get() {
     local default="$2"
 
     local value
-    value=$(yq -r ".$path // \"\"" "$MERGED_CONFIG" 2>/dev/null)
+    value=$(yq -r ".$path" "$MERGED_CONFIG" 2>/dev/null)
+    # Treat absent keys (null) as missing; treat all other values including "false" and "0" as set
     if [ -n "$value" ] && [ "$value" != "null" ]; then
         echo "$value"
     elif [ -n "$default" ]; then
@@ -455,10 +456,15 @@ require_ticket_prefix() {
     has_ticket_prefixes
 }
 
-require_type_in_last_commit() {
+require_commit_types() {
     local required
-    required=$(config_get "validation.require_type_in_last_commit" "true")
+    required=$(config_get "validation.require_commit_types" "true")
     [ "$required" = "true" ]
+}
+
+# True when type validation is active AND changelog.mode is full (all commits must be typed)
+require_commit_types_for_all() {
+    require_commit_types && is_full_changelog_mode
 }
 
 # Get ignore patterns as pipe-separated regex for grep -E

@@ -123,6 +123,44 @@ scenarios:
       pr_check: fail
       tag_created: false
 
+  - name: full-mode-untyped-intermediate-fails
+    description: "changelog.mode=full + untyped intermediate commit fails PR validation — all commits must be typed.
+      NOTE: this scenario requires the published image to include the require_commit_types fix.
+      It will pass only after this PR is merged and the image is republished."
+    # skip_bitbucket: not applicable — scenario only runs on GitHub harness
+    merge_method: merge
+    config_override:
+      changelog:
+        mode: "full"
+    commits:
+      - message: "feat: first typed commit"
+        files:
+          test-artifact.txt: "full mode test 1"
+      - message: "WIP: untyped intermediate commit"
+        files:
+          test-artifact2.txt: "full mode test 2"
+      - message: "fix: last typed commit"
+        files:
+          test-artifact3.txt: "full mode test 3"
+    expected:
+      pr_check: fail
+      tag_created: false
+
+  - name: full-mode-all-typed-passes
+    description: "changelog.mode=full + all commits typed passes PR validation"
+    config_override:
+      changelog:
+        mode: "full"
+    commits:
+      - message: "feat: add full mode feature"
+        files:
+          test-artifact.txt: "full mode pass test"
+    expected:
+      pr_check: pass
+      tag_created: true
+      tag_pattern: "^v\\d+\\.\\d+\\.\\d+$"
+      changelog_contains: "feat: add full mode feature"
+
   # --- Hotfix flow ---
 
   - name: hotfix-from-production-branch
