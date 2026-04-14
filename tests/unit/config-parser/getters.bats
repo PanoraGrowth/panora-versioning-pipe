@@ -410,15 +410,27 @@ teardown() { common_teardown; }
     [ "$status" -ne 0 ]
 }
 
-@test "require_type_in_last_commit: true by default" {
+@test "require_commit_types: true by default" {
     source_config_parser "minimal"
-    run require_type_in_last_commit
+    run require_commit_types
     [ "$status" -eq 0 ]
 }
 
-@test "require_type_in_last_commit: true for conventional-full" {
+@test "require_commit_types: true for conventional-full" {
     source_config_parser "conventional-full"
-    run require_type_in_last_commit
+    run require_commit_types
+    [ "$status" -eq 0 ]
+}
+
+@test "require_commit_types_for_all: false for last_commit mode (default)" {
+    source_config_parser "minimal"
+    run require_commit_types_for_all
+    [ "$status" -ne 0 ]
+}
+
+@test "require_commit_types_for_all: true for conventional-full (mode=full)" {
+    source_config_parser "conventional-full"
+    run require_commit_types_for_all
     [ "$status" -eq 0 ]
 }
 

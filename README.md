@@ -238,10 +238,12 @@ changelog:
 
 ```yaml
 validation:
-  require_ticket_prefix: false         # Alias for tickets.required
-  require_type_in_last_commit: true    # The last commit before the PR must have a valid type
-  allow_untyped_intermediate_commits: true  # Intermediate commits don't need a type
-  ignore_patterns:                     # Commit messages matching these patterns are skipped
+  require_ticket_prefix: false   # Alias for tickets.required
+  require_commit_types: true     # Enforce typed commits. Scope follows changelog.mode:
+                                 #   "last_commit" → only the last commit must be typed
+                                 #   "full"        → all commits must be typed
+                                 # Set to false to disable type validation entirely.
+  ignore_patterns:               # Commit messages matching these patterns are skipped
     - "^Merge"
     - "^Revert"
     - "^fixup!"

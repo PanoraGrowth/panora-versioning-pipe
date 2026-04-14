@@ -7,4 +7,4 @@ changelog:
   mode: "full"
 
 validation:
-  require_type_in_last_commit: true
+  require_commit_types: true

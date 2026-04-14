@@ -189,3 +189,30 @@ teardown() { common_teardown; }
     pattern=$(build_bump_pattern "minor")
     echo "TECH-7 - fix: patch" | grep -Eq "$pattern"
 }
+
+# =============================================================================
+# require_commit_types + changelog.mode coupling
+# =============================================================================
+
+@test "require_commit_types: true by default, last_commit mode does not require all" {
+    source_config_parser "minimal"
+    # require_commit_types is on, but mode is last_commit → for_all is false
+    run require_commit_types
+    [ "$status" -eq 0 ]
+    run require_commit_types_for_all
+    [ "$status" -ne 0 ]
+}
+
+@test "require_commit_types_for_all: true when mode=full and require_commit_types=true" {
+    source_config_parser "conventional-full"
+    run require_commit_types_for_all
+    [ "$status" -eq 0 ]
+}
+
+@test "require_commit_types: false disables validation regardless of changelog.mode" {
+    source_config_parser "validation-disabled"
+    run require_commit_types
+    [ "$status" -ne 0 ]
+    run require_commit_types_for_all
+    [ "$status" -ne 0 ]
+}

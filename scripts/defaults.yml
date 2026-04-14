@@ -14,6 +14,17 @@ tickets:
   required: false
   url: ""
 
+validation:
+  require_ticket_prefix: false
+  require_commit_types: true    # scope driven by changelog.mode: "last_commit" validates only last, "full" validates all
+  ignore_patterns:
+    - "^Merge"
+    - "^Revert"
+    - "^fixup!"
+    - "^squash!"
+    - "^chore\\(release\\)"
+    - "^chore\\(hotfix\\)"
+
 version:
   components:
     period:
@@ -171,18 +182,6 @@ changelog:
     folder_pattern: ""          # Regex to filter subfolders (e.g. "^[0-9]{3}-" for numbered folders)
     scope_matching: "suffix"    # "suffix" (cluster-ecs -> 001-cluster-ecs) or "exact" (folder name = scope)
     fallback: "root"            # "root" (unmatched → root CHANGELOG) or "file_path" (check modified files)
-
-validation:
-  require_ticket_prefix: false
-  require_type_in_last_commit: true
-  allow_untyped_intermediate_commits: true
-  ignore_patterns:
-    - "^Merge"
-    - "^Revert"
-    - "^fixup!"
-    - "^squash!"
-    - "^chore\\(release\\)"
-    - "^chore\\(hotfix\\)"
 
 hotfix:
   # Glob patterns that identify a hotfix commit. The pipe detects a hotfix

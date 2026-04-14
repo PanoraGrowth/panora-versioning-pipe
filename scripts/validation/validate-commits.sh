@@ -101,53 +101,103 @@ if is_conventional_commits && require_ticket_prefix; then
 fi
 
 # =============================================================================
-# VALIDATION 2: LAST commit must have complete format (if required)
+# VALIDATION 2: commits must have complete format (scope driven by changelog.mode)
 # =============================================================================
-if require_type_in_last_commit; then
-    LAST_COMMIT=$(echo "$COMMITS" | head -n 1)
+if require_commit_types; then
+    if require_commit_types_for_all; then
+        # changelog.mode: full — ALL commits must be typed
+        INVALID_COMMITS=$(echo "$COMMITS" | grep -vE "$TICKET_FULL_PATTERN" || true)
 
-    log_info "Last commit (determines version):"
-    echo "  -> $LAST_COMMIT"
-    echo ""
+        if [ -n "$INVALID_COMMITS" ]; then
+            log_section "ERROR: COMMITS NOT WELL-FORMED"
+            echo ""
+            log_info "changelog.mode is 'full' — ALL commits must have a valid type."
+            echo ""
 
-    if ! echo "$LAST_COMMIT" | grep -qE "$TICKET_FULL_PATTERN"; then
-        log_section "ERROR: LAST COMMIT NOT WELL-FORMED"
-        echo ""
-
-        if is_conventional_commits; then
-            log_info "The LAST commit must follow Conventional Commits format:"
-            log_info "  <type>(scope): <message>  or  <type>: <message>"
-        elif has_ticket_prefixes; then
-            log_info "The LAST commit must follow format:"
-            log_info "  ${EXAMPLE_PREFIX}-XXXX - <type>: <message>"
-        else
-            log_info "The LAST commit must include a commit type:"
-            log_info "  <type>: <message>"
+            if is_conventional_commits; then
+                log_info "Each commit must follow Conventional Commits format:"
+                log_info "  <type>(scope): <message>  or  <type>: <message>"
+            elif has_ticket_prefixes; then
+                log_info "Each commit must follow format:"
+                log_info "  ${EXAMPLE_PREFIX}-XXXX - <type>: <message>"
+            else
+                log_info "Each commit must include a commit type:"
+                log_info "  <type>: <message>"
+            fi
+            echo ""
+            log_info "Invalid commits:"
+            echo "$INVALID_COMMITS" | while IFS= read -r commit; do
+                echo "  x $commit"
+            done
+            echo ""
+            log_info "Valid types: $(echo "$COMMIT_TYPES" | tr '|' ', ')"
+            echo ""
+            log_info "Examples:"
+            if is_conventional_commits; then
+                log_info "  feat(cluster-ecs): add new ECS config"
+                log_info "  fix(alb): correct listener rules"
+                log_info "  minor(service-ecs): release notifications module"
+                log_info "  feat: add general feature (no scope)"
+            elif has_ticket_prefixes; then
+                log_info "  ${EXAMPLE_PREFIX}-1234 - feat: add new feature"
+                log_info "  ${EXAMPLE_PREFIX}-1234 - fix: resolve bug"
+                log_info "  ${EXAMPLE_PREFIX}-1234 - minor: release new features"
+                log_info "  ${EXAMPLE_PREFIX}-1234 - major: breaking changes"
+            else
+                log_info "  feat: add new feature"
+                log_info "  fix: resolve bug"
+                log_info "  minor: release new features"
+            fi
+            echo ""
+            exit 1
         fi
+    else
+        # changelog.mode: last_commit — only the last commit must be typed
+        LAST_COMMIT=$(echo "$COMMITS" | head -n 1)
+
+        log_info "Last commit (determines version):"
+        echo "  -> $LAST_COMMIT"
         echo ""
-        log_info "Last commit:"
-        echo "  x $LAST_COMMIT"
-        echo ""
-        log_info "Valid types: $(echo "$COMMIT_TYPES" | tr '|' ', ')"
-        echo ""
-        log_info "Examples:"
-        if is_conventional_commits; then
-            log_info "  feat(cluster-ecs): add new ECS config"
-            log_info "  fix(alb): correct listener rules"
-            log_info "  minor(service-ecs): release notifications module"
-            log_info "  feat: add general feature (no scope)"
-        elif has_ticket_prefixes; then
-            log_info "  ${EXAMPLE_PREFIX}-1234 - feat: add new feature"
-            log_info "  ${EXAMPLE_PREFIX}-1234 - fix: resolve bug"
-            log_info "  ${EXAMPLE_PREFIX}-1234 - minor: release new features"
-            log_info "  ${EXAMPLE_PREFIX}-1234 - major: breaking changes"
-        else
-            log_info "  feat: add new feature"
-            log_info "  fix: resolve bug"
-            log_info "  minor: release new features"
+
+        if ! echo "$LAST_COMMIT" | grep -qE "$TICKET_FULL_PATTERN"; then
+            log_section "ERROR: LAST COMMIT NOT WELL-FORMED"
+            echo ""
+
+            if is_conventional_commits; then
+                log_info "The LAST commit must follow Conventional Commits format:"
+                log_info "  <type>(scope): <message>  or  <type>: <message>"
+            elif has_ticket_prefixes; then
+                log_info "The LAST commit must follow format:"
+                log_info "  ${EXAMPLE_PREFIX}-XXXX - <type>: <message>"
+            else
+                log_info "The LAST commit must include a commit type:"
+                log_info "  <type>: <message>"
+            fi
+            echo ""
+            log_info "Last commit:"
+            echo "  x $LAST_COMMIT"
+            echo ""
+            log_info "Valid types: $(echo "$COMMIT_TYPES" | tr '|' ', ')"
+            echo ""
+            log_info "Examples:"
+            if is_conventional_commits; then
+                log_info "  feat(cluster-ecs): add new ECS config"
+                log_info "  fix(alb): correct listener rules"
+                log_info "  minor(service-ecs): release notifications module"
+                log_info "  feat: add general feature (no scope)"
+            elif has_ticket_prefixes; then
+                log_info "  ${EXAMPLE_PREFIX}-1234 - feat: add new feature"
+                log_info "  ${EXAMPLE_PREFIX}-1234 - fix: resolve bug"
+                log_info "  ${EXAMPLE_PREFIX}-1234 - minor: release new features"
+                log_info "  ${EXAMPLE_PREFIX}-1234 - major: breaking changes"
+            else
+                log_info "  feat: add new feature"
+                log_info "  fix: resolve bug"
+                log_info "  minor: release new features"
+            fi
+            echo ""
+            exit 1
         fi
-        echo ""
-        exit 1
     fi
 fi
 
@@ -155,4 +205,8 @@ echo ""
 if require_ticket_prefix; then
     log_success "+ All commits have valid ticket prefix"
 fi
-log_success "+ Last commit is well-formed"
+if require_commit_types_for_all; then
+    log_success "+ All commits are well-formed"
+else
+    log_success "+ Last commit is well-formed"
+fi

@@ -1,0 +1,8 @@
+commits:
+  format: "conventional"
+
+changelog:
+  mode: "full"
+
+validation:
+  require_commit_types: false
