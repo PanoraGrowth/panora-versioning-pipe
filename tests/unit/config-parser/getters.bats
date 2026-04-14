@@ -276,12 +276,6 @@ teardown() { common_teardown; }
     assert_equals "Changelog" "$output"
 }
 
-@test "get_changelog_format: default is minimal" {
-    source_config_parser "minimal"
-    run get_changelog_format
-    assert_equals "minimal" "$output"
-}
-
 @test "use_changelog_emojis: true for conventional-full" {
     source_config_parser "conventional-full"
     run use_changelog_emojis

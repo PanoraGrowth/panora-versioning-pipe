@@ -254,10 +254,6 @@ get_changelog_title() {
     config_get "changelog.title" "Changelog"
 }
 
-get_changelog_format() {
-    config_get "changelog.format" "minimal"
-}
-
 use_changelog_emojis() {
     local use
     use=$(config_get "changelog.use_emojis" "false")

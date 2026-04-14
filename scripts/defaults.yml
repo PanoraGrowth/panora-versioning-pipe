@@ -164,7 +164,6 @@ commit_types:
 changelog:
   file: "CHANGELOG.md"
   title: "Changelog"
-  format: "minimal"
   mode: "last_commit"           # "last_commit" (only last commit) or "full" (all commits since last tag)
   use_emojis: false
   include_commit_link: true
