@@ -16,7 +16,9 @@ LOCKFILE="/tmp/.versioning-merged.lock"
 setup() { common_setup; }
 teardown() { common_teardown; }
 
-# Helper: run detect-scenario.sh with given branches, serialized via flock
+# Helper: run detect-scenario.sh with given branches, serialized via flock.
+# Emits the script stdout AND the final scenario.env content — both captured
+# inside the lock so parallel jobs cannot race on /tmp/scenario.env.
 run_detect() {
     local fixture="$1"
     local source_branch="$2"
@@ -27,19 +29,23 @@ run_detect() {
 
     cd "${BATS_TEST_TMPDIR}/repo" || return 1
 
-    # flock serializes access to /tmp/.versioning-merged.yml across parallel jobs
+    # flock serializes access to /tmp/.versioning-merged.yml and /tmp/scenario.env
+    # across parallel jobs. scenario.env is read INSIDE the lock to prevent another
+    # job overwriting it between the script finishing and our read.
     run flock "$LOCKFILE" sh -c "
         VERSIONING_BRANCH='$source_branch' \
         VERSIONING_TARGET_BRANCH='$target_branch' \
-        sh '${PIPE_DIR}/detection/detect-scenario.sh'
+        sh '${PIPE_DIR}/detection/detect-scenario.sh' ; \
+        echo SCENARIO_ENV=\$(grep '^SCENARIO=' /tmp/scenario.env 2>/dev/null | head -1)
     "
 }
 
-# Helper: assert scenario.env contains expected scenario (inline, no separate run)
+# Helper: assert that run_detect captured the expected scenario in its output.
+# Uses $output (captured inside the flock) instead of reading /tmp/scenario.env
+# directly — which would be a race under --jobs N.
 assert_scenario() {
     local expected="$1"
-    [ -f /tmp/scenario.env ]
-    grep -q "SCENARIO=${expected}" /tmp/scenario.env
+    echo "$output" | grep -q "SCENARIO_ENV=SCENARIO=${expected}"
 }
 
 # --- Minimal fixture (default branches: development, pre-production, main) ---

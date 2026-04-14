@@ -36,10 +36,9 @@ run_root_generator() {
     git add artifact.txt .versioning.yml >/dev/null
     git commit -q -m "feat: hotfix header marker probe"
 
-    echo "SCENARIO=${scenario}" > /tmp/scenario.env
-    echo "v0.5.9" > /tmp/next_version.txt
-
     run flock "$LOCKFILE" sh -c "
+        echo 'SCENARIO=${scenario}' > /tmp/scenario.env ; \
+        echo 'v0.5.9' > /tmp/next_version.txt ; \
         cd '${BATS_TEST_TMPDIR}/repo' && \
         sh '${PIPE_DIR}/changelog/generate-changelog-last-commit.sh' >/dev/null 2>&1 ; \
         head -20 CHANGELOG.md 2>/dev/null || true
@@ -98,10 +97,9 @@ EOF
     git add backend/ .versioning.yml >/dev/null
     git commit -q -m "feat(backend): hotfix marker test"
 
-    echo "SCENARIO=hotfix" > /tmp/scenario.env
-    echo "v0.5.9" > /tmp/next_version.txt
-
     run flock "$LOCKFILE" sh -c "
+        echo 'SCENARIO=hotfix' > /tmp/scenario.env ; \
+        echo 'v0.5.9' > /tmp/next_version.txt ; \
         cd '${BATS_TEST_TMPDIR}/repo' && \
         sh '${PIPE_DIR}/changelog/generate-changelog-per-folder.sh' >/dev/null 2>&1 ; \
         head -20 backend/CHANGELOG.md 2>/dev/null || true

@@ -25,9 +25,12 @@ teardown() {
 }
 
 # Run write-version-file.sh under flock, cd'ing into the test repo.
-# Usage: run_write_version_file
+# Writes /tmp/next_version.txt INSIDE the lock to prevent races under --jobs N.
+# Usage: run_write_version_file "<version>"
 run_write_version_file() {
+    local version="$1"
     run flock "$LOCKFILE" sh -c "
+        echo '${version}' > /tmp/next_version.txt ; \
         cd '${BATS_TEST_TMPDIR}/repo' && \
         sh '${PIPE_DIR}/versioning/write-version-file.sh' 2>&1
     "
@@ -67,9 +70,8 @@ version_file:
   key: "version"
 '
     echo '{"name": "test-pkg", "version": "0.0.0"}' > "${BATS_TEST_TMPDIR}/repo/package.json"
-    echo "v0.1.0" > /tmp/next_version.txt
 
-    run_write_version_file
+    run_write_version_file "v0.1.0"
     [ "$status" -eq 0 ]
 
     actual=$(read_json_key "${BATS_TEST_TMPDIR}/repo/package.json" "version")
@@ -93,9 +95,8 @@ version_file:
   key: "version"
 '
     echo '{"name": "test-pkg", "version": "0.0.0"}' > "${BATS_TEST_TMPDIR}/repo/package.json"
-    echo "v0.1.0.1" > /tmp/next_version.txt
 
-    run_write_version_file
+    run_write_version_file "v0.1.0.1"
     [ "$status" -eq 0 ]
 
     actual=$(read_json_key "${BATS_TEST_TMPDIR}/repo/package.json" "version")
@@ -118,9 +119,8 @@ version_file:
   key: "version"
 '
     echo '{"name": "test-pkg", "version": "0.0.0"}' > "${BATS_TEST_TMPDIR}/repo/package.json"
-    echo "0.1.0" > /tmp/next_version.txt
 
-    run_write_version_file
+    run_write_version_file "0.1.0"
     [ "$status" -eq 0 ]
 
     actual=$(read_json_key "${BATS_TEST_TMPDIR}/repo/package.json" "version")
@@ -143,9 +143,8 @@ version_file:
   key: "metadata.version"
 '
     echo '{"metadata": {"version": "0.0.0"}}' > "${BATS_TEST_TMPDIR}/repo/pkg.json"
-    echo "v2.3.0" > /tmp/next_version.txt
 
-    run_write_version_file
+    run_write_version_file "v2.3.0"
     [ "$status" -eq 0 ]
 
     actual=$(read_json_key "${BATS_TEST_TMPDIR}/repo/pkg.json" "metadata.version")
@@ -172,9 +171,8 @@ version_file:
   key: "version"
 '
     echo "version: \"0.0.0\"" > "${BATS_TEST_TMPDIR}/repo/version.yaml"
-    echo "v0.1.0" > /tmp/next_version.txt
 
-    run_write_version_file
+    run_write_version_file "v0.1.0"
     [ "$status" -eq 0 ]
 
     actual=$(read_yaml_key "${BATS_TEST_TMPDIR}/repo/version.yaml" "version")
@@ -197,9 +195,8 @@ version_file:
   key: "version"
 '
     echo "version: \"0.0.0\"" > "${BATS_TEST_TMPDIR}/repo/version.yaml"
-    echo "0.1.0" > /tmp/next_version.txt
 
-    run_write_version_file
+    run_write_version_file "0.1.0"
     [ "$status" -eq 0 ]
 
     actual=$(read_yaml_key "${BATS_TEST_TMPDIR}/repo/version.yaml" "version")
@@ -229,9 +226,8 @@ version_file:
 '
     mkdir -p "${BATS_TEST_TMPDIR}/repo/src"
     echo 'export const VERSION = "__VERSION__";' > "${BATS_TEST_TMPDIR}/repo/src/version.ts"
-    echo "v0.1.0" > /tmp/next_version.txt
 
-    run_write_version_file
+    run_write_version_file "v0.1.0"
     [ "$status" -eq 0 ]
 
     grep -q 'VERSION = "v0.1.0"' "${BATS_TEST_TMPDIR}/repo/src/version.ts"
@@ -257,9 +253,8 @@ version_file:
   key: "version"
 '
     echo '{"version": "0.0.0"}' > "${BATS_TEST_TMPDIR}/repo/package.json"
-    echo "v0.1.0" > /tmp/next_version.txt
 
-    run_write_version_file
+    run_write_version_file "v0.1.0"
     [ "$status" -eq 0 ]
 
     # File must remain untouched
@@ -283,8 +278,12 @@ version_file:
   key: "version"
 '
     echo '{"version": "0.0.0"}' > "${BATS_TEST_TMPDIR}/repo/package.json"
-    rm -f /tmp/next_version.txt
 
-    run_write_version_file
+    # Don't pass a version — helper skips the write, script must fail on missing file
+    run flock "$LOCKFILE" sh -c "
+        rm -f /tmp/next_version.txt ; \
+        cd '${BATS_TEST_TMPDIR}/repo' && \
+        sh '${PIPE_DIR}/versioning/write-version-file.sh' 2>&1
+    "
     [ "$status" -ne 0 ]
 }
