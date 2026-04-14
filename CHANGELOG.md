@@ -258,3 +258,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: 0c2ddcd](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/0c2ddcdd201c78de405a0eb18c4156ca454f7754)
 
 
+## v0.11.1 - 2026-04-14
+
+- 🐛 fix(tests): move /tmp writes inside flock to prevent race conditions (#58)
+  - _Agustín Manessi_
+  - [Commit: fca712f](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/fca712f5992aac7ec8ffa1c0d03c6e000d0b65f1)
+
+
