@@ -56,4 +56,9 @@ test-integration-filter: ## Run specific integration scenario: make test-integra
 test-integration-bitbucket-filter: ## Run specific Bitbucket scenario: make test-integration-bitbucket-filter S=feat-major-bump
 	cd tests/integration && pip install -q -r requirements.txt && pytest -v test_bitbucket.py -x -k "$(S)"
 
+build-preview-image: ## Build and push a preview image to GHCR: make build-preview-image TAG=pr-N
+	@test -n "$(TAG)" || { echo "Usage: make build-preview-image TAG=pr-N"; exit 1; }
+	docker build -t ghcr.io/panoragrowth/panora-versioning-pipe:$(TAG) .
+	docker push ghcr.io/panoragrowth/panora-versioning-pipe:$(TAG)
+
 .DEFAULT_GOAL := help
