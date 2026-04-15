@@ -272,3 +272,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: d281623](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/d2816232424924cccd32ac7b6d3c835c332e7f1a)
 
 
+## v0.12 - 2026-04-15
+
+- 🔨 refactor(config): rename period → epoch + SemVer-aligned bump mapping
+  - _Agustín Manessi_
+  - [Commit: ef4d21b](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/ef4d21b31e467eea6420775331109e599ce4373e)
+
+
