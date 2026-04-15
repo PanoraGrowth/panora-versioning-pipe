@@ -50,10 +50,10 @@ test-integration-bitbucket: ## Run integration tests — Bitbucket (requires BB_
 test-integration-all: ## Run integration tests on both platforms
 	cd tests/integration && pip install -q -r requirements.txt && pytest -v test_github.py test_bitbucket.py -x
 
-test-integration-filter: ## Run specific integration scenario: make test-integration-filter S=feat-major-bump
+test-integration-filter: ## Run specific integration scenario: make test-integration-filter S=feat-minor-bump
 	cd tests/integration && pip install -q -r requirements.txt && pytest -v test_github.py -k "$(S)"
 
-test-integration-bitbucket-filter: ## Run specific Bitbucket scenario: make test-integration-bitbucket-filter S=feat-major-bump
+test-integration-bitbucket-filter: ## Run specific Bitbucket scenario: make test-integration-bitbucket-filter S=feat-minor-bump
 	cd tests/integration && pip install -q -r requirements.txt && pytest -v test_bitbucket.py -x -k "$(S)"
 
 build-preview-image: ## Build and push a preview image to GHCR: make build-preview-image TAG=pr-N

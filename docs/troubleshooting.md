@@ -12,7 +12,7 @@ Tooling frustration is real. Most of the issues below are one-line fixes once yo
 
 **Cause.** The last commit in the PR (or the commit on the feature branch that triggered the run) does not match the configured `commits.format`. The default format is `ticket` (`PROJ-123 - feat: message`); if you copied [`examples/configs/versioning-conventional.yml`](../examples/configs/versioning-conventional.yml), it is `conventional` (`feat(scope): message`).
 
-**Fix.** Rewrite the commit subject to match the configured format. For conventional commits, use `type(scope): description` where `type` is one of the values in [`scripts/defaults.yml`](../scripts/defaults.yml) (`feat`, `fix`, `refactor`, `perf`, `docs`, `test`, `chore`, `build`, `ci`, `revert`, `style`, `major`, `minor`, `hotfix`, `security`, `breaking`). The scope in parentheses is optional.
+**Fix.** Rewrite the commit subject to match the configured format. For conventional commits, use `type(scope): description` where `type` is one of the values in [`scripts/defaults.yml`](../scripts/defaults.yml) (`feat`, `fix`, `refactor`, `perf`, `docs`, `test`, `chore`, `build`, `ci`, `revert`, `style`, `hotfix`, `security`, `breaking`). The scope in parentheses is optional.
 
 Then force-push the amended commit:
 
@@ -155,9 +155,9 @@ Also remember: per-folder routing **requires `commits.format: "conventional"`**.
 
 ---
 
-## Multi-commit PR produced a MINOR bump but I expected MAJOR
+## Multi-commit PR produced an unexpected bump level
 
-**Cause.** The pipe uses **last-commit-wins** bump semantics, not highest-wins. If your merged PR has three commits — `feat: A`, `feat: B`, `fix: C` — the bump is **minor** because the last commit is a `fix:`. The earlier `feat:` commits are ignored for bump resolution (they may still appear in the CHANGELOG if `changelog.mode: "full"`, but they do not influence the version bump).
+**Cause.** The pipe uses **last-commit-wins** bump semantics, not highest-wins. If your merged PR has three commits — `feat: A`, `feat: B`, `fix: C` — the bump is **patch** because the last commit is a `fix:`. The earlier `feat:` commits are ignored for bump resolution (they may still appear in the CHANGELOG if `changelog.mode: "full"`, but they do not influence the version bump).
 
 This is documented in [`docs/architecture/README.md`](architecture/README.md#version-system) under "Version system" and in the `README.md` "Bump rules" table.
 
@@ -176,7 +176,7 @@ This is documented in [`docs/architecture/README.md`](architecture/README.md#ver
 **Fix.**
 
 1. Verify the key is spelled `commit_type_overrides` (plural, with underscores). Not `commit_types_override`, not `commitTypeOverrides`.
-2. Verify each overridden type name matches exactly a `name:` field in `scripts/defaults.yml`'s `commit_types` array. The built-in types are: `major`, `minor`, `feat`, `feature`, `fix`, `hotfix`, `security`, `breaking`, `refactor`, `perf`, `docs`, `test`, `chore`, `build`, `ci`, `revert`, `style`.
+2. Verify each overridden type name matches exactly a `name:` field in `scripts/defaults.yml`'s `commit_types` array. The built-in types are: `breaking`, `feat`, `feature`, `fix`, `hotfix`, `security`, `revert`, `perf`, `refactor`, `docs`, `test`, `chore`, `build`, `ci`, `style`.
 3. If you want to override `docs` to not trigger a bump:
 
    ```yaml

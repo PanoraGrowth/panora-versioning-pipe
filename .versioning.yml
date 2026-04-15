@@ -10,7 +10,7 @@ tickets:
 version:
   tag_prefix_v: true
   components:
-    period:
+    epoch:
       enabled: true
       initial: 0
     major:

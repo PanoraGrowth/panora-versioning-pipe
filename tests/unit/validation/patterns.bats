@@ -106,18 +106,21 @@ teardown() { common_teardown; }
 # build_bump_pattern — major
 # =============================================================================
 
-@test "bump_pattern major (minimal): matches 'feat: new feature'" {
+@test "bump_pattern major (minimal): matches 'breaking: drop API'" {
+    # SemVer-aligned: only breaking maps to major
     source_config_parser "minimal"
     local pattern
     pattern=$(build_bump_pattern "major")
-    echo "feat: new feature" | grep -Eq "$pattern"
+    echo "breaking: drop API" | grep -Eq "$pattern"
 }
 
-@test "bump_pattern major (minimal): matches 'major: breaking change'" {
+@test "bump_pattern major (minimal): rejects 'feat: new feature'" {
+    # feat moved to minor — must NOT match major pattern
     source_config_parser "minimal"
     local pattern
     pattern=$(build_bump_pattern "major")
-    echo "major: breaking change" | grep -Eq "$pattern"
+    run sh -c "echo 'feat: new feature' | grep -Eq '$pattern'"
+    [ "$status" -ne 0 ]
 }
 
 @test "bump_pattern major (minimal): rejects 'fix: minor bug'" {
@@ -132,61 +135,94 @@ teardown() { common_teardown; }
 # build_bump_pattern — minor
 # =============================================================================
 
-@test "bump_pattern minor (minimal): matches 'fix: bug fix'" {
+@test "bump_pattern minor (minimal): matches 'feat: new feature'" {
+    # feat now maps to minor (SemVer-aligned)
     source_config_parser "minimal"
     local pattern
     pattern=$(build_bump_pattern "minor")
+    echo "feat: new feature" | grep -Eq "$pattern"
+}
+
+@test "bump_pattern minor (minimal): matches 'feature: new thing'" {
+    source_config_parser "minimal"
+    local pattern
+    pattern=$(build_bump_pattern "minor")
+    echo "feature: new thing" | grep -Eq "$pattern"
+}
+
+@test "bump_pattern minor (minimal): rejects 'fix: bug fix'" {
+    # fix moved to patch — must NOT match minor pattern
+    source_config_parser "minimal"
+    local pattern
+    pattern=$(build_bump_pattern "minor")
+    run sh -c "echo 'fix: bug fix' | grep -Eq '$pattern'"
+    [ "$status" -ne 0 ]
+}
+
+# =============================================================================
+# build_bump_pattern — patch
+# =============================================================================
+
+@test "bump_pattern patch (minimal): matches 'fix: bug fix'" {
+    # fix now maps to patch (SemVer-aligned)
+    source_config_parser "minimal"
+    local pattern
+    pattern=$(build_bump_pattern "patch")
     echo "fix: bug fix" | grep -Eq "$pattern"
 }
 
-@test "bump_pattern minor (minimal): matches 'chore: maintenance'" {
+@test "bump_pattern patch (minimal): matches 'security: patch CVE'" {
     source_config_parser "minimal"
     local pattern
-    pattern=$(build_bump_pattern "minor")
-    echo "chore: maintenance" | grep -Eq "$pattern"
-}
-
-@test "bump_pattern minor (minimal): rejects 'feat: new feature'" {
-    source_config_parser "minimal"
-    local pattern
-    pattern=$(build_bump_pattern "minor")
-    run sh -c "echo 'feat: new feature' | grep -Eq '$pattern'"
-    [ "$status" -ne 0 ]
+    pattern=$(build_bump_pattern "patch")
+    echo "security: patch CVE" | grep -Eq "$pattern"
 }
 
 # =============================================================================
 # build_bump_pattern — conventional with scope
 # =============================================================================
 
-@test "bump_pattern major (conventional): matches 'feat(api): new endpoint'" {
+@test "bump_pattern major (conventional): matches 'breaking(api): drop endpoint'" {
+    # SemVer-aligned: only breaking maps to major
     source_config_parser "conventional-full"
     local pattern
     pattern=$(build_bump_pattern "major")
-    echo "feat(api): new endpoint" | grep -Eq "$pattern"
+    echo "breaking(api): drop endpoint" | grep -Eq "$pattern"
 }
 
-@test "bump_pattern minor (conventional): matches 'refactor(core): cleanup'" {
+@test "bump_pattern minor (conventional): matches 'feat(api): new endpoint'" {
+    # feat now maps to minor
     source_config_parser "conventional-full"
     local pattern
     pattern=$(build_bump_pattern "minor")
-    echo "refactor(core): cleanup" | grep -Eq "$pattern"
+    echo "feat(api): new endpoint" | grep -Eq "$pattern"
 }
 
 # =============================================================================
 # build_bump_pattern — ticket-based with prefixes
 # =============================================================================
 
-@test "bump_pattern major (ticket-based): matches 'AM-42 - feat: add login'" {
+@test "bump_pattern major (ticket-based): matches 'AM-42 - breaking: drop API'" {
+    # SemVer-aligned: only breaking maps to major
     source_config_parser "ticket-based"
     local pattern
     pattern=$(build_bump_pattern "major")
-    echo "AM-42 - feat: add login" | grep -Eq "$pattern"
+    echo "AM-42 - breaking: drop API" | grep -Eq "$pattern"
 }
 
-@test "bump_pattern minor (ticket-based): matches 'TECH-7 - fix: patch'" {
+@test "bump_pattern minor (ticket-based): matches 'TECH-7 - feat: add login'" {
+    # feat now maps to minor
     source_config_parser "ticket-based"
     local pattern
     pattern=$(build_bump_pattern "minor")
+    echo "TECH-7 - feat: add login" | grep -Eq "$pattern"
+}
+
+@test "bump_pattern patch (ticket-based): matches 'TECH-7 - fix: patch'" {
+    # fix now maps to patch
+    source_config_parser "ticket-based"
+    local pattern
+    pattern=$(build_bump_pattern "patch")
     echo "TECH-7 - fix: patch" | grep -Eq "$pattern"
 }
 

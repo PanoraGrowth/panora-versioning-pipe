@@ -27,7 +27,7 @@ validation:
 
 version:
   components:
-    period:
+    epoch:
       enabled: false
       initial: 0
     major:
@@ -59,112 +59,99 @@ version:
     suffix: ""
 
 commit_types:
-  - name: "major"
-    description: "Breaking changes"
-    bump: "major"
-    emoji: "💥"
-    changelog_group: "Breaking Changes"
-
-  - name: "minor"
-    description: "Minor release"
-    bump: "minor"
-    emoji: "📦"
-    changelog_group: "Release"
-
-  - name: "feat"
-    description: "New feature"
-    bump: "major"
-    emoji: "🚀"
-    changelog_group: "Features"
-
-  - name: "feature"
-    description: "New feature (alias for feat)"
-    bump: "major"
-    emoji: "🚀"
-    changelog_group: "Features"
-
-  - name: "fix"
-    description: "Bug fix"
-    bump: "minor"
-    emoji: "🐛"
-    changelog_group: "Bug Fixes"
-
-  - name: "hotfix"
-    description: "Urgent fix"
-    bump: "minor"
-    emoji: "🚑"
-    changelog_group: "Hotfixes"
-
-  - name: "security"
-    description: "Security fix"
-    bump: "minor"
-    emoji: "🔒"
-    changelog_group: "Security"
-
   - name: "breaking"
     description: "Breaking changes"
     bump: "major"
     emoji: "💥"
     changelog_group: "Breaking Changes"
 
-  - name: "refactor"
-    description: "Code refactoring"
+  - name: "feat"
+    description: "New feature"
     bump: "minor"
-    emoji: "🔨"
-    changelog_group: "Refactoring"
+    emoji: "🚀"
+    changelog_group: "Features"
+
+  - name: "feature"
+    description: "New feature (alias for feat)"
+    bump: "minor"
+    emoji: "🚀"
+    changelog_group: "Features"
+
+  - name: "fix"
+    description: "Bug fix"
+    bump: "patch"
+    emoji: "🐛"
+    changelog_group: "Bug Fixes"
+
+  - name: "hotfix"
+    description: "Urgent fix"
+    bump: "patch"
+    emoji: "🚑"
+    changelog_group: "Hotfixes"
+
+  - name: "security"
+    description: "Security fix"
+    bump: "patch"
+    emoji: "🔒"
+    changelog_group: "Security"
+
+  - name: "revert"
+    description: "Revert changes"
+    bump: "patch"
+    emoji: "⏪"
+    changelog_group: "Reverts"
 
   - name: "perf"
     description: "Performance improvements"
-    bump: "minor"
+    bump: "patch"
     emoji: "⚡"
     changelog_group: "Performance"
 
+  - name: "refactor"
+    description: "Code refactoring"
+    bump: "none"
+    emoji: "🔨"
+    changelog_group: "Refactoring"
+
   - name: "docs"
     description: "Documentation"
-    bump: "minor"
+    bump: "none"
     emoji: "📚"
     changelog_group: "Documentation"
 
   - name: "test"
     description: "Tests"
-    bump: "minor"
+    bump: "none"
     emoji: "🧪"
     changelog_group: "Testing"
 
   - name: "chore"
     description: "Maintenance"
-    bump: "minor"
+    bump: "none"
     emoji: "🔧"
     changelog_group: "Chores"
 
   - name: "build"
     description: "Build system"
-    bump: "minor"
+    bump: "none"
     emoji: "🏗️"
     changelog_group: "Build"
 
   - name: "ci"
     description: "CI/CD"
-    bump: "minor"
+    bump: "none"
     emoji: "⚙️"
     changelog_group: "CI/CD"
 
-  - name: "revert"
-    description: "Revert changes"
-    bump: "minor"
-    emoji: "⏪"
-    changelog_group: "Reverts"
-
   - name: "style"
     description: "Code style"
-    bump: "minor"
+    bump: "none"
     emoji: "🎨"
     changelog_group: "Style"
 
 changelog:
   file: "CHANGELOG.md"
   title: "Changelog"
-  format: "minimal"
   mode: "last_commit"           # "last_commit" (only last commit) or "full" (all commits since last tag)
   use_emojis: false
   include_commit_link: true

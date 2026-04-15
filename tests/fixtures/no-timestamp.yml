@@ -1,10 +1,10 @@
-# Period + major + minor, no timestamp
+# Epoch + major + minor, no timestamp
 commits:
   format: "conventional"
 
 version:
   components:
-    period:
+    epoch:
       enabled: true
       initial: 0
     major:

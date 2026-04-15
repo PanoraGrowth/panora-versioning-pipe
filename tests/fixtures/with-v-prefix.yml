@@ -5,7 +5,7 @@ commits:
 version:
   tag_prefix_v: true
   components:
-    period:
+    epoch:
       enabled: false
     major:
       enabled: true
