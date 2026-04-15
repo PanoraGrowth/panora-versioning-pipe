@@ -1,0 +1,20 @@
+# hotfix_counter component explicitly DISABLED — used by tests that verify the opt-out
+# behavior introduced in v0.6.3 (defaults.yml now has hotfix_counter.enabled: true).
+#
+# With hotfix_counter.enabled: false, a hotfix commit becomes a no-op: the pipe detects
+# the signal, emits a 3-line INFO log, and creates no tag.
+commits:
+  format: "conventional"
+
+version:
+  components:
+    major:
+      enabled: true
+      initial: 0
+    patch:
+      enabled: true
+      initial: 0
+    hotfix_counter:
+      enabled: false
+    timestamp:
+      enabled: false

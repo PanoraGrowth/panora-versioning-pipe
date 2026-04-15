@@ -163,12 +163,12 @@ version:
     major:
       enabled: true    # Second component — bumped by commit types with bump: "major"
       initial: 0
-    minor:
-      enabled: true    # Third component — bumped by commit types with bump: "minor"
-      initial: 0
     patch:
+      enabled: true    # Third component — bumped by commit types with bump: "minor" or "patch"
+      initial: 0
+    hotfix_counter:
       enabled: true    # 4th component used by the hotfix flow. When enabled (default
-                       # from v0.6.3), hotfix commits bump PATCH instead of MINOR.
+                       # from v0.6.3), hotfix commits bump HOTFIX_COUNTER.
                        # Rendered only when > 0 (v0.5.9 stays v0.5.9 until a hotfix
                        # lands, then becomes v0.5.9.1). Set to false to opt out —
                        # hotfix commits become a no-op with an INFO log. See "Hotfix
@@ -336,9 +336,9 @@ Only the **last commit** in the PR determines the bump. Each commit type has a `
 
 | `bump` value | Effect |
 |--------------|--------|
-| `major` | Increments Major, resets Minor and Patch to 0 |
-| `minor` | Increments Minor, resets Patch to 0 |
-| `patch` | Increments Patch, resets nothing. Also used by the hotfix scenario when `version.components.patch.enabled: true`. |
+| `major` | Increments Major, resets Patch and HotfixCounter to 0 |
+| `minor` | Increments Patch (3rd slot), resets HotfixCounter to 0 |
+| `patch` | Increments Patch (3rd slot), resets HotfixCounter to 0 |
 | `none` | No tag created (commit is still recorded in CHANGELOG) |
 | _unset / not matched_ | Timestamp update only (other components unchanged) — requires `timestamp` component enabled |
 
@@ -355,7 +355,7 @@ The pipe detects a hotfix release by inspecting the merge commit subject. Detect
 - **Strict prefix matching**: `hotfixed: foo`, `pre-hotfix: foo`, `a hotfix: foo` do NOT match. Only `hotfix:` or `hotfix(` at the start of the subject matches.
 - **Custom keyword**: set `hotfix.keyword: "urgent"` (or any other word) to use a team-specific convention.
 
-To disable the hotfix flow entirely, set `version.components.patch.enabled: false`. Hotfix commits will then be treated as a no-op: the pipe emits a 3-line INFO log explaining the opt-out and creates no tag.
+To disable the hotfix flow entirely, set `version.components.hotfix_counter.enabled: false`. Hotfix commits will then be treated as a no-op: the pipe emits a 3-line INFO log explaining the opt-out and creates no tag.
 
 Full walkthrough: [`docs/adoption-guide.md`](docs/adoption-guide.md#step-5--when-and-how-to-use-hotfixes). Architecture deep-dive: [`docs/architecture/README.md`](docs/architecture/README.md#hotfix-flow).
 

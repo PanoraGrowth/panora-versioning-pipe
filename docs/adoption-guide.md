@@ -157,9 +157,9 @@ After the first merge to `main` completes, verify:
 
 ## Step 5 — When and how to use hotfixes
 
-Hotfixes are a dedicated release lane for urgent production fixes. They bump a separate PATCH component (not MINOR), so a hotfix released on top of `v0.5.9` becomes `v0.5.9.1` instead of `v0.5.10`. This keeps the next planned minor release on its own version number and makes rollback trivial.
+Hotfixes are a dedicated release lane for urgent production fixes. They bump the HOTFIX_COUNTER component (the optional 4th slot), so a hotfix released on top of `v0.5.9` becomes `v0.5.9.1` instead of `v0.5.10`. This keeps the next planned release on its own version number and makes rollback trivial.
 
-**Default behavior (v0.6.3+)**: the hotfix flow is ON by default. You don't need to enable anything — just follow the commit convention below. To opt out (if your repo uses a 3-component version scheme), set `version.components.patch.enabled: false` in `.versioning.yml`.
+**Default behavior (v0.6.3+)**: the hotfix flow is ON by default. You don't need to enable anything — just follow the commit convention below. To opt out (if your repo uses a 3-component version scheme), set `version.components.hotfix_counter.enabled: false` in `.versioning.yml`.
 
 **Detection is platform-agnostic**: pure git, no APIs. Works identically on GitHub Actions, Bitbucket Pipelines, GitLab CI, or any git host.
 
@@ -220,7 +220,7 @@ If your repo doesn't need a 4th version component, opt out explicitly:
 ```yaml
 version:
   components:
-    patch:
+    hotfix_counter:
       enabled: false
 ```
 

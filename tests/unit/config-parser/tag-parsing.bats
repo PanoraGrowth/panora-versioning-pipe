@@ -48,20 +48,20 @@ teardown() { common_teardown; }
 # parse_version_components
 # =============================================================================
 
-@test "parse_version_components: epoch.major.minor" {
+@test "parse_version_components: epoch.major.patch" {
     source_config_parser "no-timestamp"
     parse_version_components "2.5.8"
     assert_equals "2" "$PARSED_EPOCH"
     assert_equals "5" "$PARSED_MAJOR"
-    assert_equals "8" "$PARSED_MINOR"
+    assert_equals "8" "$PARSED_PATCH"
 }
 
-@test "parse_version_components: major.minor only (epoch disabled)" {
+@test "parse_version_components: major.patch only (epoch disabled)" {
     source_config_parser "with-v-prefix"
     parse_version_components "3.7"
     assert_equals "0" "$PARSED_EPOCH" "epoch should default to 0 when disabled"
     assert_equals "3" "$PARSED_MAJOR"
-    assert_equals "7" "$PARSED_MINOR"
+    assert_equals "7" "$PARSED_PATCH"
 }
 
 @test "parse_version_components: all zeros" {
@@ -69,7 +69,7 @@ teardown() { common_teardown; }
     parse_version_components "0.0.0"
     assert_equals "0" "$PARSED_EPOCH"
     assert_equals "0" "$PARSED_MAJOR"
-    assert_equals "0" "$PARSED_MINOR"
+    assert_equals "0" "$PARSED_PATCH"
 }
 
 @test "parse_version_components: large numbers" {
@@ -77,7 +77,7 @@ teardown() { common_teardown; }
     parse_version_components "10.200.3000"
     assert_equals "10" "$PARSED_EPOCH"
     assert_equals "200" "$PARSED_MAJOR"
-    assert_equals "3000" "$PARSED_MINOR"
+    assert_equals "3000" "$PARSED_PATCH"
 }
 
 # =============================================================================

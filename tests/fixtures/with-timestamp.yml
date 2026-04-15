@@ -1,4 +1,4 @@
-# All 4 version components enabled including timestamp
+# Epoch + major + patch + timestamp all enabled
 commits:
   format: "conventional"
 
@@ -10,7 +10,7 @@ version:
     major:
       enabled: true
       initial: 0
-    minor:
+    patch:
       enabled: true
       initial: 0
     timestamp:

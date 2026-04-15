@@ -54,7 +54,7 @@
 # Opting out of hotfix
 # ----------------------------------------------------------------------
 #
-# To disable the hotfix flow entirely, set version.components.patch.enabled
+# To disable the hotfix flow entirely, set version.components.hotfix_counter.enabled
 # to false. Hotfix commits will then be treated as a no-op: the pipe detects
 # the signal, logs an INFO message explaining it is skipping, and creates no
 # tag. The opt-out is deliberate — the consumer is telling the pipe "I don't
@@ -74,12 +74,12 @@ version:
     major:
       enabled: true
       initial: 1
-    minor:
+    patch:
       enabled: true
       initial: 0
-    # patch.enabled defaults to true as of v0.6.3 — shown explicitly here
+    # hotfix_counter.enabled defaults to true as of v0.6.3 — shown explicitly here
     # for clarity. Set to false to opt out of the hotfix flow entirely.
-    patch:
+    hotfix_counter:
       enabled: true
       initial: 0
     timestamp:

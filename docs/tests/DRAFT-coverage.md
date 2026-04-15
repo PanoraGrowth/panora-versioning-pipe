@@ -156,28 +156,28 @@ Controla qué componentes forman el número de versión y sus valores iniciales.
 
 | Key | Type / Values | Comportamiento probado | Cobertura |
 |-----|---------------|------------------------|-----------|
-| `major.enabled` | `true` · `false` · default `true` | `true` → incluido en el tag · bump major → incrementa, resetea minor y patch a 0 | ✅ |
+| `major.enabled` | `true` · `false` · default `true` | `true` → incluido en el tag · bump major → incrementa, resetea patch y hotfix_counter a 0 | ✅ |
 | `major.initial` | `integer` · default `0` | Valor de inicio al crear el primer tag | ✅ |
 
 ---
 
-**`version.components.minor`** — [→ L36](../../scripts/defaults.yml#L36)
+**`version.components.patch`** — [→ L36](../../scripts/defaults.yml#L36)
 
 | Key | Type / Values | Comportamiento probado | Cobertura |
 |-----|---------------|------------------------|-----------|
-| `minor.enabled` | `true` · `false` · default `true` | `true` → incluido en el tag · bump minor → incrementa, resetea patch a 0 | ✅ |
-| `minor.initial` | `integer` · default `0` | Valor de inicio al crear el primer tag | ✅ |
+| `patch.enabled` | `true` · `false` · default `true` | `true` → incluido en el tag · bump patch → incrementa, resetea hotfix_counter a 0 | ✅ |
+| `patch.initial` | `integer` · default `0` | Valor de inicio al crear el primer tag | ✅ |
 
 ---
 
-**`version.components.patch`** — [→ L46](../../scripts/defaults.yml#L46)
+**`version.components.hotfix_counter`** — [→ L46](../../scripts/defaults.yml#L46)
 
-Componente especial del flujo hotfix (v0.6.3+). Cuando está habilitado, un commit de tipo `hotfix` incrementa este componente en lugar de major/minor. El tag se renderiza como `v0.5.9.1` — el `.0` se omite por backward compatibility.
+Componente especial del flujo hotfix (v0.6.3+). Cuando está habilitado, un commit de tipo `hotfix` incrementa este componente. El tag se renderiza como `v0.5.9.1` — el `.0` se omite por backward compatibility.
 
 | Key | Type / Values | Comportamiento probado | Cobertura |
 |-----|---------------|------------------------|-----------|
-| `patch.enabled` | `true` · `false` · default `true` | `true` → hotfix bumps patch (`0.5.9` → `0.5.9.1`) · `false` → hotfix es no-op (sin tag, log info) | ✅ ambos |
-| `patch.initial` | `integer` · default `0` | Valor de inicio · reset a 0 cuando se bumpa major o minor | ✅ |
+| `hotfix_counter.enabled` | `true` · `false` · default `true` | `true` → hotfix bumps hotfix_counter (`0.5.9` → `0.5.9.1`) · `false` → hotfix es no-op (sin tag, log info) | ✅ ambos |
+| `hotfix_counter.initial` | `integer` · default `0` | Valor de inicio · reset a 0 cuando se bumpa major o patch | ✅ |
 
 ---
 

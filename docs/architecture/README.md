@@ -140,26 +140,26 @@ The pipe supports hotfixes via a single unified scenario and a default-on PATCH 
 
 ### Bump rules
 
-| Scenario | `patch.enabled` | Bump | Tag | CHANGELOG | `(Hotfix)` marker |
+| Scenario | `hotfix_counter.enabled` | Bump | Tag | CHANGELOG | `(Hotfix)` marker |
 |---|---|---|---|---|---|
-| `development_release` | any | last-commit-wins (major/minor/none) | yes | yes | no |
-| `hotfix` | `true` (default) | patch (increments by 1) | yes | yes | yes |
+| `development_release` | any | last-commit-wins (major/patch/none) | yes | yes | no |
+| `hotfix` | `true` (default) | hotfix_counter (increments by 1) | yes | yes | yes |
 | `hotfix` | `false` (opt-out) | **no bump** | **no tag** | **no changelog** | n/a |
 
-When a hotfix is detected but the consumer has opted out of patch (`patch.enabled: false`), the pipe emits a 3-line INFO log:
+When a hotfix is detected but the consumer has opted out of hotfix_counter (`hotfix_counter.enabled: false`), the pipe emits a 3-line INFO log:
 
 ```
-INFO: Hotfix commit detected ("hotfix: fix button") but version.components.patch.enabled is false.
-INFO: Skipping tag creation (consumer opted out of patch component).
-INFO: To enable hotfix tags, set version.components.patch.enabled: true in your .versioning.yml.
+INFO: Hotfix commit detected ("hotfix: fix button") but version.components.hotfix_counter.enabled is false.
+INFO: Skipping tag creation (consumer opted out of hotfix_counter component).
+INFO: To enable hotfix tags, set version.components.hotfix_counter.enabled: true in your .versioning.yml.
 ```
 
 ### Tag semantics (with `tag_prefix_v: true`)
 
-- `v0.5.9` — patch=0, component omitted (backward-compat rendering)
+- `v0.5.9` — hotfix_counter=0, component omitted (backward-compat rendering)
 - `v0.5.9.1` — first hotfix on top of `v0.5.9`
 - `v0.5.9.2` — second hotfix on top of `v0.5.9.1`
-- `v0.5.10` — next minor release; patch resets to 0 and is omitted again
+- `v0.5.10` — next patch release; hotfix_counter resets to 0 and is omitted again
 
 ### CHANGELOG marker
 
@@ -179,7 +179,7 @@ Both the root CHANGELOG (`generate-changelog-last-commit.sh`) and per-folder CHA
 ```yaml
 version:
   components:
-    patch:
+    hotfix_counter:
       enabled: true    # default on (v0.6.3+). Set to false to opt out.
       initial: 0
 
@@ -187,7 +187,7 @@ hotfix:
   keyword: "hotfix"    # default. Customize with any single-word keyword.
 ```
 
-To opt out of the hotfix flow entirely, set `patch.enabled: false`. Hotfix commits then become a no-op with an INFO log (see the bump rules table above).
+To opt out of the hotfix flow entirely, set `hotfix_counter.enabled: false`. Hotfix commits then become a no-op with an INFO log (see the bump rules table above).
 
 ---
 

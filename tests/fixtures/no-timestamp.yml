@@ -1,4 +1,4 @@
-# Epoch + major + minor, no timestamp
+# Epoch + major + patch, no timestamp
 commits:
   format: "conventional"
 
@@ -10,7 +10,7 @@ version:
     major:
       enabled: true
       initial: 0
-    minor:
+    patch:
       enabled: true
       initial: 0
     timestamp:
