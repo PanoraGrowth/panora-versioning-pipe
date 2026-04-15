@@ -149,6 +149,17 @@ commit_types:
     emoji: "🎨"
     changelog_group: "Style"
 
+# commit_type_overrides — patch or extend commit_types without redefining the full array.
+# Only specify the fields you want to change. Everything else stays as defined above.
+# Example:
+# commit_type_overrides:
+#   docs:
+#     bump: "none"
+#   infra:
+#     bump: "patch"
+#     emoji: "🔩"
+#     changelog_group: "Infrastructure"
+
 changelog:
   file: "CHANGELOG.md"
   title: "Changelog"
