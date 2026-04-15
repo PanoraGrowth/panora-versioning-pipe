@@ -157,7 +157,7 @@ tickets:
 version:
   tag_prefix_v: false  # When true, tags are prefixed with "v" (e.g. v0.1.0 instead of 0.1.0)
   components:
-    period:
+    epoch:
       enabled: false   # First component — manually bumped integer (e.g. 1 in 1.3.20240115)
       initial: 0
     major:
@@ -191,21 +191,20 @@ The default commit type list is built-in and covers the most common types. You c
 
 | Type | Changelog group | Default bump |
 |------|-----------------|--------------|
-| `major` / `breaking` | Breaking Changes | `major` — increments Major, resets Minor |
-| `feat` / `feature` | Features | `major` |
-| `minor` | Release | `minor` — increments Minor |
-| `fix` | Bug Fixes | `minor` |
-| `hotfix` | Hotfixes | Bumps PATCH when `version.components.patch.enabled: true` (default) AND the merge commit subject starts with `hotfix:` or `hotfix(`. With patch disabled, hotfix commits become a no-op. See "Hotfix flow" below. |
-| `security` | Security | `minor` |
-| `refactor` | Refactoring | `minor` |
-| `perf` | Performance | `minor` |
-| `docs` | Documentation | `minor` |
-| `test` | Testing | `minor` |
-| `chore` | Chores | `minor` |
-| `build` | Build | `minor` |
-| `ci` | CI/CD | `minor` |
-| `revert` | Reverts | `minor` |
-| `style` | Style | `minor` |
+| `breaking` | Breaking Changes | `major` — increments Major, resets Minor |
+| `feat` / `feature` | Features | `minor` — increments Minor |
+| `fix` | Bug Fixes | `patch` |
+| `hotfix` | Hotfixes | `patch` — AND the merge commit subject starts with `hotfix:` or `hotfix(`. With `patch.enabled: false`, hotfix commits become a no-op. See "Hotfix flow" below. |
+| `security` | Security | `patch` |
+| `revert` | Reverts | `patch` |
+| `perf` | Performance | `patch` |
+| `refactor` | Refactoring | `none` |
+| `docs` | Documentation | `none` |
+| `test` | Testing | `none` |
+| `chore` | Chores | `none` |
+| `build` | Build | `none` |
+| `ci` | CI/CD | `none` |
+| `style` | Style | `none` |
 
 Set a type's `bump` to `"none"` to keep a commit type out of version bumps entirely (common choice for `docs`). When only the last commit determines the bump and that commit is bump `none`, no tag is created.
 
@@ -319,8 +318,8 @@ The format depends on which components are enabled via `version.components.*.ena
 | Mode | Format | Example |
 |------|--------|---------|
 | Default (major + minor + timestamp) | `MAJOR.MINOR.TIMESTAMP` | `1.3.20240115143022` |
-| With period enabled | `PERIOD.MAJOR.MINOR.TIMESTAMP` | `0.1.3.20240115143022` |
-| Without timestamp | `PERIOD.MAJOR.MINOR` or `MAJOR.MINOR` | `0.1.0` / `1.3` |
+| With epoch enabled | `EPOCH.MAJOR.MINOR.TIMESTAMP` | `0.1.3.20240115143022` |
+| Without timestamp | `EPOCH.MAJOR.MINOR` or `MAJOR.MINOR` | `0.1.0` / `1.3` |
 | With v prefix | Prepend `v` to any of the above | `v0.1.0` / `v1.3.20240115143022` |
 | With PATCH enabled (hotfix released) | `...MINOR.PATCH[.TIMESTAMP]` | `v0.5.9.1` |
 | With PATCH enabled (no hotfix yet) | `...MINOR` — patch omitted while `= 0` | `v0.5.9` |
@@ -339,11 +338,11 @@ Only the **last commit** in the PR determines the bump. Each commit type has a `
 |--------------|--------|
 | `major` | Increments Major, resets Minor and Patch to 0 |
 | `minor` | Increments Minor, resets Patch to 0 |
-| `patch` | Scenario-driven only — hotfix scenarios bump PATCH when the opt-in component is enabled |
+| `patch` | Increments Patch, resets nothing. Also used by the hotfix scenario when `version.components.patch.enabled: true`. |
 | `none` | No tag created (commit is still recorded in CHANGELOG) |
 | _unset / not matched_ | Timestamp update only (other components unchanged) — requires `timestamp` component enabled |
 
-With the defaults, `feat` / `feature` bump major, and `fix` / `refactor` / `chore` / etc. bump minor. Override individual types via `commit_type_overrides` — a common pattern is `docs: { bump: "none" }` to keep documentation PRs from triggering releases.
+With the defaults, `breaking` bumps major; `feat` / `feature` bump minor; `fix` / `hotfix` / `security` / `revert` / `perf` bump patch; and `refactor` / `docs` / `chore` / etc. produce no bump. Override individual types via `commit_type_overrides` — a common pattern is `docs: { bump: "none" }` to keep documentation PRs from triggering releases.
 
 ### Hotfix flow
 

@@ -77,7 +77,7 @@ commits:
 version:
   tag_prefix_v: true
   components:
-    period:
+    epoch:
       enabled: true
     timestamp:
       enabled: false
@@ -99,16 +99,17 @@ See `scripts/defaults.yml` for all available options with descriptions.
 Versions are built from toggleable components:
 
 ```
-[v]PERIOD.MAJOR.MINOR[.PATCH][.TIMESTAMP][-SUFFIX]
+[v]EPOCH.MAJOR.MINOR[.PATCH][.TIMESTAMP][-SUFFIX]
 ```
 
 | Component | Bump trigger | Default |
 |-----------|-------------|---------|
 | v prefix | `version.tag_prefix_v` | off |
-| Period | Manual / config change | off |
-| Major | Commit types with `bump: "major"` (defaults: `major`, `breaking`, `feat`, `feature`) | on |
-| Minor | Commit types with `bump: "minor"` (defaults: `minor`, `fix`, `hotfix`, `security`, `refactor`, `perf`, `docs`, `test`, `chore`, `build`, `ci`, `revert`, `style`) | on |
-| Patch | Scenario-driven: `hotfix` scenario (from commit subject convention) bumps PATCH regardless of commit type (see "Hotfix flow") | on (v0.6.3+) |
+| Epoch | Manual / config change | off |
+| Major | Commit types with `bump: "major"` (defaults: `breaking`) | on |
+| Minor | Commit types with `bump: "minor"` (defaults: `feat`, `feature`) | on |
+| Patch | Scenario-driven: `hotfix` scenario (from commit subject convention) bumps PATCH regardless of commit type (see "Hotfix flow"). Also: `fix`, `hotfix`, `security`, `revert`, `perf` | on (v0.6.3+) |
+| None | Commit types that produce no version bump (defaults: `refactor`, `docs`, `test`, `chore`, `build`, `ci`, `style`) | — |
 | Timestamp | Auto-generated when no bump match | on |
 
 Only the LAST commit in a PR determines the version bump. Commit types with `bump: "none"` skip tag creation entirely. Use `commit_type_overrides` to retune individual types without redefining the whole list (the pipe itself sets `docs: { bump: none }` in `.versioning.yml`).
@@ -118,7 +119,7 @@ Only the LAST commit in a PR determines the version bump. Commit types with `bum
 The pipe uses **last-commit-wins** semantics: only the most recent commit in the range drives the bump. Older commits in the range are invisible to the bump calculator. This is **intentional** and differs from semantic-release, release-please, and standard-version, which use **highest-bump-wins**.
 
 - **Squash merge** (recommended): there is only one commit in the range, so last-wins and highest-wins are identical. No surprise.
-- **Merge commit / rebase-and-merge**: commits `[feat: big, fix: small]` in that chronological order produce a **minor** bump from `fix:`, silently losing the `feat:`. Consumers using merge commits must either keep the highest-impact commit last, or switch to squash merge.
+- **Merge commit / rebase-and-merge**: commits `[feat: big, fix: small]` in that chronological order produce a **patch** bump from `fix:`, silently losing the `feat:`. Consumers using merge commits must either keep the highest-impact commit last, or switch to squash merge.
 
 **Recommendation for consumers:** configure the watched branch to use **squash merge**. The rule lives at `scripts/versioning/calculate-version.sh:100-107` and is locked by the integration scenario `multi-commit-last-wins` in `tests/integration/test-scenarios.yml` (introduced in PR #38).
 
@@ -330,12 +331,42 @@ Each release publishes three tags. Push order within each registry is always spe
 
 ---
 
+## Migration notes
+
+### v0.11+ — `major` and `minor` commit types removed
+
+The `major` and `minor` commit types were removed from `scripts/defaults.yml` in this version. Consumers using these types will experience a silent behavior change:
+
+- `major:` commits no longer trigger a major bump — they are unrecognized and fall through to timestamp-only behavior.
+- `minor:` commits no longer trigger a minor bump — same fallback.
+
+**Correct mapping going forward:**
+
+| Intent | Use instead |
+|--------|-------------|
+| Major version bump (breaking change) | `breaking:` or `breaking(scope):` — bump: `major` |
+| Minor version bump (new feature) | `feat:` or `feature:` — bump: `minor` |
+
+If you relied on `major:` or `minor:` as commit types in your history or tooling, add them back via `commit_type_overrides` in your `.versioning.yml`:
+
+```yaml
+commit_type_overrides:
+  - type: "major"
+    bump: "major"
+    changelog_section: "Breaking Changes"
+  - type: "minor"
+    bump: "minor"
+    changelog_section: "Release"
+```
+
+---
+
 ## Known limitations
 
 1. **Last commit only for bumps**: only the last commit determines the version bump type. `changelog.mode: "full"` shows all commits in the CHANGELOG, but the bump is still from the last commit only. See "Bump calculation semantics" above for the rationale and the squash-merge recommendation.
 
 2. **config_get_array and spaces**: array values with spaces in config (like regex patterns) will be split incorrectly. Avoid spaces in `ignore_patterns`.
 
-3. **Tag format migration**: changing version format config (period, timestamp, v-prefix) causes old tags to be ignored. The pipe starts from initial values if no tags match the current pattern.
+3. **Tag format migration**: changing version format config (epoch, timestamp, v-prefix) causes old tags to be ignored. The pipe starts from initial values if no tags match the current pattern.
 
 4. **Orphaned hotfix generator (REMOVED in v0.6.3)**: `scripts/changelog/generate-hotfix-changelog.sh` and its test file `tests/unit/changelog/hotfix.bats` were deleted in PR #49 (ticket 031). The unified wire-up (ticket 024) already routed hotfix releases through `generate-changelog-last-commit.sh` with a `(Hotfix)` header marker — the old generator was dead code.

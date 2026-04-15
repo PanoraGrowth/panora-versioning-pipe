@@ -1,5 +1,5 @@
 # Patch component enabled — exercises the hotfix wire-up flow.
-# period + major + minor + patch, v prefix, no timestamp. Matches the tag
+# epoch + major + minor + patch, v prefix, no timestamp. Matches the tag
 # shape of the pipe's own self-versioning (v0.5.9 → v0.5.9.1) so assertions
 # are deterministic and mirror production use.
 commits:
@@ -8,7 +8,7 @@ commits:
 version:
   tag_prefix_v: true
   components:
-    period:
+    epoch:
       enabled: true
       initial: 0
     major:

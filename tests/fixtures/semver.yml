@@ -1,0 +1,22 @@
+# Pure SemVer: v-prefix, epoch disabled, major + minor + patch enabled, no timestamp.
+# Baseline for tests that verify MAJOR.MINOR.PATCH bump semantics
+# against the new SemVer-compatible commit type mapping.
+commits:
+  format: "conventional"
+
+version:
+  tag_prefix_v: true
+  components:
+    epoch:
+      enabled: false
+    major:
+      enabled: true
+      initial: 0
+    minor:
+      enabled: true
+      initial: 0
+    patch:
+      enabled: true
+      initial: 0
+    timestamp:
+      enabled: false

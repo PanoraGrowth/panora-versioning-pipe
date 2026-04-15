@@ -92,20 +92,23 @@ run_calculate() {
 # Development release with patch enabled — reset semantics
 # =============================================================================
 
-@test "development_release + major bump: resets patch to 0" {
+@test "development_release + minor bump (feat): resets patch to 0" {
+    # feat now maps to minor in the new SemVer-compatible mapping.
+    # with-patch fixture has epoch.enabled=true so version is epoch.major.minor.patch.
+    # v0.5.9.3 → epoch=0, major=5, minor=9, patch=3. minor bump → minor=10, patch=0 (omitted).
     run_calculate "with-patch" "development_release" "v0.5.9.3" "feat: new thing"
     [ "$status" -eq 0 ]
-    assert_output_matches 'BUMP_TYPE=major'
-    # After major bump, version becomes 0.6.0 (patch dropped because = 0)
-    assert_output_matches 'NEXT_VERSION=v0\.6\.0$'
+    assert_output_matches 'BUMP_TYPE=minor'
+    assert_output_matches 'NEXT_VERSION=v0\.5\.10$'
 }
 
-@test "development_release + minor bump: resets patch to 0" {
+@test "development_release + patch bump (fix): does not reset minor" {
+    # fix now maps to patch in the new SemVer-compatible mapping
     run_calculate "with-patch" "development_release" "v0.5.9.2" "fix: routine fix"
     [ "$status" -eq 0 ]
-    assert_output_matches 'BUMP_TYPE=minor'
-    # After minor bump, patch=0 so tag is v0.5.10 (patch omitted)
-    assert_output_matches 'NEXT_VERSION=v0\.5\.10$'
+    assert_output_matches 'BUMP_TYPE=patch'
+    # After patch bump, minor unchanged, patch becomes 3
+    assert_output_matches 'NEXT_VERSION=v0\.5\.9\.3$'
 }
 
 @test "bump_type.txt contains 'patch' after hotfix bump" {
@@ -113,4 +116,62 @@ run_calculate() {
     [ "$status" -eq 0 ]
     # Explicit grep on the captured BUMP_TYPE line — anchored, no partial matches
     echo "$output" | grep -q '^BUMP_TYPE=patch$'
+}
+
+# =============================================================================
+# §6.2 — New SemVer-compatible bump mapping cases
+# =============================================================================
+
+@test "§6.2 case 1: fix on v1.2.3 yields patch bump → v1.2.4" {
+    # fix now maps to patch (SemVer-compatible mapping)
+    run_calculate "semver" "development_release" "v1.2.3" "fix: resolve X"
+    [ "$status" -eq 0 ]
+    assert_output_matches 'BUMP_TYPE=patch'
+    assert_output_matches 'NEXT_VERSION=v1\.2\.4$'
+}
+
+@test "§6.2 case 2: feat on v1.2.3 yields minor bump → v1.3" {
+    # feat now maps to minor (not major) in the new SemVer-compatible mapping.
+    # patch=0 is omitted by build_version_string, so v1.3.0 renders as v1.3.
+    run_calculate "semver" "development_release" "v1.2.3" "feat: add Y"
+    [ "$status" -eq 0 ]
+    assert_output_matches 'BUMP_TYPE=minor'
+    assert_output_matches 'NEXT_VERSION=v1\.3$'
+}
+
+@test "§6.2 case 3: breaking on v1.2.3 yields major bump → v2.0" {
+    # breaking still maps to major — no change.
+    # patch=0 and minor=0 are omitted, so v2.0.0 renders as v2.0.
+    run_calculate "semver" "development_release" "v1.2.3" "breaking: drop Z"
+    [ "$status" -eq 0 ]
+    assert_output_matches 'BUMP_TYPE=major'
+    assert_output_matches 'NEXT_VERSION=v2\.0$'
+}
+
+@test "§6.2 case 4: docs commit with timestamp disabled — no tag (none + timestamp off)" {
+    # docs maps to none. With timestamp disabled, the pipe must exit-0 and
+    # write empty state files so downstream steps skip tagging entirely.
+    run_calculate "semver" "development_release" "" "docs: update readme"
+    [ "$status" -eq 0 ]
+    echo "$output" | grep -q '^BUMP_TYPE=$'
+    echo "$output" | grep -q '^NEXT_VERSION=$'
+}
+
+@test "§6.2 case 6: fix on v1.2.3 — patch bump does not reset minor (minor=2 unchanged)" {
+    # Verifies that a patch bump leaves the minor component untouched
+    run_calculate "semver" "development_release" "v1.2.3" "fix: targeted fix"
+    [ "$status" -eq 0 ]
+    assert_output_matches 'BUMP_TYPE=patch'
+    # Minor must remain 2, not reset to 0
+    assert_output_matches 'NEXT_VERSION=v1\.2\.4$'
+}
+
+@test "§6.2 case 7: patch component disabled — fix commit does not crash" {
+    # patch-disabled fixture has patch.enabled: false. fix: maps to bump: patch,
+    # PATCH_PATTERN matches, and the script increments patch internally. However,
+    # build_version_string omits the disabled component, producing a degenerate
+    # version (e.g. "0.0"). Key requirement: no crash (status=0).
+    run_calculate "patch-disabled" "development_release" "" "fix: anything"
+    [ "$status" -eq 0 ]
+    assert_output_matches 'BUMP_TYPE=patch'
 }

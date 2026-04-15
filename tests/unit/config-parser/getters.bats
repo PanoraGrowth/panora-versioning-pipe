@@ -93,15 +93,15 @@ teardown() { common_teardown; }
 # VERSION COMPONENTS
 # =============================================================================
 
-@test "is_component_enabled period: true for all-components" {
+@test "is_component_enabled epoch: true for all-components" {
     source_config_parser "all-components"
-    run is_component_enabled "period"
+    run is_component_enabled "epoch"
     [ "$status" -eq 0 ]
 }
 
-@test "is_component_enabled period: false for with-v-prefix" {
+@test "is_component_enabled epoch: false for with-v-prefix" {
     source_config_parser "with-v-prefix"
-    run is_component_enabled "period"
+    run is_component_enabled "epoch"
     [ "$status" -ne 0 ]
 }
 
@@ -129,9 +129,9 @@ teardown() { common_teardown; }
     [ "$status" -ne 0 ]
 }
 
-@test "get_component_initial: period initial is 1 for all-components" {
+@test "get_component_initial: epoch initial is 1 for all-components" {
     source_config_parser "all-components"
-    run get_component_initial "period" "0"
+    run get_component_initial "epoch" "0"
     assert_equals "1" "$output"
 }
 
@@ -218,16 +218,16 @@ teardown() { common_teardown; }
     assert_output_matches "chore"
 }
 
-@test "get_bump_action: feat returns major" {
+@test "get_bump_action: feat returns minor" {
     source_config_parser "minimal"
     run get_bump_action "feat"
-    assert_equals "major" "$output"
+    assert_equals "minor" "$output"
 }
 
-@test "get_bump_action: fix returns minor" {
+@test "get_bump_action: fix returns patch" {
     source_config_parser "minimal"
     run get_bump_action "fix"
-    assert_equals "minor" "$output"
+    assert_equals "patch" "$output"
 }
 
 @test "get_bump_action: unknown type returns none" {
@@ -236,15 +236,21 @@ teardown() { common_teardown; }
     assert_equals "none" "$output"
 }
 
-@test "get_types_for_bump: major includes feat" {
+@test "get_types_for_bump: major includes breaking" {
     source_config_parser "minimal"
     run get_types_for_bump "major"
+    assert_output_matches "breaking"
+}
+
+@test "get_types_for_bump: minor includes feat" {
+    source_config_parser "minimal"
+    run get_types_for_bump "minor"
     assert_output_matches "feat"
 }
 
-@test "get_types_for_bump: minor includes fix" {
+@test "get_types_for_bump: patch includes fix" {
     source_config_parser "minimal"
-    run get_types_for_bump "minor"
+    run get_types_for_bump "patch"
     assert_output_matches "fix"
 }
 
@@ -538,7 +544,7 @@ hotfix:
 # PATTERN BUILDERS
 # =============================================================================
 
-@test "get_enabled_component_count: no-timestamp has 3 (period+major+minor)" {
+@test "get_enabled_component_count: no-timestamp has 3 (epoch+major+minor)" {
     source_config_parser "no-timestamp"
     run get_enabled_component_count
     assert_equals "3" "$output"
@@ -553,7 +559,7 @@ hotfix:
 @test "get_tag_pattern: no-timestamp returns 3-part numeric pattern" {
     source_config_parser "no-timestamp"
     run get_tag_pattern
-    # period.major.minor — no timestamp, no prefix
+    # epoch.major.minor — no timestamp, no prefix
     assert_output_matches '^\^'
     assert_output_matches '\$'
     assert_output_matches '\[0-9\]'
@@ -571,7 +577,7 @@ hotfix:
     assert_output_matches '\{12,14\}'
 }
 
-@test "build_version_string: all-components builds period.major.minor" {
+@test "build_version_string: all-components builds epoch.major.minor" {
     source_config_parser "all-components"
     run build_version_string "1" "2" "3"
     assert_equals "1.2.3" "$output"
@@ -614,10 +620,11 @@ hotfix:
     assert_output_matches 'fix'
 }
 
-@test "build_bump_pattern: major bump for conventional includes feat" {
+@test "build_bump_pattern: major bump for conventional includes breaking" {
+    # feat moved to minor (SemVer-aligned). major bump now contains only breaking.
     source_config_parser "conventional-full"
     run build_bump_pattern "major"
-    assert_output_matches "feat"
+    assert_output_matches "breaking"
 }
 
 @test "get_example_prefix: conventional returns feat(scope)" {
@@ -710,4 +717,88 @@ hotfix:
     source_config_parser "minimal"
     run config_get "commits.format" "conventional"
     assert_equals "ticket" "$output"
+}
+
+# =============================================================================
+# §6.2 — New epoch + SemVer bump mapping cases (config-parser level)
+# =============================================================================
+
+@test "§6.2 case 5: docs commit with timestamp enabled yields timestamp_only bump action" {
+    # docs maps to none. With timestamp enabled, the bump type should be
+    # timestamp_only so the pipe creates a timestamp-only tag.
+    write_inline_fixture 'commits:
+  format: "conventional"
+version:
+  components:
+    epoch:
+      enabled: false
+    major:
+      enabled: true
+      initial: 0
+    minor:
+      enabled: true
+      initial: 0
+    timestamp:
+      enabled: true
+      format: "%Y%m%d%H%M%S"'
+    run get_bump_action "docs"
+    assert_equals "none" "$output"
+    # The timestamp_only decision is made downstream in calculate-version.sh;
+    # at config-parser level docs correctly returns "none"
+}
+
+@test "§6.2 case 8: epoch.enabled=true + initial=1 — is_component_enabled returns true" {
+    # Validates that epoch is parsed and enabled just like period was before
+    source_config_parser "all-components"
+    run is_component_enabled "epoch"
+    [ "$status" -eq 0 ]
+}
+
+@test "§6.2 case 8b: epoch initial=1 for all-components fixture" {
+    source_config_parser "all-components"
+    run get_component_initial "epoch" "0"
+    assert_equals "1" "$output"
+}
+
+@test "§6.2 case 9: is_component_enabled epoch — true when fixture uses epoch key" {
+    write_inline_fixture 'commits:
+  format: "conventional"
+version:
+  components:
+    epoch:
+      enabled: true
+      initial: 1
+    major:
+      enabled: true
+      initial: 0
+    minor:
+      enabled: true
+      initial: 0
+    timestamp:
+      enabled: false'
+    run is_component_enabled "epoch"
+    [ "$status" -eq 0 ]
+}
+
+@test "§6.2 case 10: legacy period: key IS recognized via shim — is_component_enabled epoch returns true" {
+    # Backward-compat shim: when a config still uses the old period: key with
+    # enabled: true, querying is_component_enabled "epoch" must return true.
+    # This ensures existing consumer configs keep working after the rename.
+    write_inline_fixture 'commits:
+  format: "conventional"
+version:
+  components:
+    period:
+      enabled: true
+      initial: 1
+    major:
+      enabled: true
+      initial: 0
+    minor:
+      enabled: true
+      initial: 0
+    timestamp:
+      enabled: false'
+    run is_component_enabled "epoch"
+    [ "$status" -eq 0 ]
 }

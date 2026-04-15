@@ -1,10 +1,10 @@
-# All 4 version components enabled (period + major + minor + timestamp)
+# All 4 version components enabled (epoch + major + minor + timestamp)
 commits:
   format: "conventional"
 
 version:
   components:
-    period:
+    epoch:
       enabled: true
       initial: 1
     major:

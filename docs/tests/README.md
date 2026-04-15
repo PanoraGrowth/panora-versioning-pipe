@@ -18,7 +18,7 @@ Unit tests and integration tests validated before every release.
 
 ### Version Calculation
 
-- Tag pattern generation for all component combinations (period, major, minor, patch, timestamp)
+- Tag pattern generation for all component combinations (epoch, major, minor, patch, timestamp)
 - Version string building from components, including the opt-in PATCH component
 - Tag parsing and component extraction for v0.5.9 and v0.5.9.1 forms
 - Timestamp-based tag handling
@@ -73,13 +73,13 @@ Unit tests and integration tests validated before every release.
 
 These tests run against real repositories, creating actual PRs, merging, and verifying results:
 
-- **feat commit → major version bump**: PR passes validation, merge creates new tag with correct version
-- **fix commit → minor version bump**: same flow, minor bump
-- **chore commit → minor version bump**: maintenance commits still bump
+- **feat commit → minor version bump** (`feat-minor-bump`): PR passes validation, merge creates new tag with correct version
+- **fix commit → patch version bump** (`fix-patch-bump`): same flow, patch bump
+- **chore commit → no version bump**: maintenance commits produce no tag (bump: none)
 - **Scoped commit → per-folder CHANGELOG**: `feat(backend):` writes to `backend/CHANGELOG.md`
 - **Scoped commit → different folder**: `fix(frontend):` writes to `frontend/CHANGELOG.md`
 - **Unscoped commit → root CHANGELOG**: commits without scope go to root
-- **Multi-commit PR → last commit wins**: PR with fix + feat (feat last) = major bump under last-commit-only semantics; uses merge method (not squash) to preserve individual commits
+- **Multi-commit PR → last commit wins**: PR with fix + feat (feat last) = minor bump under last-commit-only semantics; uses merge method (not squash) to preserve individual commits
 - **Invalid commit format → PR validation fails**: non-conventional commit is rejected
 - **Hotfix from production branch → PR check only**: validates the `hotfix` commit type through PR validation without merging (no tag created)
 - **Hotfix to main with PATCH bump → full end-to-end**: merges a `hotfix:` commit squash-style from a `hotfix/auto-*` branch, verifies tag ends in `.1` and CHANGELOG header carries `(Hotfix)` marker

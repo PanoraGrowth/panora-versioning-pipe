@@ -26,7 +26,7 @@ VERSION_SEP=$(get_version_separator)
 IGNORE_PATTERN=$(get_ignore_patterns_regex)
 
 # Get initial values from config
-PERIOD_INITIAL=$(get_component_initial "period" "0")
+EPOCH_INITIAL=$(get_component_initial "epoch" "0")
 MAJOR_INITIAL=$(get_component_initial "major" "0")
 MINOR_INITIAL=$(get_component_initial "minor" "0")
 PATCH_INITIAL=$(get_component_initial "patch" "0")
@@ -34,6 +34,7 @@ PATCH_INITIAL=$(get_component_initial "patch" "0")
 # Build bump patterns from config
 MAJOR_PATTERN=$(build_bump_pattern "major")
 MINOR_PATTERN=$(build_bump_pattern "minor")
+PATCH_PATTERN=$(build_bump_pattern "patch")
 
 # Read scenario written by detect-scenario.sh (or default). Branch-pipeline.sh
 # invokes detect-scenario.sh BEFORE this script so /tmp/scenario.env is available.
@@ -57,7 +58,7 @@ write_state "/tmp/latest_tag.txt" "${LATEST_TAG:-}"
 
 if [ -z "$LATEST_TAG" ]; then
     log_info "No version tags found, starting from initial values"
-    PERIOD=$PERIOD_INITIAL
+    EPOCH=$EPOCH_INITIAL
     MAJOR=$MAJOR_INITIAL
     MINOR=$MINOR_INITIAL
     PATCH=$PATCH_INITIAL
@@ -65,11 +66,11 @@ else
     log_info "Latest tag: $LATEST_TAG"
     VERSION=$(parse_tag_to_version "$LATEST_TAG")
     parse_version_components "$VERSION"
-    PERIOD=$PARSED_PERIOD
+    EPOCH=$PARSED_EPOCH
     MAJOR=$PARSED_MAJOR
     MINOR=$PARSED_MINOR
     PATCH=$PARSED_PATCH
-    CURRENT_VER=$(build_version_string "$PERIOD" "$MAJOR" "$MINOR" "$PATCH")
+    CURRENT_VER=$(build_version_string "$EPOCH" "$MAJOR" "$MINOR" "$PATCH")
     log_info "Current version: ${CURRENT_VER}"
 fi
 
@@ -153,6 +154,10 @@ elif [ -n "$MINOR_PATTERN" ] && echo "$LAST_COMMIT" | grep -qE "$MINOR_PATTERN";
     MINOR=$((MINOR + 1))
     PATCH=0
     log_info "Detected: MINOR bump"
+elif [ -n "$PATCH_PATTERN" ] && echo "$LAST_COMMIT" | grep -qE "$PATCH_PATTERN"; then
+    BUMP_TYPE="patch"
+    PATCH=$((PATCH + 1))
+    log_info "Detected: PATCH bump"
 else
     # No bump pattern matched — check if timestamp can differentiate
     if is_component_enabled "timestamp"; then
@@ -170,7 +175,7 @@ echo ""
 # =============================================================================
 # Build the full version tag
 # =============================================================================
-CURRENT_VERSION=$(build_version_string "$PERIOD" "$MAJOR" "$MINOR" "$PATCH")
+CURRENT_VERSION=$(build_version_string "$EPOCH" "$MAJOR" "$MINOR" "$PATCH")
 NEXT_VERSION=$(build_full_tag "$CURRENT_VERSION")
 
 log_info "Next version will be: $NEXT_VERSION"

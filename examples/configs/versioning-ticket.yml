@@ -6,7 +6,7 @@
 #   - Ticket URL for clickable links in the changelog
 #   - All changelog link types enabled
 #   - Custom ticket link label
-#   - Version format with period, major, minor, and timestamp components
+#   - Version format with epoch, major, minor, and timestamp components
 #   - changelog.mode: control how much history ends up in the CHANGELOG
 #   - validation.ignore_patterns: skip noise commits during commit scanning
 #
@@ -25,7 +25,7 @@ tickets:
 
 version:
   components:
-    period:
+    epoch:
       enabled: true
       initial: 1
     major:

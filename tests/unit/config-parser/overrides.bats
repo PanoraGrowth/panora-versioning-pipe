@@ -22,10 +22,12 @@ teardown() { common_teardown; }
     assert_equals "🆕" "$output"
 }
 
-@test "override: feat bump unchanged (still major)" {
+@test "override: feat bump unchanged (still minor — SemVer default)" {
+    # feat default is now minor (SemVer-aligned). The override only changes the
+    # emoji, so bump inherits the new default.
     source_config_parser "custom-types"
     run get_bump_action "feat"
-    assert_equals "major" "$output"
+    assert_equals "minor" "$output"
 }
 
 # =============================================================================
@@ -76,10 +78,11 @@ teardown() { common_teardown; }
 # NON-OVERRIDDEN TYPES UNAFFECTED
 # =============================================================================
 
-@test "override: fix unchanged (bump still minor)" {
+@test "override: fix unchanged (bump still patch — SemVer default)" {
+    # fix default is now patch (SemVer-aligned). Not overridden in custom-types.
     source_config_parser "custom-types"
     run get_bump_action "fix"
-    assert_equals "minor" "$output"
+    assert_equals "patch" "$output"
 }
 
 @test "override: fix unchanged (emoji still 🐛)" {
@@ -88,10 +91,11 @@ teardown() { common_teardown; }
     assert_equals "🐛" "$output"
 }
 
-@test "override: chore unchanged (bump still minor)" {
+@test "override: chore unchanged (bump still none — SemVer default)" {
+    # chore default is now none (SemVer-aligned). Not overridden in custom-types.
     source_config_parser "custom-types"
     run get_bump_action "chore"
-    assert_equals "minor" "$output"
+    assert_equals "none" "$output"
 }
 
 # =============================================================================
@@ -104,10 +108,11 @@ teardown() { common_teardown; }
     assert_equals "🚀" "$output"
 }
 
-@test "no overrides: minimal fixture docs bump is default minor" {
+@test "no overrides: minimal fixture docs bump is default none" {
+    # docs default is now none (SemVer-aligned — docs don't affect public API).
     source_config_parser "minimal"
     run get_bump_action "docs"
-    assert_equals "minor" "$output"
+    assert_equals "none" "$output"
 }
 
 @test "no overrides: minimal fixture has no infra type" {

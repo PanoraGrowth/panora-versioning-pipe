@@ -35,7 +35,7 @@ teardown() { common_teardown; }
     assert_equals '^v[0-9]+\.[0-9]+(\.[0-9]+)?$' "$output"
 }
 
-@test "get_tag_pattern: all-components fixture — period+major+minor+timestamp + optional patch" {
+@test "get_tag_pattern: all-components fixture — epoch+major+minor+timestamp + optional patch" {
     source_config_parser "all-components"
     run get_tag_pattern
     assert_equals '^[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?\.[0-9]{12,14}(-[0-9]+)?$' "$output"
@@ -53,19 +53,19 @@ teardown() { common_teardown; }
 # build_version_string
 # =============================================================================
 
-@test "build_version_string: no-timestamp — period.major.minor" {
+@test "build_version_string: no-timestamp — epoch.major.minor" {
     source_config_parser "no-timestamp"
     run build_version_string 1 2 3
     assert_equals "1.2.3" "$output"
 }
 
-@test "build_version_string: with-v-prefix — major.minor only (period disabled)" {
+@test "build_version_string: with-v-prefix — major.minor only (epoch disabled)" {
     source_config_parser "with-v-prefix"
     run build_version_string 0 5 7
     assert_equals "5.7" "$output"
 }
 
-@test "build_version_string: all-components — period.major.minor" {
+@test "build_version_string: all-components — epoch.major.minor" {
     source_config_parser "all-components"
     run build_version_string 2 4 6
     assert_equals "2.4.6" "$output"
@@ -137,17 +137,22 @@ teardown() { common_teardown; }
 @test "build_bump_pattern: major bump — conventional config" {
     source_config_parser "conventional-full"
     run build_bump_pattern "major"
-    # major bump types: major, feat, feature, breaking
-    assert_output_matches 'feat' "should contain feat"
-    assert_output_matches 'major' "should contain major"
+    # major bump types (SemVer-aligned): breaking only (feat moved to minor)
     assert_output_matches 'breaking' "should contain breaking"
 }
 
 @test "build_bump_pattern: minor bump — conventional config" {
     source_config_parser "conventional-full"
     run build_bump_pattern "minor"
+    assert_output_matches 'feat' "should contain feat"
+    assert_output_matches 'feature' "should contain feature"
+}
+
+@test "build_bump_pattern: patch bump — conventional config" {
+    source_config_parser "conventional-full"
+    run build_bump_pattern "patch"
     assert_output_matches 'fix' "should contain fix"
-    assert_output_matches 'refactor' "should contain refactor"
+    assert_output_matches 'perf' "should contain perf"
 }
 
 @test "build_bump_pattern: nonexistent bump type — returns empty" {
@@ -159,6 +164,7 @@ teardown() { common_teardown; }
 @test "build_bump_pattern: major bump — ticket-based includes prefixes" {
     source_config_parser "ticket-based"
     run build_bump_pattern "major"
+    # major bump types (SemVer-aligned): breaking only (feat moved to minor)
     assert_output_matches 'AM\|TECH' "should contain ticket prefixes"
-    assert_output_matches 'feat' "should contain feat"
+    assert_output_matches 'breaking' "should contain breaking"
 }

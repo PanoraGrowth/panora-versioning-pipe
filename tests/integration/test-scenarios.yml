@@ -13,8 +13,8 @@ scenarios:
 
   # --- Basic version bumps ---
 
-  - name: feat-major-bump
-    description: "feat commit triggers major version bump and tag creation"
+  - name: feat-minor-bump
+    description: "feat commit triggers MINOR version bump (SemVer-aligned: feat → minor)"
     commits:
       - message: "feat: add automated test feature"
         files:
@@ -25,8 +25,8 @@ scenarios:
       tag_pattern: "^v\\d+\\.\\d+\\.\\d+$"
       changelog_contains: "feat: add automated test feature"
 
-  - name: fix-minor-bump
-    description: "fix commit triggers minor version bump"
+  - name: fix-patch-bump
+    description: "fix commit triggers PATCH version bump (SemVer-aligned: fix → patch)"
     commits:
       - message: "fix: resolve automated test bug"
         files:
@@ -34,20 +34,18 @@ scenarios:
     expected:
       pr_check: pass
       tag_created: true
-      tag_pattern: "^v\\d+\\.\\d+\\.\\d+$"
+      tag_pattern: "^v\\d+\\.\\d+\\.\\d+\\.\\d+$"
       changelog_contains: "fix: resolve automated test bug"
 
   - name: chore-minor-bump
-    description: "chore commit triggers minor version bump"
+    description: "chore commit produces no version bump (SemVer-aligned: chore → none)"
     commits:
       - message: "chore: automated test maintenance"
         files:
           test-artifact.txt: "chore test"
     expected:
       pr_check: pass
-      tag_created: true
-      tag_pattern: "^v\\d+\\.\\d+\\.\\d+$"
-      changelog_contains: "chore: automated test maintenance"
+      tag_created: false
 
   # --- Per-folder changelog ---
 
@@ -65,7 +63,7 @@ scenarios:
       changelog_location: "backend/CHANGELOG.md"
 
   - name: scoped-frontend
-    description: "fix(frontend) commit routes changelog to frontend/"
+    description: "fix(frontend) commit routes changelog to frontend/ and triggers PATCH bump"
     commits:
       - message: "fix(frontend): resolve automated frontend bug"
         files:
@@ -73,12 +71,12 @@ scenarios:
     expected:
       pr_check: pass
       tag_created: true
-      tag_pattern: "^v\\d+\\.\\d+\\.\\d+$"
+      tag_pattern: "^v\\d+\\.\\d+\\.\\d+\\.\\d+$"
       changelog_contains: "fix(frontend): resolve automated frontend bug"
       changelog_location: "frontend/CHANGELOG.md"
 
   - name: unscoped-to-root
-    description: "commit without scope goes to root CHANGELOG"
+    description: "commit without scope goes to root CHANGELOG; fix → PATCH bump"
     commits:
       - message: "fix: resolve general automated test issue"
         files:
@@ -86,7 +84,7 @@ scenarios:
     expected:
       pr_check: pass
       tag_created: true
-      tag_pattern: "^v\\d+\\.\\d+\\.\\d+$"
+      tag_pattern: "^v\\d+\\.\\d+\\.\\d+\\.\\d+$"
       changelog_contains: "fix: resolve general automated test issue"
       changelog_location: "CHANGELOG.md"
 
@@ -96,8 +94,8 @@ scenarios:
     description: "multi-commit merge PR — the LAST commit determines the bump (pipe uses last-commit-only semantics, NOT highest-bump-wins). For squash merges, this distinction is invisible because there is only one commit."
     merge_method: merge  # must use merge (not squash) to preserve individual commits
     commits:
-      # Order matters: the feat MUST be last to trigger a major bump under last-wins semantics.
-      # If flipped (feat first, fix last), this scenario would produce a minor bump instead.
+      # Order matters: feat MUST be last to trigger a minor bump under last-wins semantics.
+      # If flipped (feat first, fix last), this scenario would produce a patch bump instead.
       # See scripts/versioning/calculate-version.sh:100-107 and docs/architecture/README.md:112,248.
       - message: "fix: first fix in multi-commit"
         files:
@@ -221,6 +219,63 @@ scenarios:
       tag_created: true
       tag_pattern: '^v\d+\.\d+\.\d+\.1$'
       changelog_contains: "patch auth token validation"
+      changelog_section_marker: "(Hotfix)"
+
+  # --- SemVer bump mapping (post-040) ---
+
+  - name: feat-minor-bump-semver
+    description: "feat commit triggers MINOR version bump (SemVer-correct mapping: feat → minor, not major)"
+    commits:
+      - message: "feat: add semver minor bump feature"
+        files:
+          test-artifact.txt: "feat minor semver test"
+    expected:
+      pr_check: pass
+      tag_created: true
+      tag_pattern: "^v\\d+\\.\\d+\\.\\d+$"
+      changelog_contains: "feat: add semver minor bump feature"
+
+  - name: fix-patch-bump-semver
+    description: "fix commit triggers PATCH version bump (SemVer-correct mapping: fix → patch, not minor)"
+    commits:
+      - message: "fix: resolve semver patch bump issue"
+        files:
+          test-artifact.txt: "fix patch semver test"
+    expected:
+      pr_check: pass
+      tag_created: true
+      tag_pattern: "^v\\d+\\.\\d+\\.\\d+\\.\\d+$"
+      changelog_contains: "fix: resolve semver patch bump issue"
+
+  - name: refactor-no-bump
+    description: "refactor commit produces no numeric version bump (bump: none — PR validates but no tag is created)"
+    commits:
+      - message: "refactor: clean up internal module structure"
+        files:
+          test-artifact.txt: "refactor no bump test"
+    expected:
+      pr_check: pass
+      tag_created: false
+
+  - name: hotfix-patch-bump-regression
+    description: "Regression guard: hotfix flow still bumps PATCH after commit-type remap (fix → patch). Ensures the hotfix path is independent of the commit-type-to-bump mapping table."
+    merge_method: squash
+    branch_prefix: "hotfix/auto"
+    pr_title: "hotfix: regression guard for patch bump after remap"
+    config_override:
+      version:
+        components:
+          patch:
+            enabled: true
+    commits:
+      - message: "hotfix: regression guard for patch bump after remap"
+        files:
+          test-artifact.txt: "hotfix regression guard test"
+    expected:
+      pr_check: pass
+      tag_created: true
+      tag_pattern: '^v\d+\.\d+\.\d+\.1$'
+      changelog_contains: "regression guard for patch bump after remap"
       changelog_section_marker: "(Hotfix)"
 
   - name: hotfix-uppercase-branch-prefix

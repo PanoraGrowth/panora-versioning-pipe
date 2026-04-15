@@ -50,7 +50,7 @@ teardown() { common_teardown; }
     source_config_parser "patch-disabled"
     # Even when a positive patch arg is passed, disabled component means no render
     run build_version_string "0" "5" "9" "7"
-    # patch-disabled fixture has period=off, major+minor=on, patch=off
+    # patch-disabled fixture has epoch=off, major+minor=on, patch=off
     assert_equals "5.9" "$output"
 }
 

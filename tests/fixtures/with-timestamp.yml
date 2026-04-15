@@ -4,7 +4,7 @@ commits:
 
 version:
   components:
-    period:
+    epoch:
       enabled: true
       initial: 0
     major:

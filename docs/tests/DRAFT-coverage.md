@@ -1,6 +1,6 @@
 # Cobertura de Tests — Draft (revisión de formato)
 
-> Draft que cubre las secciones: `commits`, `tickets`, `validation`, `changelog`, `changelog.per_folder`.
+> Draft que cubre las secciones: `commits`, `tickets`, `validation`, `changelog`, `changelog.per_folder`, `version`.
 > El objetivo es encontrar el formato antes de escribir el documento completo.
 
 ---
@@ -134,3 +134,81 @@ Ejemplos de uso:
 | `file_path` | Commit toca archivos en carpeta configurada + archivos en root (`api/main.go`, `README.md`) | Los archivos en root se ignoran, resuelve a la carpeta | ✅ |
 | `file_path` | Commit toca solo archivos en root (`README.md`) | Sin match — retorna vacío | ✅ |
 | `file_path` | Archivos anidados dentro de carpeta configurada (`shared/utils/helpers.sh`) | Resuelve correctamente la carpeta padre | ✅ |
+
+---
+
+## version.components
+
+[→ defaults.yml:29](../../scripts/defaults.yml#L29)
+
+Controla qué componentes forman el número de versión y sus valores iniciales. Los componentes se renderizan en orden: `epoch.major.minor[.patch][.timestamp]`.
+
+**`version.components.epoch`** — [→ L30](../../scripts/defaults.yml#L30)
+
+| Key | Type / Values | Comportamiento probado | Cobertura |
+|-----|---------------|------------------------|-----------|
+| `epoch.enabled` | `true` · `false` · default `false` | `true` → agrega primer componente al tag (`1.0.0`) · `false` → tag empieza en major (`0.5.9`) | ✅ ambos |
+| `epoch.initial` | `integer` · default `0` | Valor de inicio cuando el componente se habilita por primera vez | ✅ |
+
+---
+
+**`version.components.major`** — [→ L33](../../scripts/defaults.yml#L33)
+
+| Key | Type / Values | Comportamiento probado | Cobertura |
+|-----|---------------|------------------------|-----------|
+| `major.enabled` | `true` · `false` · default `true` | `true` → incluido en el tag · bump major → incrementa, resetea minor y patch a 0 | ✅ |
+| `major.initial` | `integer` · default `0` | Valor de inicio al crear el primer tag | ✅ |
+
+---
+
+**`version.components.minor`** — [→ L36](../../scripts/defaults.yml#L36)
+
+| Key | Type / Values | Comportamiento probado | Cobertura |
+|-----|---------------|------------------------|-----------|
+| `minor.enabled` | `true` · `false` · default `true` | `true` → incluido en el tag · bump minor → incrementa, resetea patch a 0 | ✅ |
+| `minor.initial` | `integer` · default `0` | Valor de inicio al crear el primer tag | ✅ |
+
+---
+
+**`version.components.patch`** — [→ L46](../../scripts/defaults.yml#L46)
+
+Componente especial del flujo hotfix (v0.6.3+). Cuando está habilitado, un commit de tipo `hotfix` incrementa este componente en lugar de major/minor. El tag se renderiza como `v0.5.9.1` — el `.0` se omite por backward compatibility.
+
+| Key | Type / Values | Comportamiento probado | Cobertura |
+|-----|---------------|------------------------|-----------|
+| `patch.enabled` | `true` · `false` · default `true` | `true` → hotfix bumps patch (`0.5.9` → `0.5.9.1`) · `false` → hotfix es no-op (sin tag, log info) | ✅ ambos |
+| `patch.initial` | `integer` · default `0` | Valor de inicio · reset a 0 cuando se bumpa major o minor | ✅ |
+
+---
+
+**`version.components.timestamp`** — [→ L49](../../scripts/defaults.yml#L49)
+
+| Key | Type / Values | Comportamiento probado | Cobertura |
+|-----|---------------|------------------------|-----------|
+| `timestamp.enabled` | `true` · `false` · default `true` | `true` → timestamp appended al tag (`0.5.9.20260407120000`) · `false` → tag sin timestamp | ✅ ambos |
+| `timestamp.format` | `string` (strftime) · default `"%Y%m%d%H%M%S"` | Formato aplicado al generar el timestamp · getter probado | ⚠️ solo getter — formato alternativo no probado en output |
+| `timestamp.timezone` | `string` · default `"UTC"` | TZ aplicada al generar el timestamp · `build_full_tag` respeta el timezone | ✅ |
+
+---
+
+## version.tag_prefix_v
+
+[→ defaults.yml:54](../../scripts/defaults.yml#L54)
+
+| Key | Type / Values | Comportamiento probado | Cobertura |
+|-----|---------------|------------------------|-----------|
+| [`version.tag_prefix_v`](../../scripts/defaults.yml#L54) | `true` · `false` · default `false` | `true` → tags con `v` (`v0.5.9`) · version files escritos sin `v` (npm compat) · `false` → tags sin prefijo (`0.5.9`) | ✅ ambos |
+
+---
+
+## version.separators
+
+[→ defaults.yml:56](../../scripts/defaults.yml#L56)
+
+Controla los caracteres que separan las partes del tag generado.
+
+| Key | Type / Values | Comportamiento probado | Cobertura |
+|-----|---------------|------------------------|-----------|
+| [`separators.version`](../../scripts/defaults.yml#L57) | `string` · default `"."` | Separa los componentes del número de versión (`0.5.9`) · implícito en todos los tests de tag building | ✅ |
+| [`separators.timestamp`](../../scripts/defaults.yml#L58) | `string` · default `"."` | Separa la versión del timestamp (`0.5.9.20260407120000`) · implícito en `build_full_tag` tests | ✅ |
+| [`separators.suffix`](../../scripts/defaults.yml#L59) | `string` · default `""` | Sufijo opcional al final del tag (ej. `-rc1`, `-beta`) · getter probado, valor vacío por default | ⚠️ solo getter — sufijo no vacío no está probado en tag building |
