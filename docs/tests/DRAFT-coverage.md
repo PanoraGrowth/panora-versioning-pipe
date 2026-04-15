@@ -156,28 +156,28 @@ Controla qué componentes forman el número de versión y sus valores iniciales.
 
 | Key | Type / Values | Comportamiento probado | Cobertura |
 |-----|---------------|------------------------|-----------|
-| `major.enabled` | `true` · `false` · default `true` | `true` → incluido en el tag · bump major → incrementa, resetea minor y patch a 0 | ✅ |
+| `major.enabled` | `true` · `false` · default `true` | `true` → incluido en el tag · bump major → incrementa, resetea patch y hotfix_counter a 0 | ✅ |
 | `major.initial` | `integer` · default `0` | Valor de inicio al crear el primer tag | ✅ |
 
 ---
 
-**`version.components.minor`** — [→ L36](../../scripts/defaults.yml#L36)
+**`version.components.patch`** — [→ L36](../../scripts/defaults.yml#L36)
 
 | Key | Type / Values | Comportamiento probado | Cobertura |
 |-----|---------------|------------------------|-----------|
-| `minor.enabled` | `true` · `false` · default `true` | `true` → incluido en el tag · bump minor → incrementa, resetea patch a 0 | ✅ |
-| `minor.initial` | `integer` · default `0` | Valor de inicio al crear el primer tag | ✅ |
+| `patch.enabled` | `true` · `false` · default `true` | `true` → incluido en el tag · bump patch → incrementa, resetea hotfix_counter a 0 | ✅ |
+| `patch.initial` | `integer` · default `0` | Valor de inicio al crear el primer tag | ✅ |
 
 ---
 
-**`version.components.patch`** — [→ L46](../../scripts/defaults.yml#L46)
+**`version.components.hotfix_counter`** — [→ L46](../../scripts/defaults.yml#L46)
 
-Componente especial del flujo hotfix (v0.6.3+). Cuando está habilitado, un commit de tipo `hotfix` incrementa este componente en lugar de major/minor. El tag se renderiza como `v0.5.9.1` — el `.0` se omite por backward compatibility.
+Componente especial del flujo hotfix (v0.6.3+). Cuando está habilitado, un commit de tipo `hotfix` incrementa este componente. El tag se renderiza como `v0.5.9.1` — el `.0` se omite por backward compatibility.
 
 | Key | Type / Values | Comportamiento probado | Cobertura |
 |-----|---------------|------------------------|-----------|
-| `patch.enabled` | `true` · `false` · default `true` | `true` → hotfix bumps patch (`0.5.9` → `0.5.9.1`) · `false` → hotfix es no-op (sin tag, log info) | ✅ ambos |
-| `patch.initial` | `integer` · default `0` | Valor de inicio · reset a 0 cuando se bumpa major o minor | ✅ |
+| `hotfix_counter.enabled` | `true` · `false` · default `true` | `true` → hotfix bumps hotfix_counter (`0.5.9` → `0.5.9.1`) · `false` → hotfix es no-op (sin tag, log info) | ✅ ambos |
+| `hotfix_counter.initial` | `integer` · default `0` | Valor de inicio · reset a 0 cuando se bumpa major o patch | ✅ |
 
 ---
 
@@ -185,7 +185,7 @@ Componente especial del flujo hotfix (v0.6.3+). Cuando está habilitado, un comm
 
 | Key | Type / Values | Comportamiento probado | Cobertura |
 |-----|---------------|------------------------|-----------|
-| `timestamp.enabled` | `true` · `false` · default `true` | `true` → timestamp appended al tag (`0.5.9.20260407120000`) · `false` → tag sin timestamp | ✅ ambos |
+| `timestamp.enabled` | `true` · `false` · default `true` ⚠️ pendiente cambiar a `false` ([ticket 041](../../temp/features/041-timestamp-disabled-by-default.md)) | `true` → timestamp appended al tag (`0.5.9.20260407120000`) · `false` → tag sin timestamp | ✅ ambos |
 | `timestamp.format` | `string` (strftime) · default `"%Y%m%d%H%M%S"` | Formato aplicado al generar el timestamp · getter probado | ⚠️ solo getter — formato alternativo no probado en output |
 | `timestamp.timezone` | `string` · default `"UTC"` | TZ aplicada al generar el timestamp · `build_full_tag` respeta el timezone | ✅ |
 
@@ -211,4 +211,79 @@ Controla los caracteres que separan las partes del tag generado.
 |-----|---------------|------------------------|-----------|
 | [`separators.version`](../../scripts/defaults.yml#L57) | `string` · default `"."` | Separa los componentes del número de versión (`0.5.9`) · implícito en todos los tests de tag building | ✅ |
 | [`separators.timestamp`](../../scripts/defaults.yml#L58) | `string` · default `"."` | Separa la versión del timestamp (`0.5.9.20260407120000`) · implícito en `build_full_tag` tests | ✅ |
-| [`separators.suffix`](../../scripts/defaults.yml#L59) | `string` · default `""` | Sufijo opcional al final del tag (ej. `-rc1`, `-beta`) · getter probado, valor vacío por default | ⚠️ solo getter — sufijo no vacío no está probado en tag building |
+| [`separators.tag_append`](../../scripts/defaults.yml#L59) | `string` · default `""` | String que se appenda al final del tag, después del timestamp (ej. `-rc1`) · aplica globalmente a todos los tags mientras esté activo · getter probado, valor vacío por default | ⚠️ solo getter — valor no vacío no está probado en tag building |
+
+---
+
+## commit_types
+
+[→ defaults.yml:61](../../scripts/defaults.yml#L61)
+
+Define los tipos de commit válidos, el bump que producen, el emoji y el grupo en el changelog. El sistema incluye 15 tipos por defecto. Los tipos se usan en validación (`require_commit_types`), en el cálculo de versión, y en la generación de changelog.
+
+**Bump mapping por tipo (SemVer-aligned)**
+
+| Tipo | Bump | Emoji | Changelog group |
+|------|------|-------|-----------------|
+| `breaking` | `major` | 💥 | Breaking Changes |
+| `feat` | `minor` | 🚀 | Features |
+| `feature` | `minor` | 🚀 | Features |
+| `fix` | `patch` | 🐛 | Bug Fixes |
+| `hotfix` | `patch` | 🚑 | Hotfixes |
+| `security` | `patch` | 🔒 | Security |
+| `revert` | `patch` | ⏪ | Reverts |
+| `perf` | `patch` | ⚡ | Performance |
+| `refactor` | `none` | 🔨 | Refactoring |
+| `docs` | `none` | 📚 | Documentation |
+| `test` | `none` | 🧪 | Testing |
+| `chore` | `none` | 🔧 | Chores |
+| `build` | `none` | 🏗️ | Build |
+| `ci` | `none` | ⚙️ | CI/CD |
+| `style` | `none` | 🎨 | Style |
+
+**Cobertura**
+
+| Escenario | Comportamiento probado | Cobertura |
+|-----------|------------------------|-----------|
+| `get_commit_types_pattern` — lista pipe-separated de todos los tipos | Contiene `feat`, `fix`, `chore` | ✅ |
+| `get_bump_action("feat")` | Retorna `minor` | ✅ |
+| `get_bump_action("fix")` | Retorna `patch` | ✅ |
+| `get_bump_action("nonexistent")` | Retorna `none` (fallback) | ✅ |
+| `get_types_for_bump("major")` | Incluye `breaking` | ✅ |
+| `get_types_for_bump("minor")` | Incluye `feat` | ✅ |
+| `get_types_for_bump("patch")` | Incluye `fix` | ✅ |
+| `get_commit_type_emoji("feat")` | Retorna `🚀` | ✅ |
+| `get_commit_type_emoji("fix")` | Retorna `🐛` | ✅ |
+| Tipos `feature`, `hotfix`, `security`, `revert`, `perf` — bump correcto | No probados individualmente | ❌ sin test |
+| Tipos `refactor`, `build`, `ci`, `style` — bump `none` | No probados individualmente | ❌ sin test |
+| `changelog_group` de cada tipo — valor correcto | No probado | ❌ sin test |
+
+---
+
+## commit_type_overrides
+
+[→ defaults.yml:152](../../scripts/defaults.yml#L152)
+
+Permite parchear o extender `commit_types` sin redefinir el array completo. Solo se especifican los campos a cambiar — el resto hereda los defaults. Soporta modificar tipos existentes y agregar tipos nuevos.
+
+```yaml
+# Ejemplo en .versioning.yml
+commit_type_overrides:
+  docs:
+    bump: "patch"          # cambia solo el bump, emoji y changelog_group heredan
+  infra:
+    bump: "minor"          # tipo nuevo
+    emoji: "🔩"
+    changelog_group: "Infrastructure"
+```
+
+| Escenario | Comportamiento probado | Cobertura |
+|-----------|------------------------|-----------|
+| Override de emoji en tipo existente (`feat` → `🆕`) | Emoji cambia, bump se mantiene (`minor`) | ✅ |
+| Override de bump en tipo existente (`docs` → `none`) | Bump cambia, emoji se mantiene (`📚`) | ✅ |
+| Agregar tipo nuevo (`infra`) — aparece en `get_commit_types_pattern` | Tipo disponible para validación y bump | ✅ |
+| Nuevo tipo `infra` — `get_bump_action` retorna `minor` | Bump correcto para tipo agregado | ✅ |
+| Nuevo tipo `infra` — `get_commit_type_emoji` retorna `🔩` | Emoji correcto para tipo agregado | ✅ |
+| Nuevo tipo `infra` — aparece en `get_types_for_bump("minor")` | Incluido en lista de tipos con bump minor | ✅ |
+| Tipos no sobreescritos no cambian (`fix`, `chore`) | `fix` sigue siendo `patch`, `chore` sigue siendo `none` | ✅ |
+| Sin overrides — fixture `minimal` usa defaults | feat emoji `🚀`, docs bump `none`, `infra` retorna `none` | ✅ |

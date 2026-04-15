@@ -33,17 +33,17 @@ version:
     major:
       enabled: true
       initial: 0
-    minor:
+    patch:
       enabled: true
       initial: 0
-    # patch: 4th component used by the hotfix flow (v0.6.3+).
-    # When enabled (default), a hotfix commit bumps PATCH and the rendered tag
-    # appends ".N" only when patch > 0 (e.g. v0.5.9.1). Tags where patch=0 still
-    # render as v0.5.9, preserving backward compatibility for consumers that
-    # never produce a hotfix. Set to false to opt out of the hotfix flow —
-    # hotfix commits in opted-out consumers are treated as a no-op (no tag
-    # created, INFO log explaining why).
-    patch:
+    # hotfix_counter: 4th component used by the hotfix flow (v0.6.3+).
+    # When enabled (default), a hotfix commit bumps HOTFIX_COUNTER and the
+    # rendered tag appends ".N" only when hotfix_counter > 0 (e.g. v0.5.9.1).
+    # Tags where hotfix_counter=0 still render as v0.5.9, preserving backward
+    # compatibility for consumers that never produce a hotfix. Set to false to
+    # opt out of the hotfix flow — hotfix commits in opted-out consumers are
+    # treated as a no-op (no tag created, INFO log explaining why).
+    hotfix_counter:
       enabled: true
       initial: 0
     timestamp:
@@ -56,7 +56,7 @@ version:
   separators:
     version: "."
     timestamp: "."
-    suffix: ""
+    tag_append: ""
 
 commit_types:
   - name: "breaking"
@@ -148,6 +148,17 @@ commit_types:
     bump: "none"
     emoji: "🎨"
     changelog_group: "Style"
+
+# commit_type_overrides — patch or extend commit_types without redefining the full array.
+# Only specify the fields you want to change. Everything else stays as defined above.
+# Example:
+# commit_type_overrides:
+#   docs:
+#     bump: "none"
+#   infra:
+#     bump: "patch"
+#     emoji: "🔩"
+#     changelog_group: "Infrastructure"
 
 changelog:
   file: "CHANGELOG.md"

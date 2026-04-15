@@ -182,12 +182,12 @@ scenarios:
     # Delta-only config_override — the test framework deep-merges this on
     # top of the test repo's .versioning.yml (ticket 027). Only keys that
     # differ from the base config need to be specified here.
-    # patch.enabled defaults to true since v0.6.3+, but we keep it explicit
+    # hotfix_counter.enabled defaults to true since v0.6.3+, but we keep it explicit
     # as defensive clarity for this hotfix scenario.
     config_override:
       version:
         components:
-          patch:
+          hotfix_counter:
             enabled: true
     commits:
       - message: "hotfix: wire-up patch bump integration test"
@@ -208,7 +208,7 @@ scenarios:
     config_override:
       version:
         components:
-          patch:
+          hotfix_counter:
             enabled: true
     commits:
       - message: "hotfix(security): patch auth token validation"
@@ -236,7 +236,7 @@ scenarios:
       changelog_contains: "feat: add semver minor bump feature"
 
   - name: fix-patch-bump-semver
-    description: "fix commit triggers PATCH version bump (SemVer-correct mapping: fix → patch, not minor)"
+    description: "fix commit triggers PATCH version bump (SemVer-correct mapping: fix → patch). Post-042: fix bumps the 3rd slot (patch component); hotfix_counter (4th slot) resets to 0 and is omitted."
     commits:
       - message: "fix: resolve semver patch bump issue"
         files:
@@ -244,7 +244,7 @@ scenarios:
     expected:
       pr_check: pass
       tag_created: true
-      tag_pattern: "^v\\d+\\.\\d+\\.\\d+\\.\\d+$"
+      tag_pattern: "^v\\d+\\.\\d+\\.\\d+$"
       changelog_contains: "fix: resolve semver patch bump issue"
 
   - name: refactor-no-bump
@@ -258,14 +258,14 @@ scenarios:
       tag_created: false
 
   - name: hotfix-patch-bump-regression
-    description: "Regression guard: hotfix flow still bumps PATCH after commit-type remap (fix → patch). Ensures the hotfix path is independent of the commit-type-to-bump mapping table."
+    description: "Regression guard: hotfix flow still bumps HOTFIX_COUNTER after commit-type remap (fix → patch). Ensures the hotfix path is independent of the commit-type-to-bump mapping table."
     merge_method: squash
     branch_prefix: "hotfix/auto"
     pr_title: "hotfix: regression guard for patch bump after remap"
     config_override:
       version:
         components:
-          patch:
+          hotfix_counter:
             enabled: true
     commits:
       - message: "hotfix: regression guard for patch bump after remap"
@@ -290,7 +290,7 @@ scenarios:
     config_override:
       version:
         components:
-          patch:
+          hotfix_counter:
             enabled: true
       # The test repo's .versioning.yml has hotfix.keyword as a scalar ("hotfix"),
       # which auto-expands to only ["hotfix:*", "hotfix(*"] — missing the

@@ -176,6 +176,17 @@ is_component_enabled() {
         fi
     fi
 
+    # Legacy shim: minor → patch (ticket 042)
+    if [ "$component" = "patch" ] && [ "$enabled" = "false" ]; then
+        local legacy
+        legacy=$(config_get "version.components.minor.enabled" "false")
+        if [ "$legacy" = "true" ]; then
+            log_info "DEPRECATION: version.components.minor is deprecated. Rename to version.components.patch in your .versioning.yml"
+            echo "true"
+            return
+        fi
+    fi
+
     [ "$enabled" = "true" ]
 }
 
@@ -202,7 +213,13 @@ get_timestamp_separator() {
 }
 
 get_tag_suffix() {
-    config_get "version.separators.suffix" ""
+    local val
+    val=$(config_get "version.separators.tag_append" "")
+    # Legacy shim: suffix → tag_append
+    if [ -z "$val" ]; then
+        val=$(config_get "version.separators.suffix" "")
+    fi
+    echo "$val"
 }
 
 use_tag_prefix_v() {
@@ -536,15 +553,15 @@ get_tag_branch() {
 # PATTERN BUILDERS
 # =============================================================================
 
-# Count enabled base version components (epoch, major, minor).
-# NOTE: patch is intentionally excluded — it is an OPTIONAL trailing component
-# rendered only when patch > 0, so it must not inflate the base component count
-# used to build the fixed-width tag regex.
+# Count enabled base version components (epoch, major, patch).
+# NOTE: hotfix_counter is intentionally excluded — it is an OPTIONAL trailing
+# component rendered only when hotfix_counter > 0, so it must not inflate the
+# base component count used to build the fixed-width tag regex.
 get_enabled_component_count() {
     local count=0
     is_component_enabled "epoch" && count=$((count + 1))
     is_component_enabled "major" && count=$((count + 1))
-    is_component_enabled "minor" && count=$((count + 1))
+    is_component_enabled "patch" && count=$((count + 1))
     echo "$count"
 }
 
@@ -564,25 +581,26 @@ get_tag_pattern() {
         i=$((i + 1))
     done
 
-    # Optional trailing patch group — matches both backward-compat tags
-    # (v0.5.9, patch omitted) and hotfix tags (v0.5.9.1, patch present)
-    local patch_group=""
-    if is_component_enabled "patch"; then
-        patch_group="(\.[0-9]+)?"
+    # Optional trailing hotfix_counter group — matches both backward-compat tags
+    # (v0.5.9, hotfix_counter omitted) and hotfix tags (v0.5.9.1, hotfix_counter present)
+    local hotfix_group=""
+    if is_component_enabled "hotfix_counter"; then
+        hotfix_group="(\.[0-9]+)?"
     fi
 
     if is_component_enabled "timestamp"; then
-        echo "^${prefix}${base}${patch_group}\.[0-9]{12,14}(-[0-9]+)?\$"
+        echo "^${prefix}${base}${hotfix_group}\.[0-9]{12,14}(-[0-9]+)?\$"
     else
-        echo "^${prefix}${base}${patch_group}\$"
+        echo "^${prefix}${base}${hotfix_group}\$"
     fi
 }
 
-# Build version string from epoch/major/minor/patch based on enabled components.
-# Patch is rendered only when enabled AND non-zero, so tags like v0.5.9 (patch=0)
-# stay identical to the pre-patch-component behaviour.
+# Build version string from epoch/major/patch/hotfix_counter based on enabled components.
+# Args: (epoch, major, patch[, hotfix_counter])
+# hotfix_counter is rendered only when enabled AND non-zero, so tags like v0.5.9
+# (hotfix_counter=0) stay identical to the pre-hotfix_counter-component behaviour.
 build_version_string() {
-    local epoch="$1" major="$2" minor="$3" patch="${4:-0}"
+    local epoch="$1" major="$2" patch="$3" hotfix_counter="${4:-0}"
     local sep
     sep=$(get_version_separator)
     local version=""
@@ -594,15 +612,15 @@ build_version_string() {
         [ -n "$version" ] && version="${version}${sep}"
         version="${version}${major}"
     fi
-    if is_component_enabled "minor"; then
-        [ -n "$version" ] && version="${version}${sep}"
-        version="${version}${minor}"
-    fi
     if is_component_enabled "patch"; then
-        # Numeric gate: append only when patch is a positive integer
-        if [ -n "$patch" ] && [ "$patch" -gt 0 ] 2>/dev/null; then
+        [ -n "$version" ] && version="${version}${sep}"
+        version="${version}${patch}"
+    fi
+    if is_component_enabled "hotfix_counter"; then
+        # Numeric gate: append only when hotfix_counter is a positive integer
+        if [ -n "$hotfix_counter" ] && [ "$hotfix_counter" -gt 0 ] 2>/dev/null; then
             [ -n "$version" ] && version="${version}${sep}"
-            version="${version}${patch}"
+            version="${version}${hotfix_counter}"
         fi
     fi
 
@@ -628,7 +646,7 @@ parse_tag_to_version() {
     fi
 }
 
-# Parse version string into PARSED_EPOCH, PARSED_MAJOR, PARSED_MINOR, PARSED_PATCH
+# Parse version string into PARSED_EPOCH, PARSED_MAJOR, PARSED_PATCH, PARSED_HOTFIX_COUNTER
 # Sets global variables — call after parse_tag_to_version
 # shellcheck disable=SC2034
 parse_version_components() {
@@ -649,24 +667,24 @@ parse_version_components() {
         PARSED_MAJOR="0"
     fi
 
-    if is_component_enabled "minor"; then
-        PARSED_MINOR=$(echo "$version" | cut -d. -f"${pos}")
+    if is_component_enabled "patch"; then
+        PARSED_PATCH=$(echo "$version" | cut -d. -f"${pos}")
         pos=$((pos + 1))
     else
-        PARSED_MINOR="0"
+        PARSED_PATCH="0"
     fi
 
-    # Patch: optional trailing field — absent for v0.5.9, present for v0.5.9.1
-    if is_component_enabled "patch"; then
+    # hotfix_counter: optional trailing field — absent for v0.5.9, present for v0.5.9.1
+    if is_component_enabled "hotfix_counter"; then
         local total_fields
         total_fields=$(echo "$version" | awk -F. '{print NF}')
         if [ "$total_fields" -ge "$pos" ]; then
-            PARSED_PATCH=$(echo "$version" | cut -d. -f"${pos}")
+            PARSED_HOTFIX_COUNTER=$(echo "$version" | cut -d. -f"${pos}")
         else
-            PARSED_PATCH="0"
+            PARSED_HOTFIX_COUNTER="0"
         fi
     else
-        PARSED_PATCH="0"
+        PARSED_HOTFIX_COUNTER="0"
     fi
 }
 

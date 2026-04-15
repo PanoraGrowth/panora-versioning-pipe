@@ -10,7 +10,7 @@ version:
     major:
       enabled: true
       initial: 0
-    minor:
+    patch:
       enabled: true
       initial: 0
     timestamp:

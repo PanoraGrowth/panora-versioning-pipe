@@ -16,7 +16,7 @@ version:
     major:
       enabled: true
       initial: 1
-    minor:
+    patch:
       enabled: true
       initial: 0
     timestamp:

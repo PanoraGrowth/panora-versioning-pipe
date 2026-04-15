@@ -111,9 +111,9 @@ teardown() { common_teardown; }
     [ "$status" -eq 0 ]
 }
 
-@test "is_component_enabled minor: true for all-components" {
+@test "is_component_enabled patch: true for all-components" {
     source_config_parser "all-components"
-    run is_component_enabled "minor"
+    run is_component_enabled "patch"
     [ "$status" -eq 0 ]
 }
 
@@ -141,9 +141,9 @@ teardown() { common_teardown; }
     assert_equals "0" "$output"
 }
 
-@test "get_component_initial: minor initial is 0 for all-components" {
+@test "get_component_initial: patch initial is 0 for all-components" {
     source_config_parser "all-components"
-    run get_component_initial "minor" "0"
+    run get_component_initial "patch" "0"
     assert_equals "0" "$output"
 }
 
@@ -794,11 +794,102 @@ version:
     major:
       enabled: true
       initial: 0
-    minor:
+    patch:
       enabled: true
       initial: 0
     timestamp:
       enabled: false'
     run is_component_enabled "epoch"
+    [ "$status" -eq 0 ]
+}
+
+# =============================================================================
+# §042 shim tests — legacy minor → patch, legacy patch → hotfix_counter
+# =============================================================================
+
+@test "shim: is_component_enabled patch returns true for legacy minor key (patch explicitly disabled)" {
+    # Shim: when patch is explicitly set to false BUT legacy minor key is true,
+    # is_component_enabled "patch" returns true (via shim) and logs DEPRECATION.
+    # This covers the migration scenario where a consumer opted out the new 'patch'
+    # key but still has the old 'minor' key enabled.
+    write_inline_fixture 'commits:
+  format: "conventional"
+version:
+  components:
+    major:
+      enabled: true
+      initial: 0
+    minor:
+      enabled: true
+      initial: 0
+    patch:
+      enabled: false
+    timestamp:
+      enabled: false'
+    run is_component_enabled "patch"
+    [ "$status" -eq 0 ]
+}
+
+@test "shim: is_component_enabled patch — legacy minor key shim returns 0" {
+    # Shim fires when patch is explicitly disabled BUT legacy minor key is true.
+    # Verifies the shim successfully enables the component (return status 0).
+    # Note: the DEPRECATION log calls log_info which is only available when
+    # common.sh is sourced alongside config-parser.sh (as in production).
+    write_inline_fixture 'commits:
+  format: "conventional"
+version:
+  components:
+    major:
+      enabled: true
+      initial: 0
+    minor:
+      enabled: true
+      initial: 0
+    patch:
+      enabled: false
+    timestamp:
+      enabled: false'
+    run is_component_enabled "patch"
+    [ "$status" -eq 0 ]
+}
+
+@test "shim: is_component_enabled hotfix_counter disabled when explicitly opted out" {
+    # Consumer explicitly sets hotfix_counter.enabled: false to opt out of hotfix flow.
+    # No shim — explicit opt-out is honored.
+    write_inline_fixture 'commits:
+  format: "conventional"
+version:
+  components:
+    major:
+      enabled: true
+      initial: 0
+    patch:
+      enabled: true
+      initial: 0
+    hotfix_counter:
+      enabled: false
+    timestamp:
+      enabled: false'
+    run is_component_enabled "hotfix_counter"
+    [ "$status" -ne 0 ]
+}
+
+@test "shim: is_component_enabled hotfix_counter enabled when default (no override)" {
+    # Consumer that does not override hotfix_counter — inherits defaults.yml which has
+    # hotfix_counter.enabled: true. No migration needed for the happy path.
+    write_inline_fixture 'commits:
+  format: "conventional"
+version:
+  components:
+    major:
+      enabled: true
+      initial: 0
+    patch:
+      enabled: true
+      initial: 0
+    timestamp:
+      enabled: false'
+    run is_component_enabled "hotfix_counter"
+    # defaults.yml has hotfix_counter.enabled: true, so merged result is true
     [ "$status" -eq 0 ]
 }

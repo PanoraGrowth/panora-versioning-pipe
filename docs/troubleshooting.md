@@ -193,29 +193,29 @@ This is documented in [`docs/architecture/README.md`](architecture/README.md#ver
 
 ## My hotfix commit produced no tag — nothing happened at all
 
-**Cause.** The `version.components.patch.enabled` flag is explicitly set to `false` in `.versioning.yml`. As of v0.6.3, `patch.enabled` is `true` by default, so this only happens when the consumer has opted out deliberately. With the opt-out, hotfix commits are a **no-op** — the pipe detects the signal, emits a 3-line INFO log explaining why nothing happened, and creates no tag.
+**Cause.** The `version.components.hotfix_counter.enabled` flag is explicitly set to `false` in `.versioning.yml`. As of v0.6.3, `hotfix_counter.enabled` is `true` by default, so this only happens when the consumer has opted out deliberately. With the opt-out, hotfix commits are a **no-op** — the pipe detects the signal, emits a 3-line INFO log explaining why nothing happened, and creates no tag.
 
 Look for the INFO log in your CI run:
 
 ```
-INFO: Hotfix commit detected ("hotfix: fix button") but version.components.patch.enabled is false.
-INFO: Skipping tag creation (consumer opted out of patch component).
-INFO: To enable hotfix tags, set version.components.patch.enabled: true in your .versioning.yml.
+INFO: Hotfix commit detected ("hotfix: fix button") but version.components.hotfix_counter.enabled is false.
+INFO: Skipping tag creation (consumer opted out of hotfix_counter component).
+INFO: To enable hotfix tags, set version.components.hotfix_counter.enabled: true in your .versioning.yml.
 ```
 
-**Fix.** If you want hotfix tags, remove the `patch.enabled: false` line (or set it to `true`):
+**Fix.** If you want hotfix tags, remove the `hotfix_counter.enabled: false` line (or set it to `true`):
 
 ```yaml
 version:
   components:
-    patch:
+    hotfix_counter:
       enabled: true
       initial: 0
 ```
 
-The next hotfix merged to your tag branch will bump PATCH and produce a tag like `v0.5.9.1`. See [`docs/adoption-guide.md`](adoption-guide.md) Step 5 for the full hotfix workflow.
+The next hotfix merged to your tag branch will bump HOTFIX_COUNTER and produce a tag like `v0.5.9.1`. See [`docs/adoption-guide.md`](adoption-guide.md) Step 5 for the full hotfix workflow.
 
-If you DO want hotfix commits to be a no-op (for example, if your repo uses a 3-component versioning scheme and hotfix is just a label without a distinct release channel), keep `patch.enabled: false` and treat the INFO log as expected behavior.
+If you DO want hotfix commits to be a no-op (for example, if your repo uses a 3-component versioning scheme and hotfix is just a label without a distinct release channel), keep `hotfix_counter.enabled: false` and treat the INFO log as expected behavior.
 
 ---
 

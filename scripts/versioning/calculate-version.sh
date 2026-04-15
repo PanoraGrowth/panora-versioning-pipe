@@ -28,8 +28,8 @@ IGNORE_PATTERN=$(get_ignore_patterns_regex)
 # Get initial values from config
 EPOCH_INITIAL=$(get_component_initial "epoch" "0")
 MAJOR_INITIAL=$(get_component_initial "major" "0")
-MINOR_INITIAL=$(get_component_initial "minor" "0")
 PATCH_INITIAL=$(get_component_initial "patch" "0")
+HOTFIX_COUNTER_INITIAL=$(get_component_initial "hotfix_counter" "0")
 
 # Build bump patterns from config
 MAJOR_PATTERN=$(build_bump_pattern "major")
@@ -60,17 +60,17 @@ if [ -z "$LATEST_TAG" ]; then
     log_info "No version tags found, starting from initial values"
     EPOCH=$EPOCH_INITIAL
     MAJOR=$MAJOR_INITIAL
-    MINOR=$MINOR_INITIAL
     PATCH=$PATCH_INITIAL
+    HOTFIX_COUNTER=$HOTFIX_COUNTER_INITIAL
 else
     log_info "Latest tag: $LATEST_TAG"
     VERSION=$(parse_tag_to_version "$LATEST_TAG")
     parse_version_components "$VERSION"
     EPOCH=$PARSED_EPOCH
     MAJOR=$PARSED_MAJOR
-    MINOR=$PARSED_MINOR
     PATCH=$PARSED_PATCH
-    CURRENT_VER=$(build_version_string "$EPOCH" "$MAJOR" "$MINOR" "$PATCH")
+    HOTFIX_COUNTER=$PARSED_HOTFIX_COUNTER
+    CURRENT_VER=$(build_version_string "$EPOCH" "$MAJOR" "$PATCH" "$HOTFIX_COUNTER")
     log_info "Current version: ${CURRENT_VER}"
 fi
 
@@ -123,22 +123,22 @@ echo ""
 # =============================================================================
 # Detect bump type
 # =============================================================================
-# Hotfix scenario + patch.enabled=true → bump PATCH, produce .N tag.
-# Hotfix scenario + patch.enabled=false → NO-OP: skip tag creation entirely and
-#   emit a 3-line INFO log explaining why. The consumer opted out of the patch
+# Hotfix scenario + hotfix_counter.enabled=true → bump HOTFIX_COUNTER, produce .N tag.
+# Hotfix scenario + hotfix_counter.enabled=false → NO-OP: skip tag creation entirely and
+#   emit a 3-line INFO log explaining why. The consumer opted out of the hotfix_counter
 #   component explicitly, so honoring that opt-out is the expected behavior.
 # Non-hotfix scenarios → fall through to standard last-commit-wins detection.
 BUMP_TYPE="timestamp_only"
 
 if [ "$SCENARIO" = "hotfix" ]; then
-    if is_component_enabled "patch"; then
+    if is_component_enabled "hotfix_counter"; then
         BUMP_TYPE="patch"
-        PATCH=$((PATCH + 1))
+        HOTFIX_COUNTER=$((HOTFIX_COUNTER + 1))
         log_info "Detected: PATCH bump (hotfix scenario)"
     else
-        log_info "Hotfix commit detected (\"$LAST_COMMIT\") but version.components.patch.enabled is false."
-        log_info "Skipping tag creation (consumer opted out of patch component)."
-        log_info "To enable hotfix tags, set version.components.patch.enabled: true in your .versioning.yml."
+        log_info "Hotfix commit detected (\"$LAST_COMMIT\") but version.components.hotfix_counter.enabled is false."
+        log_info "Skipping tag creation (consumer opted out of hotfix_counter component)."
+        log_info "To enable hotfix tags, set version.components.hotfix_counter.enabled: true in your .versioning.yml."
         write_state "/tmp/next_version.txt" ""
         write_state "/tmp/bump_type.txt" ""
         exit 0
@@ -146,17 +146,23 @@ if [ "$SCENARIO" = "hotfix" ]; then
 elif [ -n "$MAJOR_PATTERN" ] && echo "$LAST_COMMIT" | grep -qE "$MAJOR_PATTERN"; then
     BUMP_TYPE="major"
     MAJOR=$((MAJOR + 1))
-    MINOR=0
     PATCH=0
+    HOTFIX_COUNTER=0
     log_info "Detected: MAJOR bump"
 elif [ -n "$MINOR_PATTERN" ] && echo "$LAST_COMMIT" | grep -qE "$MINOR_PATTERN"; then
+    # NOTE: MINOR_PATTERN matches feat/feature (bump: minor). Post-042, this bumps
+    # the PATCH var (3rd slot, renamed from MINOR). HOTFIX_COUNTER (4th slot) resets.
     BUMP_TYPE="minor"
-    MINOR=$((MINOR + 1))
-    PATCH=0
+    PATCH=$((PATCH + 1))
+    HOTFIX_COUNTER=0
     log_info "Detected: MINOR bump"
 elif [ -n "$PATCH_PATTERN" ] && echo "$LAST_COMMIT" | grep -qE "$PATCH_PATTERN"; then
+    # NOTE: PATCH_PATTERN matches fix/security/revert/perf and bumps the PATCH
+    # var (3rd slot, named `patch` post-042). NOT related to HOTFIX_COUNTER,
+    # which is bumped only by SCENARIO=hotfix routing above.
     BUMP_TYPE="patch"
     PATCH=$((PATCH + 1))
+    HOTFIX_COUNTER=0
     log_info "Detected: PATCH bump"
 else
     # No bump pattern matched — check if timestamp can differentiate
@@ -175,7 +181,7 @@ echo ""
 # =============================================================================
 # Build the full version tag
 # =============================================================================
-CURRENT_VERSION=$(build_version_string "$EPOCH" "$MAJOR" "$MINOR" "$PATCH")
+CURRENT_VERSION=$(build_version_string "$EPOCH" "$MAJOR" "$PATCH" "$HOTFIX_COUNTER")
 NEXT_VERSION=$(build_full_tag "$CURRENT_VERSION")
 
 log_info "Next version will be: $NEXT_VERSION"

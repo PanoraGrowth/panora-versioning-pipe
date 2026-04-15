@@ -41,10 +41,10 @@ teardown() { common_teardown; }
     assert_equals '^[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?\.[0-9]{12,14}(-[0-9]+)?$' "$output"
 }
 
-@test "get_tag_pattern: patch-disabled fixture — no optional patch group" {
-    # Consumer explicitly opts out of patch. Pattern should NOT contain
-    # the optional patch group.
-    source_config_parser "patch-disabled"
+@test "get_tag_pattern: hotfix-counter-disabled fixture — no optional hotfix_counter group" {
+    # Consumer explicitly opts out of hotfix_counter. Pattern should NOT contain
+    # the optional hotfix_counter group.
+    source_config_parser "hotfix-counter-disabled"
     run get_tag_pattern
     assert_equals '^[0-9]+\.[0-9]+$' "$output"
 }
