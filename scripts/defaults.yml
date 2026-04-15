@@ -56,7 +56,7 @@ version:
   separators:
     version: "."
     timestamp: "."
-    suffix: ""
+    tag_append: ""
 
 commit_types:
   - name: "breaking"

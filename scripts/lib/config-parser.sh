@@ -202,7 +202,13 @@ get_timestamp_separator() {
 }
 
 get_tag_suffix() {
-    config_get "version.separators.suffix" ""
+    local val
+    val=$(config_get "version.separators.tag_append" "")
+    # Legacy shim: suffix → tag_append
+    if [ -z "$val" ]; then
+        val=$(config_get "version.separators.suffix" "")
+    fi
+    echo "$val"
 }
 
 use_tag_prefix_v() {
