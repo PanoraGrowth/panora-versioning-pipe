@@ -893,3 +893,40 @@ version:
     # defaults.yml has hotfix_counter.enabled: true, so merged result is true
     [ "$status" -eq 0 ]
 }
+
+# =============================================================================
+# §044 — commit-types.yml catalog tests
+# =============================================================================
+
+@test "§044 catalog: get_commit_types_pattern returns core types from catalog" {
+    source_config_parser "minimal"
+    run get_commit_types_pattern
+    assert_output_matches "feat"
+    assert_output_matches "fix"
+    assert_output_matches "chore"
+    assert_output_matches "breaking"
+}
+
+@test "§044 catalog: extended type regulatory is recognized by get_bump_action without override" {
+    source_config_parser "minimal"
+    run get_bump_action "regulatory"
+    assert_equals "patch" "$output"
+}
+
+@test "§044 catalog: extended type infra is in commit_types pattern from catalog" {
+    source_config_parser "minimal"
+    run get_commit_types_pattern
+    assert_output_matches "infra"
+}
+
+@test "§044 catalog: extended type wip has bump=none from catalog" {
+    source_config_parser "minimal"
+    run get_bump_action "wip"
+    assert_equals "none" "$output"
+}
+
+@test "§044 catalog: extended type deploy has bump=patch from catalog" {
+    source_config_parser "minimal"
+    run get_bump_action "deploy"
+    assert_equals "patch" "$output"
+}

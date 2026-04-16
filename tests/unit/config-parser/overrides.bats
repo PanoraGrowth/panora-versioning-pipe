@@ -115,8 +115,9 @@ teardown() { common_teardown; }
     assert_equals "none" "$output"
 }
 
-@test "no overrides: minimal fixture has no infra type" {
+@test "no overrides: minimal fixture infra type comes from catalog with bump=patch" {
+    # infra is now part of the built-in catalog (commit-types.yml) — bump=patch by default.
     source_config_parser "minimal"
     run get_bump_action "infra"
-    assert_equals "none" "$output"
+    assert_equals "patch" "$output"
 }

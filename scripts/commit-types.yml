@@ -1,0 +1,186 @@
+# =============================================================================
+# commit-types.yml - Commit type catalog for versioning system
+# =============================================================================
+# This file defines the built-in commit type catalog.
+# Consumers can patch or extend types via commit_type_overrides in .versioning.yml
+# without touching this file.
+# =============================================================================
+
+commit_types:
+  # ── Core types (always shipped) ────────────────────────────────────────────
+
+  - name: "breaking"
+    description: "Breaking changes"
+    bump: "major"
+    emoji: "💥"
+    changelog_group: "Breaking Changes"
+
+  - name: "feat"
+    description: "New feature"
+    bump: "minor"
+    emoji: "🚀"
+    changelog_group: "Features"
+
+  - name: "feature"
+    description: "New feature (alias for feat)"
+    bump: "minor"
+    emoji: "🚀"
+    changelog_group: "Features"
+
+  - name: "fix"
+    description: "Bug fix"
+    bump: "patch"
+    emoji: "🐛"
+    changelog_group: "Bug Fixes"
+
+  - name: "hotfix"
+    description: "Urgent fix"
+    bump: "patch"
+    emoji: "🚑"
+    changelog_group: "Hotfixes"
+
+  - name: "security"
+    description: "Security fix"
+    bump: "patch"
+    emoji: "🔒"
+    changelog_group: "Security"
+
+  - name: "revert"
+    description: "Revert changes"
+    bump: "patch"
+    emoji: "⏪"
+    changelog_group: "Reverts"
+
+  - name: "perf"
+    description: "Performance improvements"
+    bump: "patch"
+    emoji: "⚡"
+    changelog_group: "Performance"
+
+  - name: "refactor"
+    description: "Code refactoring"
+    bump: "none"
+    emoji: "🔨"
+    changelog_group: "Refactoring"
+
+  - name: "docs"
+    description: "Documentation"
+    bump: "none"
+    emoji: "📚"
+    changelog_group: "Documentation"
+
+  - name: "test"
+    description: "Tests"
+    bump: "none"
+    emoji: "🧪"
+    changelog_group: "Testing"
+
+  - name: "chore"
+    description: "Maintenance"
+    bump: "none"
+    emoji: "🔧"
+    changelog_group: "Chores"
+
+  - name: "build"
+    description: "Build system"
+    bump: "none"
+    emoji: "🏗️"
+    changelog_group: "Build"
+
+  - name: "ci"
+    description: "CI/CD"
+    bump: "none"
+    emoji: "⚙️"
+    changelog_group: "CI/CD"
+
+  - name: "style"
+    description: "Code style"
+    bump: "none"
+    emoji: "🎨"
+    changelog_group: "Style"
+
+  # ── Extended catalog (pre-defined, activate via commit_type_overrides) ──────
+
+  - name: "infra"
+    description: "Infrastructure changes (IaC, K8s, cloud)"
+    bump: "patch"
+    emoji: "🔩"
+    changelog_group: "Infrastructure"
+
+  - name: "deploy"
+    description: "Explicit deployment"
+    bump: "patch"
+    emoji: "🚢"
+    changelog_group: "Deployments"
+
+  - name: "config"
+    description: "Non-code configuration changes"
+    bump: "none"
+    emoji: "⚙️"
+    changelog_group: "Configuration"
+
+  - name: "deps"
+    description: "Dependency updates with version impact"
+    bump: "patch"
+    emoji: "📦"
+    changelog_group: "Dependencies"
+
+  - name: "migration"
+    description: "Database migrations"
+    bump: "patch"
+    emoji: "🗄️"
+    changelog_group: "Migrations"
+
+  - name: "rollback"
+    description: "Version or deployment rollback"
+    bump: "patch"
+    emoji: "⏮️"
+    changelog_group: "Rollbacks"
+
+  - name: "data"
+    description: "Data changes (seeds, fixtures, ETL)"
+    bump: "patch"
+    emoji: "💾"
+    changelog_group: "Data Changes"
+
+  - name: "compliance"
+    description: "Internal compliance-required changes"
+    bump: "none"
+    emoji: "📋"
+    changelog_group: "Compliance"
+
+  - name: "audit"
+    description: "Traceability and audit changes"
+    bump: "none"
+    emoji: "🔍"
+    changelog_group: "Audit"
+
+  - name: "regulatory"
+    description: "External regulation changes (PCI, SOX, GDPR)"
+    bump: "patch"
+    emoji: "⚖️"
+    changelog_group: "Regulatory"
+
+  - name: "iac"
+    description: "Infrastructure as Code (Terraform, Pulumi, CloudFormation)"
+    bump: "patch"
+    emoji: "🏗️"
+    changelog_group: "Infrastructure as Code"
+
+  - name: "release"
+    description: "Release commits (used by release bots)"
+    bump: "none"
+    emoji: "🏷️"
+    changelog_group: "Releases"
+
+  - name: "wip"
+    description: "Work in progress (squash before merge)"
+    bump: "none"
+    emoji: "🚧"
+    changelog_group: "Work in Progress"
+
+  - name: "experiment"
+    description: "Experiments or spikes not going to production"
+    bump: "none"
+    emoji: "🧪"
+    changelog_group: "Experiments"
