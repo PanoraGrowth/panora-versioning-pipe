@@ -108,7 +108,6 @@ branches:
   development: "development"
   pre_production: "pre-production"
   production: "main"
-  tag_on: "development"      # Branch where tags are created (development | main)
 
 version_file:
   enabled: false
