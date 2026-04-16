@@ -307,3 +307,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: 0cfb9a8](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/0cfb9a80d10351929367c8d4027a279e284d0ad5)
 
 
+## v0.11.7 - 2026-04-16
+
+- 🚀 feat(version_file): unify config into groups, remove legacy top-level fields (#68)
+  - _Agustín Manessi_
+  - [Commit: ca43bd5](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/ca43bd5b845bcc0afa8bda6c00793d05871fb442)
+
+
