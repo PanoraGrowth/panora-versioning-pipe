@@ -105,9 +105,10 @@ hotfix:
     - "[Hh]otfix/*"
 
 branches:
-  development: "development"
-  pre_production: "pre-production"
-  production: "main"
+  tag_on: "development"
+  hotfix_targets:
+    - "main"
+    - "pre-production"
 
 version_file:
   enabled: false

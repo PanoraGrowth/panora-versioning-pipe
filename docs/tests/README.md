@@ -2,7 +2,7 @@
 
 Unit tests and integration tests validated before every release.
 
-**As of ticket 019 (monorepo gap tests)**: 321 unit tests (bats-core) and 12 end-to-end integration scenarios. Integration scenarios run against both GitHub and Bitbucket using a shared `test-scenarios.yml`. The `config_override` mechanism deep-merges deltas on top of the test repo's `.versioning.yml` (not a full replacement), so scenarios only specify keys they actually change.
+**As of ticket 050 (branches redesign)**: 363 unit tests (bats-core) and 13 end-to-end integration scenarios. Integration scenarios run against both GitHub and Bitbucket using a shared `test-scenarios.yml`. The `config_override` mechanism deep-merges deltas on top of the test repo's `.versioning.yml` (not a full replacement), so scenarios only specify keys they actually change.
 
 ---
 
@@ -85,13 +85,14 @@ These tests run against real repositories, creating actual PRs, merging, and ver
 - **Hotfix to main with PATCH bump → full end-to-end**: merges a `hotfix:` commit squash-style from a `hotfix/auto-*` branch, verifies tag ends in `.1` and CHANGELOG header carries `(Hotfix)` marker
 - **Hotfix with scope → PATCH bump**: `hotfix(security):` commit via squash merge validates the `hotfix(*` glob pattern produces patch bump and `(Hotfix)` marker
 - **Hotfix uppercase branch prefix → PATCH bump**: `Hotfix/` branch prefix with PR title `Hotfix/description` validates the `[Hh]otfix/*` glob pattern — covers the real-world case where GitHub auto-generates the PR title from the branch name
+- **Hotfix custom hotfix_targets → PR check**: validates PR check passes for a `hotfix/` branch when `config_override` sets a custom `branches.hotfix_targets` list — confirms new branch model routes correctly (PR-only, no merge)
 
 ---
 
 ## Platforms
 
-- **GitHub Actions** — unit tests + integration tests (12 scenarios)
-- **Bitbucket Pipelines** — unit tests + integration tests (12 scenarios, same `test-scenarios.yml`)
+- **GitHub Actions** — unit tests + integration tests (13 scenarios)
+- **Bitbucket Pipelines** — unit tests + integration tests (13 scenarios, same `test-scenarios.yml`)
 
 ### Bitbucket integration notes
 

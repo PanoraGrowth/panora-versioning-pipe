@@ -65,7 +65,7 @@ Three decisions worth understanding:
 
 - **`version.tag_prefix_v: true`** — produces tags like `v1.2.3`. The npm and Astro ecosystems expect the `v` prefix by convention; set this to `false` if your release tooling parses the tag as a bare semver.
 - **`commit_type_overrides.docs.bump: "none"`** — documentation-only commits won't trigger a release. This is the pattern the pipe itself uses.
-- **`branches.tag_on: "main"`** — single-trunk workflow. If you use a dev/main flow, set it to `development` instead; see `scripts/defaults.yml` for the full branch model.
+- **`branches.tag_on: "main"`** — single-trunk workflow. If you use a dev/main flow, set it to `development` instead. The `hotfix_targets` list (default: `["main", "pre-production"]`) controls which branches can receive hotfix PRs; adjust it to match your topology.
 
 All other keys inherit from [`scripts/defaults.yml`](../scripts/defaults.yml). You only override what you need.
 

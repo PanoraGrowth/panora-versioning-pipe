@@ -551,20 +551,19 @@ get_hotfix_keyword() {
 # BRANCHES CONFIGURATION
 # =============================================================================
 
-get_development_branch() {
-    config_get "branches.development" "development"
-}
-
-get_preprod_branch() {
-    config_get "branches.pre_production" "pre-production"
-}
-
-get_production_branch() {
-    config_get "branches.production" "main"
-}
-
 get_tag_branch() {
     config_get "branches.tag_on" "development"
+}
+
+get_hotfix_targets() {
+    config_get_array "branches.hotfix_targets"
+}
+
+is_hotfix_target() {
+    local branch="$1"
+    local targets
+    targets=$(get_hotfix_targets)
+    echo "$targets" | tr ' ' '\n' | grep -qx "$branch"
 }
 
 # =============================================================================
