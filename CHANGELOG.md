@@ -293,3 +293,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: 7cd42b6](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/7cd42b6a3858d6fa38d4a30f88ee6a7aae08d612)
 
 
+## v0.11.5 - 2026-04-16
+
+- 🚀 feat(detection): unify hotfix detection to branch name as single source of truth (#66)
+  - _Agustín Manessi_
+  - [Commit: 2363250](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/23632507505c3465bd7e0447ceb7d0d62b0e09bc)
+
+
