@@ -124,7 +124,7 @@ After the first merge to `main` completes, verify:
    git tag --list | tail -1
    ```
 
-   You should see a new tag — `v0.1.0` (or similar) if you set `tag_prefix_v: true`, or a bare `1.3.20260410143022` timestamp tag if you kept the default timestamp mode.
+   You should see a new tag — `v0.1.0` (or similar) if you set `tag_prefix_v: true`, or a bare `1.3.0` SemVer tag with the default settings.
 
 2. **`CHANGELOG.md` exists on `main`** and has an entry for the new version:
 
