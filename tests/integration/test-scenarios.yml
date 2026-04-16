@@ -34,7 +34,7 @@ scenarios:
     expected:
       pr_check: pass
       tag_created: true
-      tag_pattern: "^v\\d+\\.\\d+\\.\\d+\\.\\d+$"
+      tag_pattern: "^v\\d+\\.\\d+\\.\\d+$"
       changelog_contains: "fix: resolve automated test bug"
 
   - name: chore-minor-bump
