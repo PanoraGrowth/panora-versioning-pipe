@@ -81,6 +81,20 @@ teardown() { common_teardown; }
     assert_equals "0.12.0" "$output"
 }
 
+@test "build_version_string: patch=0 with hotfix_counter=1 renders epoch.major.0.1" {
+    # Hotfix applied to a .0 release — patch must stay 0, not be omitted.
+    # Regression guard: a gate like [ "$patch" -gt 0 ] would produce 0.5.1 instead of 0.5.0.1.
+    source_config_parser "with-hotfix-counter"
+    run build_version_string "0" "5" "0" "1"
+    assert_equals "0.5.0.1" "$output"
+}
+
+@test "build_version_string: patch=0 with hotfix_counter=3 renders epoch.major.0.3" {
+    source_config_parser "with-hotfix-counter"
+    run build_version_string "0" "5" "0" "3"
+    assert_equals "0.5.0.3" "$output"
+}
+
 # =============================================================================
 # parse_version_components — PARSED_HOTFIX_COUNTER global
 # =============================================================================
