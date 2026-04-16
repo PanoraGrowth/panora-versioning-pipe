@@ -185,7 +185,7 @@ Componente especial del flujo hotfix (v0.6.3+). Cuando está habilitado, un comm
 
 | Key | Type / Values | Comportamiento probado | Cobertura |
 |-----|---------------|------------------------|-----------|
-| `timestamp.enabled` | `true` · `false` · default `true` ⚠️ pendiente cambiar a `false` ([ticket 041](../../temp/features/041-timestamp-disabled-by-default.md)) | `true` → timestamp appended al tag (`0.5.9.20260407120000`) · `false` → tag sin timestamp | ✅ ambos |
+| `timestamp.enabled` | `true` · `false` · default `false` | `true` → timestamp appended al tag (`0.5.9.20260407120000`) · `false` → tag sin timestamp | ✅ ambos |
 | `timestamp.format` | `string` (strftime) · default `"%Y%m%d%H%M%S"` | Formato aplicado al generar el timestamp · getter probado | ⚠️ solo getter — formato alternativo no probado en output |
 | `timestamp.timezone` | `string` · default `"UTC"` | TZ aplicada al generar el timestamp · `build_full_tag` respeta el timezone · solo probado con `UTC` — otras zonas (`America/Buenos_Aires`, `Europe/Madrid`) sin test | ⚠️ solo UTC |
 

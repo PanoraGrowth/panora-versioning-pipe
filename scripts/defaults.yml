@@ -47,7 +47,7 @@ version:
       enabled: true
       initial: 0
     timestamp:
-      enabled: true
+      enabled: false
       format: "%Y%m%d%H%M%S"
       timezone: "UTC"
 
