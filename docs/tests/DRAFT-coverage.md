@@ -309,13 +309,30 @@ Patrones glob evaluados contra el subject del commit (o el segundo padre en merg
 
 [→ defaults.yml:107](../../scripts/defaults.yml#L107)
 
-Mapea los nombres de rama a los roles del pipeline. La detección de scenario usa estos valores para determinar qué acción tomar en cada contexto.
+Mapea los roles del pipeline a nombres de rama. **Breaking change v050**: las keys `development`, `pre_production`, `production` fueron reemplazadas por `tag_on` + `hotfix_targets`.
 
 | Key | Type / Values | Comportamiento probado | Cobertura |
 |-----|---------------|------------------------|-----------|
-| [`branches.development`](../../scripts/defaults.yml#L108) | `string` · default `"development"` | Getter retorna valor correcto · custom fixture `dev` funciona | ✅ |
-| [`branches.pre_production`](../../scripts/defaults.yml#L109) | `string` · default `"pre-production"` | Getter retorna valor correcto · custom fixture `staging` funciona | ✅ |
-| [`branches.production`](../../scripts/defaults.yml#L110) | `string` · default `"main"` | Getter retorna valor correcto · custom fixture `master` funciona | ✅ |
+| [`branches.tag_on`](../../scripts/defaults.yml#L108) | `string` · default `"development"` | Getter retorna `"development"` por default · custom fixture `"dev"` funciona · PR a `tag_on` → `development_release` | ✅ |
+| [`branches.hotfix_targets`](../../scripts/defaults.yml#L109) | `string[]` · default `["main", "pre-production"]` | Getter retorna lista correcta · custom fixture `["master", "staging"]` funciona · PR de `hotfix/` a target en lista → `hotfix` · PR de `tag_on` a target en lista → `promotion_to_main` · PR de feature a target en lista → `unknown` | ✅ |
+
+**Scenarios de detección probados (unit)**
+
+| Escenario | Config | Cobertura |
+|-----------|--------|-----------|
+| feature → tag_on → `development_release` | default + custom fixture | ✅ |
+| hotfix/ → hotfix_target → `hotfix` | default (pre-production, main) + custom (staging, master) | ✅ |
+| tag_on branch → hotfix_target → `promotion_to_main` | default + custom | ✅ |
+| feature → hotfix_target → `unknown` | default | ✅ |
+| feature → branch no configurada → `unknown` | default | ✅ |
+
+**Scenarios de integration probados (end-to-end)**
+
+| Escenario | Config | Cobertura |
+|-----------|--------|-----------|
+| `hotfix-custom-target-pr-check` | `tag_on=main`, `hotfix_targets=[main, pre-production]` · PR check only | ✅ |
+| `tag-on-main-development-release` | `tag_on=main`, `hotfix_targets=[main, pre-production, uat]` · merge · tag semver | ✅ |
+| `hotfix-to-main-extended-targets` | `tag_on=main`, `hotfix_targets=[main, pre-production, uat]` · merge · tag con `.1` | ✅ |
 
 ---
 
