@@ -286,3 +286,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: 913ba45](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/913ba453aae3826c2bdebe29b590af67ce77a431)
 
 
+## v0.11.4 - 2026-04-16
+
+- 🚀 feat(config): change timestamp.enabled default to false (#65)
+  - _Agustín Manessi_
+  - [Commit: 7cd42b6](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/7cd42b6a3858d6fa38d4a30f88ee6a7aae08d612)
+
+
