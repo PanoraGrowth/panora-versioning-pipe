@@ -193,6 +193,53 @@ scenarios:
       pr_check: pass
       tag_created: false
 
+  - name: tag-on-main-development-release
+    description: "feature/ branch → main with tag_on=main + 3-entry hotfix_targets. Validates development_release scenario fires (not hotfix) and creates a regular tag."
+    merge_method: squash
+    config_override:
+      branches:
+        tag_on: "main"
+        hotfix_targets:
+          - "main"
+          - "pre-production"
+          - "uat"
+    commits:
+      - message: "feat: validate tag_on main with extended hotfix_targets"
+        files:
+          test-artifact.txt: "tag-on-main test"
+    expected:
+      pr_check: pass
+      tag_created: true
+      tag_pattern: "^v\\d+\\.\\d+\\.\\d+$"
+      changelog_contains: "validate tag_on main with extended hotfix_targets"
+
+  - name: hotfix-to-main-extended-targets
+    description: "hotfix/ branch → main with tag_on=main + hotfix_targets=[main, pre-production, uat]. Validates hotfix scenario fires and creates tag with hotfix_counter bump."
+    merge_method: squash
+    branch_prefix: "hotfix/auto"
+    pr_title: "hotfix: validate extended hotfix_targets with uat"
+    config_override:
+      branches:
+        tag_on: "main"
+        hotfix_targets:
+          - "main"
+          - "pre-production"
+          - "uat"
+      version:
+        components:
+          hotfix_counter:
+            enabled: true
+    commits:
+      - message: "hotfix: validate extended hotfix_targets with uat"
+        files:
+          test-artifact.txt: "hotfix extended targets test"
+    expected:
+      pr_check: pass
+      tag_created: true
+      tag_pattern: '^v\d+\.\d+\.\d+\.1$'
+      changelog_contains: "validate extended hotfix_targets with uat"
+      changelog_section_marker: "(Hotfix)"
+
   - name: hotfix-to-main-with-patch-bump
     description: "Full hotfix wire-up end-to-end: a hotfix/ branch is merged to main (squash), the pipe bumps PATCH, tags v*.*.*.1, and the CHANGELOG header carries the (Hotfix) marker. Runs on BOTH GitHub and Bitbucket harnesses since detection is now pure-git (v0.6.3+)."
     merge_method: squash
