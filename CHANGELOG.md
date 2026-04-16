@@ -300,3 +300,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: 2363250](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/23632507505c3465bd7e0447ceb7d0d62b0e09bc)
 
 
+## v0.11.6 - 2026-04-16
+
+- 🐛 fix(tests): correct fix-patch-bump tag_pattern after timestamp.enabled default change (#67)
+  - _Agustín Manessi_
+  - [Commit: 0cfb9a8](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/0cfb9a80d10351929367c8d4027a279e284d0ad5)
+
+
