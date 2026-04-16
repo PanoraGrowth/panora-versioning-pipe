@@ -655,36 +655,6 @@ hotfix:
     [ "$status" -ne 0 ]
 }
 
-@test "get_version_file_type: default is yaml" {
-    source_config_parser "minimal"
-    run get_version_file_type
-    assert_equals "yaml" "$output"
-}
-
-@test "get_version_file_path: default is version.yaml" {
-    source_config_parser "minimal"
-    run get_version_file_path
-    assert_equals "version.yaml" "$output"
-}
-
-@test "get_version_file_key: default is version" {
-    source_config_parser "minimal"
-    run get_version_file_key
-    assert_equals "version" "$output"
-}
-
-@test "get_version_file_pattern: default is empty" {
-    source_config_parser "minimal"
-    run get_version_file_pattern
-    assert_empty "$output"
-}
-
-@test "get_version_file_replacement: default is empty" {
-    source_config_parser "minimal"
-    run get_version_file_replacement
-    assert_empty "$output"
-}
-
 @test "has_version_file_groups: false by default" {
     source_config_parser "minimal"
     run has_version_file_groups
@@ -697,10 +667,86 @@ hotfix:
     assert_equals "0" "$output"
 }
 
-@test "get_unmatched_files_behavior: default is update_all" {
-    source_config_parser "minimal"
-    run get_unmatched_files_behavior
-    assert_equals "update_all" "$output"
+@test "get_version_file_group_files_count: returns file count for group" {
+    write_inline_fixture '
+commits:
+  format: "conventional"
+version_file:
+  enabled: true
+  groups:
+    - name: "root"
+      files:
+        - path: "version.yaml"
+        - path: "src/version.ts"
+          pattern: "__VERSION__"
+'
+    run get_version_file_group_files_count 0
+    assert_equals "2" "$output"
+}
+
+@test "get_version_file_group_file_path: returns path for file entry" {
+    write_inline_fixture '
+commits:
+  format: "conventional"
+version_file:
+  enabled: true
+  groups:
+    - name: "root"
+      files:
+        - path: "version.yaml"
+        - path: "src/version.ts"
+          pattern: "__VERSION__"
+'
+    run get_version_file_group_file_path 0 0
+    assert_equals "version.yaml" "$output"
+}
+
+@test "get_version_file_group_file_path: second file entry" {
+    write_inline_fixture '
+commits:
+  format: "conventional"
+version_file:
+  enabled: true
+  groups:
+    - name: "root"
+      files:
+        - path: "version.yaml"
+        - path: "src/version.ts"
+          pattern: "__VERSION__"
+'
+    run get_version_file_group_file_path 0 1
+    assert_equals "src/version.ts" "$output"
+}
+
+@test "get_version_file_group_file_pattern: returns pattern when set" {
+    write_inline_fixture '
+commits:
+  format: "conventional"
+version_file:
+  enabled: true
+  groups:
+    - name: "root"
+      files:
+        - path: "src/version.ts"
+          pattern: "__VERSION__"
+'
+    run get_version_file_group_file_pattern 0 0
+    assert_equals "__VERSION__" "$output"
+}
+
+@test "get_version_file_group_file_pattern: empty when not set" {
+    write_inline_fixture '
+commits:
+  format: "conventional"
+version_file:
+  enabled: true
+  groups:
+    - name: "root"
+      files:
+        - path: "version.yaml"
+'
+    run get_version_file_group_file_pattern 0 0
+    assert_empty "$output"
 }
 
 # =============================================================================

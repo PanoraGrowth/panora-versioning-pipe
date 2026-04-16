@@ -111,29 +111,23 @@ branches:
 
 version_file:
   enabled: false
-  type: "yaml"              # yaml | json | regex
-  file: "version.yaml"      # For yaml/json types
-  key: "version"            # For yaml/json types
-  files: []                 # For regex type: list of files to update (legacy, use groups for monorepos)
-  pattern: ""               # For regex type: pattern to match
-  replacement: ""           # For regex type: replacement (use {{VERSION}})
-
-  # Groups for monorepo support (optional)
-  # When groups are defined, only files in matched groups are updated
-  # If no groups are defined, all files in 'files' array are updated (legacy behavior)
-  groups: []
-  # Example group structure:
+  # Groups — each group defines which files to update and when.
+  # Without trigger_paths, a group always updates.
+  # With trigger_paths, only updates when changed files match the globs.
+  # File type is inferred by extension: .yaml/.yml → yq key replace,
+  # .json → yq json, other → requires pattern (placeholder in file).
+  # Example:
   # groups:
-  #   - name: "app-name"           # Identifier for logging
-  #     trigger_paths:             # Glob patterns - if changed files match, this group is triggered
-  #       - "projects/app/**"
-  #     files:                     # Files to update when this group is triggered
-  #       - "projects/app/src/environments/environment.dev.ts"
-  #     update_all: false          # If true, when this group triggers, ALL groups are updated
-
-  # Fallback behavior when a changed file doesn't match any trigger_paths
-  # Options: "update_all" (safe default) | "update_none" | "error"
-  unmatched_files_behavior: "update_all"
+  #   - name: "root"
+  #     files:
+  #       - path: "version.yaml"
+  #   - name: "api"
+  #     trigger_paths: ["api/**"]
+  #     files:
+  #       - path: "api/version.yaml"
+  #       - path: "api/src/version.ts"
+  #         pattern: "__VERSION__"
+  groups: []
 
 notifications:
   teams:

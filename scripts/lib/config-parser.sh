@@ -822,38 +822,8 @@ is_version_file_enabled() {
     [ "$enabled" = "true" ]
 }
 
-# Get version file type (yaml | json | regex)
-get_version_file_type() {
-    config_get "version_file.type" "yaml"
-}
-
-# Get version file path (for yaml/json types)
-get_version_file_path() {
-    config_get "version_file.file" "version.yaml"
-}
-
-# Get version file key (for yaml/json types)
-get_version_file_key() {
-    config_get "version_file.key" "version"
-}
-
-# Get version files list (for regex type) - returns newline-separated
-get_version_files_list() {
-    yq -r '.version_file.files // [] | .[]' "$MERGED_CONFIG" 2>/dev/null
-}
-
-# Get version file pattern (for regex type)
-get_version_file_pattern() {
-    config_get "version_file.pattern" ""
-}
-
-# Get version file replacement (for regex type)
-get_version_file_replacement() {
-    config_get "version_file.replacement" ""
-}
-
 # =============================================================================
-# VERSION FILE GROUPS (Monorepo Support)
+# VERSION FILE GROUPS
 # =============================================================================
 
 # Check if groups are configured
@@ -868,33 +838,34 @@ get_version_file_groups_count() {
     yq -r '.version_file.groups // [] | length' "$MERGED_CONFIG" 2>/dev/null
 }
 
-# Get group name by index
+# Get group name by index (defaults to "group_N" if not set)
 get_version_file_group_name() {
     local index="$1"
     yq -r ".version_file.groups[$index].name // \"group_$index\"" "$MERGED_CONFIG" 2>/dev/null
 }
 
-# Get group trigger_paths by index (newline-separated)
+# Get group trigger_paths by index (newline-separated; empty = always update)
 get_version_file_group_trigger_paths() {
     local index="$1"
     yq -r ".version_file.groups[$index].trigger_paths // [] | .[]" "$MERGED_CONFIG" 2>/dev/null
 }
 
-# Get group files by index (newline-separated)
-get_version_file_group_files() {
+# Get number of files in a group
+get_version_file_group_files_count() {
     local index="$1"
-    yq -r ".version_file.groups[$index].files // [] | .[]" "$MERGED_CONFIG" 2>/dev/null
+    yq -r ".version_file.groups[$index].files // [] | length" "$MERGED_CONFIG" 2>/dev/null
 }
 
-# Check if group has update_all flag
-is_version_file_group_update_all() {
-    local index="$1"
-    local update_all
-    update_all=$(yq -r ".version_file.groups[$index].update_all // false" "$MERGED_CONFIG" 2>/dev/null)
-    [ "$update_all" = "true" ]
+# Get path for a specific file entry in a group (may be a glob)
+get_version_file_group_file_path() {
+    local group_index="$1"
+    local file_index="$2"
+    yq -r ".version_file.groups[$group_index].files[$file_index].path // \"\"" "$MERGED_CONFIG" 2>/dev/null
 }
 
-# Get unmatched files behavior
-get_unmatched_files_behavior() {
-    config_get "version_file.unmatched_files_behavior" "update_all"
+# Get pattern for a specific file entry in a group (empty = auto-infer from extension)
+get_version_file_group_file_pattern() {
+    local group_index="$1"
+    local file_index="$2"
+    yq -r ".version_file.groups[$group_index].files[$file_index].pattern // \"\"" "$MERGED_CONFIG" 2>/dev/null
 }

@@ -1,13 +1,7 @@
 #!/usr/bin/env bats
 
-# Tests for matches_glob() and version-file group matching logic.
-#
-# matches_glob converts a glob pattern to a regex and checks file paths.
-# The groups flow uses trigger_paths + matches_glob to decide which version
-# files to update in monorepo setups.
-#
-# Sourcing write-version-file.sh directly is not feasible (it has side effects
-# and calls exit). Instead we source the function definition in isolation.
+# version-file-groups.bats — tests for matches_glob, should_update_group,
+# infer_write_type, and config-parser group helpers.
 
 load '../../helpers/setup'
 load '../../helpers/assertions'
@@ -17,15 +11,15 @@ PIPE_DIR="/pipe"
 
 setup() {
     common_setup
-    # Source matches_glob by extracting just the function from write-version-file.sh.
-    # The script has set -e and top-level side effects, so we extract the function
-    # body using sed and eval it.
+    # Extract matches_glob and infer_write_type from write-version-file.sh.
+    # The script has set -e and top-level side effects, so we extract functions
+    # individually and eval them.
     eval "$(sed -n '/^matches_glob()/,/^}/p' "${PIPE_DIR}/versioning/write-version-file.sh")"
+    eval "$(sed -n '/^infer_write_type()/,/^}/p' "${PIPE_DIR}/versioning/write-version-file.sh")"
 }
 
 teardown() {
     common_teardown
-    rm -f /tmp/group_matched /tmp/file_matched /tmp/unmatched_files
 }
 
 # =============================================================================
@@ -100,11 +94,38 @@ teardown() {
     [ "$status" -eq 0 ]
 }
 
-@test "matches_glob: * matches trailing slash (zero-width)" {
-    # The regex [^\/]* matches zero or more non-slash chars,
-    # so "packages/frontend/" matches "packages/frontend/*"
-    run matches_glob "packages/frontend/" "packages/frontend/*"
-    [ "$status" -eq 0 ]
+# =============================================================================
+# infer_write_type
+# =============================================================================
+
+@test "infer_write_type: .yaml → yaml" {
+    run infer_write_type "version.yaml"
+    assert_equals "yaml" "$output"
+}
+
+@test "infer_write_type: .yml → yaml" {
+    run infer_write_type "app.yml"
+    assert_equals "yaml" "$output"
+}
+
+@test "infer_write_type: .json → json" {
+    run infer_write_type "package.json"
+    assert_equals "json" "$output"
+}
+
+@test "infer_write_type: .ts → pattern" {
+    run infer_write_type "src/version.ts"
+    assert_equals "pattern" "$output"
+}
+
+@test "infer_write_type: .txt → pattern" {
+    run infer_write_type "VERSION.txt"
+    assert_equals "pattern" "$output"
+}
+
+@test "infer_write_type: no extension → pattern" {
+    run infer_write_type "VERSION"
+    assert_equals "pattern" "$output"
 }
 
 # =============================================================================
@@ -117,11 +138,12 @@ commits:
   format: "conventional"
 version_file:
   enabled: true
-  type: "regex"
   groups:
     - name: "app"
       trigger_paths: ["src/**"]
-      files: ["src/version.ts"]
+      files:
+        - path: "src/version.ts"
+          pattern: "__VERSION__"
 '
     run has_version_file_groups
     [ "$status" -eq 0 ]
@@ -133,7 +155,6 @@ commits:
   format: "conventional"
 version_file:
   enabled: true
-  type: "regex"
   groups: []
 '
     run has_version_file_groups
@@ -146,14 +167,15 @@ commits:
   format: "conventional"
 version_file:
   enabled: true
-  type: "regex"
   groups:
     - name: "frontend"
       trigger_paths: ["packages/frontend/**"]
-      files: ["packages/frontend/version.ts"]
+      files:
+        - path: "packages/frontend/version.yaml"
     - name: "backend"
       trigger_paths: ["packages/backend/**"]
-      files: ["packages/backend/version.txt"]
+      files:
+        - path: "packages/backend/version.yaml"
 '
     run get_version_file_groups_count
     assert_equals "2" "$output"
@@ -165,89 +187,44 @@ commits:
   format: "conventional"
 version_file:
   enabled: true
-  type: "regex"
   groups:
     - name: "frontend"
       trigger_paths:
         - "packages/frontend/**"
         - "packages/frontend/*"
-      files: ["packages/frontend/version.ts"]
+      files:
+        - path: "packages/frontend/version.yaml"
 '
     run get_version_file_group_trigger_paths 0
     [[ "$output" == *"packages/frontend/**"* ]]
     [[ "$output" == *"packages/frontend/*"* ]]
 }
 
-@test "get_unmatched_files_behavior: defaults to update_all" {
+@test "get_version_file_group_trigger_paths: empty when not set (always-update group)" {
     write_inline_fixture '
 commits:
   format: "conventional"
 version_file:
   enabled: true
-  type: "regex"
-  groups: []
-'
-    run get_unmatched_files_behavior
-    assert_equals "update_all" "$output"
-}
-
-@test "get_unmatched_files_behavior: returns configured value — skip maps to update_none" {
-    write_inline_fixture '
-commits:
-  format: "conventional"
-version_file:
-  enabled: true
-  type: "regex"
-  groups: []
-  unmatched_files_behavior: "update_none"
-'
-    run get_unmatched_files_behavior
-    assert_equals "update_none" "$output"
-}
-
-@test "get_unmatched_files_behavior: returns error when configured" {
-    write_inline_fixture '
-commits:
-  format: "conventional"
-version_file:
-  enabled: true
-  type: "regex"
-  groups: []
-  unmatched_files_behavior: "error"
-'
-    run get_unmatched_files_behavior
-    assert_equals "error" "$output"
-}
-
-@test "is_version_file_group_update_all: true when set" {
-    write_inline_fixture '
-commits:
-  format: "conventional"
-version_file:
-  enabled: true
-  type: "regex"
   groups:
-    - name: "shared"
-      trigger_paths: ["packages/shared/**"]
-      files: ["packages/shared/version.txt"]
-      update_all: true
+    - name: "root"
+      files:
+        - path: "version.yaml"
 '
-    run is_version_file_group_update_all 0
-    [ "$status" -eq 0 ]
+    run get_version_file_group_trigger_paths 0
+    assert_empty "$output"
 }
 
-@test "is_version_file_group_update_all: false by default" {
+@test "get_version_file_group_name: defaults to group_N when name absent" {
     write_inline_fixture '
 commits:
   format: "conventional"
 version_file:
   enabled: true
-  type: "regex"
   groups:
-    - name: "app"
-      trigger_paths: ["src/**"]
-      files: ["src/version.ts"]
+    - files:
+        - path: "version.yaml"
 '
-    run is_version_file_group_update_all 0
-    [ "$status" -ne 0 ]
+    run get_version_file_group_name 0
+    assert_equals "group_0" "$output"
 }
