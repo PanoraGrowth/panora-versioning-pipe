@@ -279,3 +279,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: ef4d21b](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/ef4d21b31e467eea6420775331109e599ce4373e)
 
 
+## v0.11.3 - 2026-04-16
+
+- 🚀 feat(config): separate commit_types into commit-types.yml catalog (#63)
+  - _Agustín Manessi_
+  - [Commit: 913ba45](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/913ba453aae3826c2bdebe29b590af67ce77a431)
+
+
