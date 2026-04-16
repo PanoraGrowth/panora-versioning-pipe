@@ -66,6 +66,21 @@ teardown() { common_teardown; }
     assert_equals "0.5.9.2" "$output"
 }
 
+@test "build_version_string: patch=0 renders as .0 (SemVer compliant)" {
+    # patch=0 must always render — no numeric gate on the patch slot.
+    # v0.5.0 is a valid SemVer tag; omitting the zero would produce v0.5 which is wrong.
+    source_config_parser "with-hotfix-counter"
+    run build_version_string "0" "5" "0" "0"
+    assert_equals "0.5.0" "$output"
+}
+
+@test "build_version_string: patch=0 with hotfix_counter=0 — only patch renders (SemVer compliant)" {
+    # hotfix_counter=0 is still omitted; patch=0 is still included.
+    source_config_parser "with-hotfix-counter"
+    run build_version_string "0" "12" "0" "0"
+    assert_equals "0.12.0" "$output"
+}
+
 # =============================================================================
 # parse_version_components — PARSED_HOTFIX_COUNTER global
 # =============================================================================
@@ -76,6 +91,17 @@ teardown() { common_teardown; }
     parse_version_components "$VERSION"
     assert_equals "5" "$PARSED_MAJOR"
     assert_equals "9" "$PARSED_PATCH"
+    assert_equals "0" "$PARSED_HOTFIX_COUNTER"
+}
+
+@test "parse_version_components: v0.5.0 → PARSED_PATCH=0 (SemVer compliant round-trip)" {
+    # Tags with patch=0 must parse back correctly — v0.5.0 is a valid SemVer tag.
+    source_config_parser "with-hotfix-counter"
+    VERSION=$(parse_tag_to_version "v0.5.0")
+    parse_version_components "$VERSION"
+    assert_equals "0" "$PARSED_EPOCH"
+    assert_equals "5" "$PARSED_MAJOR"
+    assert_equals "0" "$PARSED_PATCH"
     assert_equals "0" "$PARSED_HOTFIX_COUNTER"
 }
 
