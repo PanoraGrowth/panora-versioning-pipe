@@ -1,15 +1,9 @@
 #!/usr/bin/env bats
 
-# write-version-file.bats — regression tests for issue #47
+# write-version-file.bats — tests for the groups-based version file writer
 #
-# When `version.tag_prefix_v: true` + `version_file.type: json|yaml`, the
-# pipe must write PLAIN semver (no `v` prefix) into the target file.
-# `regex` mode is unaffected — consumers template `{{VERSION}}` in their
-# replacement and keep control of the prefix themselves.
-#
-# Mirrors the `hotfix-bump.bats` pattern: each test writes an inline
-# fixture, creates the target file + /tmp/next_version.txt, runs the
-# script under flock, and asserts the resulting file content.
+# Covers: yaml/json/pattern type inference, tag_prefix_v stripping,
+# disabled feature, missing version file error, and glob path expansion.
 
 load '../../helpers/setup'
 load '../../helpers/assertions'
@@ -24,9 +18,6 @@ teardown() {
           /tmp/version_files_modified.txt /tmp/bump_type.txt
 }
 
-# Run write-version-file.sh under flock, cd'ing into the test repo.
-# Writes /tmp/next_version.txt INSIDE the lock to prevent races under --jobs N.
-# Usage: run_write_version_file "<version>"
 run_write_version_file() {
     local version="$1"
     run flock "$LOCKFILE" sh -c "
@@ -36,14 +27,12 @@ run_write_version_file() {
     "
 }
 
-# Read a key from a JSON file via yq.
 read_json_key() {
     local file="$1"
     local key="$2"
     yq -r -p=json ".${key}" "$file"
 }
 
-# Read a key from a YAML file via yq.
 read_yaml_key() {
     local file="$1"
     local key="$2"
@@ -51,59 +40,10 @@ read_yaml_key() {
 }
 
 # =============================================================================
-# JSON mode
+# YAML type inference
 # =============================================================================
 
-@test "json + tag_prefix_v=true: writes plain semver (no v prefix)" {
-    write_inline_fixture '
-commits:
-  format: "conventional"
-version:
-  tag_prefix_v: true
-  components:
-    major: { enabled: true, initial: 0 }
-    minor: { enabled: true, initial: 0 }
-version_file:
-  enabled: true
-  type: "json"
-  file: "package.json"
-  key: "version"
-'
-    echo '{"name": "test-pkg", "version": "0.0.0"}' > "${BATS_TEST_TMPDIR}/repo/package.json"
-
-    run_write_version_file "v0.1.0"
-    [ "$status" -eq 0 ]
-
-    actual=$(read_json_key "${BATS_TEST_TMPDIR}/repo/package.json" "version")
-    assert_equals "0.1.0" "$actual"
-}
-
-@test "json + tag_prefix_v=true + patch component: writes plain semver with dot" {
-    write_inline_fixture '
-commits:
-  format: "conventional"
-version:
-  tag_prefix_v: true
-  components:
-    major: { enabled: true, initial: 0 }
-    minor: { enabled: true, initial: 0 }
-    patch: { enabled: true, initial: 0 }
-version_file:
-  enabled: true
-  type: "json"
-  file: "package.json"
-  key: "version"
-'
-    echo '{"name": "test-pkg", "version": "0.0.0"}' > "${BATS_TEST_TMPDIR}/repo/package.json"
-
-    run_write_version_file "v0.1.0.1"
-    [ "$status" -eq 0 ]
-
-    actual=$(read_json_key "${BATS_TEST_TMPDIR}/repo/package.json" "version")
-    assert_equals "0.1.0.1" "$actual"
-}
-
-@test "json + tag_prefix_v=false: writes value unchanged (no strip)" {
+@test "yaml: writes plain semver to version.yaml via groups" {
     write_inline_fixture '
 commits:
   format: "conventional"
@@ -111,23 +51,24 @@ version:
   tag_prefix_v: false
   components:
     major: { enabled: true, initial: 0 }
-    minor: { enabled: true, initial: 0 }
+    patch: { enabled: true, initial: 0 }
 version_file:
   enabled: true
-  type: "json"
-  file: "package.json"
-  key: "version"
+  groups:
+    - name: "root"
+      files:
+        - path: "version.yaml"
 '
-    echo '{"name": "test-pkg", "version": "0.0.0"}' > "${BATS_TEST_TMPDIR}/repo/package.json"
+    echo "version: \"0.0.0\"" > "${BATS_TEST_TMPDIR}/repo/version.yaml"
 
-    run_write_version_file "0.1.0"
+    run_write_version_file "1.2.0"
     [ "$status" -eq 0 ]
 
-    actual=$(read_json_key "${BATS_TEST_TMPDIR}/repo/package.json" "version")
-    assert_equals "0.1.0" "$actual"
+    actual=$(read_yaml_key "${BATS_TEST_TMPDIR}/repo/version.yaml" "version")
+    assert_equals "1.2.0" "$actual"
 }
 
-@test "json + nested key: strips prefix and writes at nested path" {
+@test "yaml + tag_prefix_v=true: strips v prefix before writing" {
     write_inline_fixture '
 commits:
   format: "conventional"
@@ -135,51 +76,53 @@ version:
   tag_prefix_v: true
   components:
     major: { enabled: true, initial: 0 }
-    minor: { enabled: true, initial: 0 }
+    patch: { enabled: true, initial: 0 }
 version_file:
   enabled: true
-  type: "json"
-  file: "pkg.json"
-  key: "metadata.version"
+  groups:
+    - name: "root"
+      files:
+        - path: "version.yaml"
 '
-    echo '{"metadata": {"version": "0.0.0"}}' > "${BATS_TEST_TMPDIR}/repo/pkg.json"
+    echo "version: \"0.0.0\"" > "${BATS_TEST_TMPDIR}/repo/version.yaml"
 
-    run_write_version_file "v2.3.0"
+    run_write_version_file "v0.1.0"
     [ "$status" -eq 0 ]
 
-    actual=$(read_json_key "${BATS_TEST_TMPDIR}/repo/pkg.json" "metadata.version")
+    actual=$(read_yaml_key "${BATS_TEST_TMPDIR}/repo/version.yaml" "version")
+    assert_equals "0.1.0" "$actual"
+}
+
+@test "yml extension: inferred as yaml type" {
+    write_inline_fixture '
+commits:
+  format: "conventional"
+version:
+  tag_prefix_v: false
+  components:
+    major: { enabled: true, initial: 0 }
+    patch: { enabled: true, initial: 0 }
+version_file:
+  enabled: true
+  groups:
+    - name: "root"
+      files:
+        - path: "app.yml"
+'
+    echo "version: \"0.0.0\"" > "${BATS_TEST_TMPDIR}/repo/app.yml"
+
+    run_write_version_file "2.3.0"
+    [ "$status" -eq 0 ]
+
+    actual=$(read_yaml_key "${BATS_TEST_TMPDIR}/repo/app.yml" "version")
     assert_equals "2.3.0" "$actual"
 }
 
 # =============================================================================
-# YAML mode
+# JSON type inference
 # =============================================================================
 
-@test "yaml + tag_prefix_v=true: writes plain semver (no v prefix)" {
-    write_inline_fixture '
-commits:
-  format: "conventional"
-version:
-  tag_prefix_v: true
-  components:
-    major: { enabled: true, initial: 0 }
-    minor: { enabled: true, initial: 0 }
-version_file:
-  enabled: true
-  type: "yaml"
-  file: "version.yaml"
-  key: "version"
-'
-    echo "version: \"0.0.0\"" > "${BATS_TEST_TMPDIR}/repo/version.yaml"
-
-    run_write_version_file "v0.1.0"
-    [ "$status" -eq 0 ]
-
-    actual=$(read_yaml_key "${BATS_TEST_TMPDIR}/repo/version.yaml" "version")
-    assert_equals "0.1.0" "$actual"
-}
-
-@test "yaml + tag_prefix_v=false: writes value unchanged" {
+@test "json: writes plain semver to package.json via groups" {
     write_inline_fixture '
 commits:
   format: "conventional"
@@ -187,27 +130,24 @@ version:
   tag_prefix_v: false
   components:
     major: { enabled: true, initial: 0 }
-    minor: { enabled: true, initial: 0 }
+    patch: { enabled: true, initial: 0 }
 version_file:
   enabled: true
-  type: "yaml"
-  file: "version.yaml"
-  key: "version"
+  groups:
+    - name: "root"
+      files:
+        - path: "package.json"
 '
-    echo "version: \"0.0.0\"" > "${BATS_TEST_TMPDIR}/repo/version.yaml"
+    echo '{"name": "test-pkg", "version": "0.0.0"}' > "${BATS_TEST_TMPDIR}/repo/package.json"
 
-    run_write_version_file "0.1.0"
+    run_write_version_file "1.0.0"
     [ "$status" -eq 0 ]
 
-    actual=$(read_yaml_key "${BATS_TEST_TMPDIR}/repo/version.yaml" "version")
-    assert_equals "0.1.0" "$actual"
+    actual=$(read_json_key "${BATS_TEST_TMPDIR}/repo/package.json" "version")
+    assert_equals "1.0.0" "$actual"
 }
 
-# =============================================================================
-# Regex mode — consumer controls the prefix, script MUST NOT strip
-# =============================================================================
-
-@test "regex + tag_prefix_v=true + {{VERSION}}: keeps the v prefix (consumer opted in)" {
+@test "json + tag_prefix_v=true: strips v prefix before writing" {
     write_inline_fixture '
 commits:
   format: "conventional"
@@ -215,14 +155,69 @@ version:
   tag_prefix_v: true
   components:
     major: { enabled: true, initial: 0 }
-    minor: { enabled: true, initial: 0 }
+    patch: { enabled: true, initial: 0 }
 version_file:
   enabled: true
-  type: "regex"
-  pattern: "__VERSION__"
-  replacement: "{{VERSION}}"
-  files:
-    - "src/version.ts"
+  groups:
+    - name: "root"
+      files:
+        - path: "package.json"
+'
+    echo '{"name": "test-pkg", "version": "0.0.0"}' > "${BATS_TEST_TMPDIR}/repo/package.json"
+
+    run_write_version_file "v0.1.0"
+    [ "$status" -eq 0 ]
+
+    actual=$(read_json_key "${BATS_TEST_TMPDIR}/repo/package.json" "version")
+    assert_equals "0.1.0" "$actual"
+}
+
+# =============================================================================
+# Pattern type inference
+# =============================================================================
+
+@test "pattern: replaces placeholder in .ts file" {
+    write_inline_fixture '
+commits:
+  format: "conventional"
+version:
+  tag_prefix_v: false
+  components:
+    major: { enabled: true, initial: 0 }
+    patch: { enabled: true, initial: 0 }
+version_file:
+  enabled: true
+  groups:
+    - name: "root"
+      files:
+        - path: "src/version.ts"
+          pattern: "__VERSION__"
+'
+    mkdir -p "${BATS_TEST_TMPDIR}/repo/src"
+    echo 'export const VERSION = "__VERSION__";' > "${BATS_TEST_TMPDIR}/repo/src/version.ts"
+
+    run_write_version_file "1.0.0"
+    [ "$status" -eq 0 ]
+
+    grep -q 'VERSION = "1.0.0"' "${BATS_TEST_TMPDIR}/repo/src/version.ts"
+}
+
+@test "pattern + tag_prefix_v=true: does NOT strip v (consumer controls format)" {
+    write_inline_fixture '
+commits:
+  format: "conventional"
+version:
+  tag_prefix_v: true
+  components:
+    major: { enabled: true, initial: 0 }
+    patch: { enabled: true, initial: 0 }
+version_file:
+  enabled: true
+  groups:
+    - name: "root"
+      files:
+        - path: "src/version.ts"
+          pattern: "__VERSION__"
 '
     mkdir -p "${BATS_TEST_TMPDIR}/repo/src"
     echo 'export const VERSION = "__VERSION__";' > "${BATS_TEST_TMPDIR}/repo/src/version.ts"
@@ -233,57 +228,150 @@ version_file:
     grep -q 'VERSION = "v0.1.0"' "${BATS_TEST_TMPDIR}/repo/src/version.ts"
 }
 
+@test "pattern: missing pattern field → fatal error" {
+    write_inline_fixture '
+commits:
+  format: "conventional"
+version:
+  tag_prefix_v: false
+  components:
+    major: { enabled: true, initial: 0 }
+    patch: { enabled: true, initial: 0 }
+version_file:
+  enabled: true
+  groups:
+    - name: "root"
+      files:
+        - path: "src/version.ts"
+'
+    mkdir -p "${BATS_TEST_TMPDIR}/repo/src"
+    echo 'export const VERSION = "__VERSION__";' > "${BATS_TEST_TMPDIR}/repo/src/version.ts"
+
+    run_write_version_file "1.0.0"
+    [ "$status" -ne 0 ]
+}
+
+# =============================================================================
+# Multiple files in one group
+# =============================================================================
+
+@test "multiple files in group: all updated" {
+    write_inline_fixture '
+commits:
+  format: "conventional"
+version:
+  tag_prefix_v: false
+  components:
+    major: { enabled: true, initial: 0 }
+    patch: { enabled: true, initial: 0 }
+version_file:
+  enabled: true
+  groups:
+    - name: "root"
+      files:
+        - path: "version.yaml"
+        - path: "package.json"
+'
+    echo "version: \"0.0.0\"" > "${BATS_TEST_TMPDIR}/repo/version.yaml"
+    echo '{"version": "0.0.0"}' > "${BATS_TEST_TMPDIR}/repo/package.json"
+
+    run_write_version_file "1.1.0"
+    [ "$status" -eq 0 ]
+
+    actual_yaml=$(read_yaml_key "${BATS_TEST_TMPDIR}/repo/version.yaml" "version")
+    actual_json=$(read_json_key "${BATS_TEST_TMPDIR}/repo/package.json" "version")
+    assert_equals "1.1.0" "$actual_yaml"
+    assert_equals "1.1.0" "$actual_json"
+}
+
 # =============================================================================
 # Feature-disabled and error paths
 # =============================================================================
 
-@test "version_file disabled: script exits 0 and does not touch files" {
+@test "version_file disabled: exits 0, files untouched" {
     write_inline_fixture '
 commits:
   format: "conventional"
 version:
-  tag_prefix_v: true
+  tag_prefix_v: false
   components:
     major: { enabled: true, initial: 0 }
-    minor: { enabled: true, initial: 0 }
+    patch: { enabled: true, initial: 0 }
 version_file:
   enabled: false
-  type: "json"
-  file: "package.json"
-  key: "version"
+  groups:
+    - name: "root"
+      files:
+        - path: "version.yaml"
 '
-    echo '{"version": "0.0.0"}' > "${BATS_TEST_TMPDIR}/repo/package.json"
+    echo "version: \"0.0.0\"" > "${BATS_TEST_TMPDIR}/repo/version.yaml"
 
-    run_write_version_file "v0.1.0"
+    run_write_version_file "1.0.0"
     [ "$status" -eq 0 ]
 
-    # File must remain untouched
-    actual=$(read_json_key "${BATS_TEST_TMPDIR}/repo/package.json" "version")
+    actual=$(read_yaml_key "${BATS_TEST_TMPDIR}/repo/version.yaml" "version")
     assert_equals "0.0.0" "$actual"
 }
 
-@test "missing /tmp/next_version.txt: script exits non-zero" {
+@test "no groups configured: exits 0 with warning" {
     write_inline_fixture '
 commits:
   format: "conventional"
 version:
-  tag_prefix_v: true
+  tag_prefix_v: false
   components:
     major: { enabled: true, initial: 0 }
-    minor: { enabled: true, initial: 0 }
+    patch: { enabled: true, initial: 0 }
 version_file:
   enabled: true
-  type: "json"
-  file: "package.json"
-  key: "version"
+  groups: []
 '
-    echo '{"version": "0.0.0"}' > "${BATS_TEST_TMPDIR}/repo/package.json"
+    run_write_version_file "1.0.0"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"No groups configured"* ]]
+}
 
-    # Don't pass a version — helper skips the write, script must fail on missing file
+@test "missing /tmp/next_version.txt: exits non-zero" {
+    write_inline_fixture '
+commits:
+  format: "conventional"
+version:
+  tag_prefix_v: false
+  components:
+    major: { enabled: true, initial: 0 }
+    patch: { enabled: true, initial: 0 }
+version_file:
+  enabled: true
+  groups:
+    - name: "root"
+      files:
+        - path: "version.yaml"
+'
     run flock "$LOCKFILE" sh -c "
         rm -f /tmp/next_version.txt ; \
         cd '${BATS_TEST_TMPDIR}/repo' && \
         sh '${PIPE_DIR}/versioning/write-version-file.sh' 2>&1
     "
     [ "$status" -ne 0 ]
+}
+
+@test "path glob no match: logs warning and continues (exit 0)" {
+    write_inline_fixture '
+commits:
+  format: "conventional"
+version:
+  tag_prefix_v: false
+  components:
+    major: { enabled: true, initial: 0 }
+    patch: { enabled: true, initial: 0 }
+version_file:
+  enabled: true
+  groups:
+    - name: "root"
+      files:
+        - path: "nonexistent/version.yaml"
+'
+    run_write_version_file "1.0.0"
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"no files matched"* ]]
 }

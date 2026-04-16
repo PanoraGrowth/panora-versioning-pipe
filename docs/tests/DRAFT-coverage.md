@@ -321,69 +321,74 @@ Mapea los nombres de rama a los roles del pipeline. La detección de scenario us
 
 ## version_file
 
-[→ defaults.yml:112](../../scripts/defaults.yml#L112)
+[→ defaults.yml](../../scripts/defaults.yml)
 
-Controla la actualización de archivos de versión como `package.json`, `version.yaml`, o archivos con patrones regex. Se ejecuta después de calcular la versión.
+Controla la actualización de archivos de versión como `package.json`, `version.yaml`, o archivos con patrones placeholder. Se ejecuta después de calcular la versión. **Breaking change v049**: estructura unificada en `groups` — los campos top-level `type`, `key`, `file`, `files`, `pattern`, `replacement`, `unmatched_files_behavior` fueron eliminados.
 
 **Campos base**
 
 | Key | Type / Values | Comportamiento probado | Cobertura |
 |-----|---------------|------------------------|-----------|
-| [`version_file.enabled`](../../scripts/defaults.yml#L113) | `true` · `false` · default `false` | `false` → script sale con exit 0 sin tocar archivos · `true` → escribe la versión | ✅ ambos |
-| [`version_file.type`](../../scripts/defaults.yml#L114) | `"yaml"` · `"json"` · `"regex"` · default `"yaml"` | Getter retorna tipo correcto | ✅ getter |
-| [`version_file.file`](../../scripts/defaults.yml#L115) | `string` · default `"version.yaml"` | Getter retorna path correcto | ✅ getter |
-| [`version_file.key`](../../scripts/defaults.yml#L116) | `string` · default `"version"` | Getter retorna key correcto | ✅ getter |
-| [`version_file.files`](../../scripts/defaults.yml#L117) | `string[]` · default `[]` | Lista de archivos para modo regex (legacy, sin groups) | ⚠️ solo getter — comportamiento multi-file no probado en unit |
-| [`version_file.pattern`](../../scripts/defaults.yml#L118) | `string` · default `""` | Getter retorna vacío por default | ✅ getter |
-| [`version_file.replacement`](../../scripts/defaults.yml#L119) | `string` · default `""` | Getter retorna vacío por default | ✅ getter |
+| `version_file.enabled` | `true` · `false` · default `false` | `false` → script sale con exit 0 sin tocar archivos · `true` → procesa grupos | ✅ ambos |
+| `version_file.groups` | `Group[]` · default `[]` | Sin grupos configurados → exit 0 con warning | ✅ |
 
 ---
 
-**Escritura por tipo**
+**Type inference por extensión**
+
+El tipo de escritura se infiere automáticamente de la extensión del archivo — no hay campo `type` explícito.
+
+| Extensión | Tipo inferido | Comportamiento |
+|-----------|--------------|----------------|
+| `.yaml` / `.yml` | yaml | `yq -i ".version = ..."` — crea el archivo si no existe |
+| `.json` | json | `yq -i -o=json ".version = ..."` — crea el archivo si no existe |
+| cualquier otra | pattern | Reemplaza `files[].pattern` con la versión — error fatal si `pattern` ausente |
 
 | Escenario | Comportamiento probado | Cobertura |
 |-----------|------------------------|-----------|
-| `type: json` + `tag_prefix_v: true` → escribe sin `v` | `v0.1.0` → `"version": "0.1.0"` en package.json | ✅ |
-| `type: json` + `tag_prefix_v: false` → escribe valor sin strip | `0.1.0` → `"version": "0.1.0"` | ✅ |
-| `type: json` + key anidado (`metadata.version`) | Escribe en el path correcto | ✅ |
-| `type: yaml` + `tag_prefix_v: true` → escribe sin `v` | `v0.1.0` → `version: "0.1.0"` en version.yaml | ✅ |
-| `type: yaml` + `tag_prefix_v: false` | `0.1.0` → `version: "0.1.0"` | ✅ |
-| `type: regex` + `{{VERSION}}` en replacement | El consumer controla el prefijo — el script NO hace strip | ✅ |
-| `/tmp/next_version.txt` ausente + feature habilitada | Script sale con exit != 0 | ✅ |
+| `.yaml` + `tag_prefix_v: false` | `1.2.0` → `version: "1.2.0"` | ✅ |
+| `.yaml` + `tag_prefix_v: true` | `v0.1.0` → escribe `0.1.0` (strip) | ✅ |
+| `.yml` extension | Inferido como yaml | ✅ |
+| `.json` + `tag_prefix_v: false` | `1.0.0` → `"version": "1.0.0"` | ✅ |
+| `.json` + `tag_prefix_v: true` | `v0.1.0` → escribe `0.1.0` (strip) | ✅ |
+| `.ts` + `pattern: "__VERSION__"` | Reemplaza placeholder, NO hace strip del prefijo | ✅ |
+| `.ts` sin `pattern` | Error fatal | ✅ |
+| path glob sin matches | Log warning + continúa (no fatal) | ✅ |
+| `/tmp/next_version.txt` ausente | Exit != 0 | ✅ |
 
 ---
 
-**`version_file.groups`** — monorepo support · [→ L122](../../scripts/defaults.yml#L122)
-
-Cuando `groups` está configurado, solo se actualizan los archivos del grupo cuyo `trigger_paths` matchea los archivos modificados en el commit. Si no hay grupos, se aplica el comportamiento legacy (todos los archivos en `files`).
+**`version_file.groups`** — estructura y getters
 
 | Escenario | Comportamiento probado | Cobertura |
 |-----------|------------------------|-----------|
 | `groups` con entradas → `has_version_file_groups` retorna true | Función detecta grupos presentes | ✅ |
-| `groups: []` → `has_version_file_groups` retorna false | Sin grupos — flujo legacy | ✅ |
+| `groups: []` → `has_version_file_groups` retorna false | Sin grupos | ✅ |
 | `get_version_file_groups_count` → retorna cantidad correcta | 2 grupos → `2` | ✅ |
-| `get_version_file_group_trigger_paths(0)` → retorna los paths del primer grupo | Incluye todos los patterns del grupo | ✅ |
-| `is_version_file_group_update_all: true` cuando está configurado | Getter retorna true | ✅ |
-| `is_version_file_group_update_all: false` por default | Getter retorna false | ✅ |
-| `matches_glob` — match exacto de archivo | `src/main.ts` vs `src/main.ts` → match | ✅ |
-| `matches_glob` — wildcard `*` no cruza directorios | `src/deep/main.ts` vs `src/*.ts` → no match | ✅ |
-| `matches_glob` — doublestar `**` matchea path anidado | `packages/frontend/src/app/main.ts` vs `packages/frontend/**` → match | ✅ |
-| `matches_glob` — doublestar `**` matchea un nivel | `packages/frontend/file.ts` vs `packages/frontend/**` → match | ✅ |
-| `matches_glob` — `**` al inicio | `deep/nested/file.js` vs `**/*.js` → match | ✅ |
-| `matches_glob` — patrón vacío | Sin match | ✅ |
-| `matches_glob` — punto en patrón es literal | `packageXjson` vs `package.json` → no match | ✅ |
+| `get_version_file_group_trigger_paths(0)` → retorna los paths | Incluye todos los patterns | ✅ |
+| `get_version_file_group_trigger_paths` vacío cuando no hay trigger_paths | Grupo siempre activo | ✅ |
+| `get_version_file_group_name` → default `group_N` cuando ausente | Fallback al índice | ✅ |
+| `get_version_file_group_files_count(0)` → cantidad de files en grupo | 2 files → `2` | ✅ |
+| `get_version_file_group_file_path(0,0)` → path del primer file | Retorna string correcto | ✅ |
+| `get_version_file_group_file_path(0,1)` → path del segundo file | Retorna string correcto | ✅ |
+| `get_version_file_group_file_pattern(0,0)` → pattern cuando está set | Retorna `__VERSION__` | ✅ |
+| `get_version_file_group_file_pattern(0,0)` → vacío cuando ausente | Auto-infer por extensión | ✅ |
+| Múltiples files en un grupo | Todos se actualizan | ✅ |
 
 ---
 
-**`version_file.unmatched_files_behavior`** — [→ L136](../../scripts/defaults.yml#L136)
+**trigger_paths — lógica de activación**
 
-Controla qué ocurre cuando un archivo modificado no matchea ningún `trigger_paths` de ningún grupo.
-
-| Valor | Comportamiento probado | Cobertura |
-|-------|------------------------|-----------|
-| `update_all` (default) | Getter retorna `update_all` cuando no está configurado | ✅ |
-| `update_none` | Getter retorna `update_none` | ✅ |
-| `error` | Getter retorna `error` | ✅ |
+| Escenario | Comportamiento probado | Cobertura |
+|-----------|------------------------|-----------|
+| Sin `trigger_paths` → grupo siempre se actualiza | No requiere changed files | ✅ (test de getter vacío) |
+| `matches_glob` — match exacto | `src/main.ts` vs `src/main.ts` → match | ✅ |
+| `matches_glob` — `*` no cruza directorios | `src/deep/main.ts` vs `src/*.ts` → no match | ✅ |
+| `matches_glob` — `**` matchea path anidado | `packages/frontend/src/app/main.ts` vs `packages/frontend/**` → match | ✅ |
+| `matches_glob` — `**` matchea un nivel | `packages/frontend/file.ts` vs `packages/frontend/**` → match | ✅ |
+| `matches_glob` — `**` al inicio | `deep/nested/file.js` vs `**/*.js` → match | ✅ |
+| `matches_glob` — patrón vacío | Sin match | ✅ |
+| `matches_glob` — punto en patrón es literal | `packageXjson` vs `package.json` → no match | ✅ |
 
 ---
 
