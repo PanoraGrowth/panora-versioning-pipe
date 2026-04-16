@@ -478,3 +478,144 @@ EOF
     [ "$status" -eq 0 ]
     echo "$output" | grep -q '^SCENARIO=hotfix$'
 }
+
+# =============================================================================
+# Bloque 7 — Branch name recovery from GitHub-style merge commit subject
+# (the primary fix for ticket 048: single source of truth)
+#
+# These tests verify that a merge commit whose HEAD subject embeds the source
+# branch name ("Merge pull request #N from org/hotfix/fix-auth") is detected
+# as a hotfix even when the branch-tip commit subject does NOT start with the
+# hotfix keyword. This is the canonical Git Flow case: branch name is the
+# intended signal, not the individual commit subjects.
+# =============================================================================
+
+# Create a GitHub-style merge commit from a hotfix/* branch.
+# The branch-tip commit uses a conventional subject (no hotfix keyword).
+# The merge commit subject uses GitHub's format: "Merge pull request #N from org/BRANCH".
+seed_merge_from_hotfix_branch() {
+    local branch_name="$1"   # full branch name, e.g. "hotfix/fix-auth"
+    local tip_subject="${2:-fix: resolve auth bug}"   # conventional, no hotfix keyword
+    cd "${BATS_TEST_TMPDIR}/repo" || return 1
+
+    git checkout -q -b "$branch_name"
+    echo "fix-file" > fix-file.txt
+    git add fix-file.txt >/dev/null
+    git commit -q -m "$tip_subject"
+
+    git checkout -q main 2>/dev/null || git checkout -q master 2>/dev/null || \
+        git checkout -q -b main
+    # GitHub merge commit subject format: "Merge pull request #N from org/branch"
+    local safe_branch
+    safe_branch=$(echo "$branch_name" | sed 's|/|-|g')
+    git merge -q --no-ff "$branch_name" -m "Merge pull request #99 from acme/${branch_name}" >/dev/null
+}
+
+@test "branch name recovery: 'hotfix/fix-auth' + 'fix: ...' commit → scenario=hotfix" {
+    # The core regression: hotfix branch with conventional commit subject.
+    # Before this fix: scenario=development_release (missed detection).
+    # After this fix: scenario=hotfix (branch name recovered from merge subject).
+    seed_merge_from_hotfix_branch "hotfix/fix-auth" "fix: resolve auth bypass"
+    run_detect "minimal"
+    [ "$status" -eq 0 ]
+    echo "$output" | grep -q '^SCENARIO=hotfix$'
+}
+
+@test "branch name recovery: 'hotfix/payment-timeout' + 'feat: ...' commit → scenario=hotfix" {
+    seed_merge_from_hotfix_branch "hotfix/payment-timeout" "feat: add retry logic"
+    run_detect "minimal"
+    [ "$status" -eq 0 ]
+    echo "$output" | grep -q '^SCENARIO=hotfix$'
+}
+
+@test "branch name recovery: 'feature/fix-auth' + 'fix: ...' commit → scenario=development_release" {
+    # Negative: branch NOT named hotfix/*, so no hotfix detection via branch name.
+    seed_merge_from_hotfix_branch "feature/fix-auth" "fix: resolve auth bypass"
+    run_detect "minimal"
+    [ "$status" -eq 0 ]
+    echo "$output" | grep -q '^SCENARIO=development_release$'
+}
+
+@test "branch name recovery: 'hotfix/fix-auth' with custom keyword 'urgent' → NO match (branch prefix is 'urgent/')" {
+    # Custom keyword "urgent" → HOTFIX_BRANCH_PATTERN = "urgent/".
+    # Branch "hotfix/fix-auth" does NOT start with "urgent/" → development_release.
+    # This proves the branch-name recovery respects the configured keyword.
+    cat > "${BATS_TEST_TMPDIR}/repo/.versioning.yml" <<'EOF'
+commits:
+  format: "conventional"
+version:
+  components:
+    major:
+      enabled: true
+      initial: 0
+    minor:
+      enabled: true
+      initial: 0
+    timestamp:
+      enabled: false
+hotfix:
+  keyword: "urgent"
+EOF
+    cd "${BATS_TEST_TMPDIR}/repo" || return 1
+    git checkout -q -b "hotfix/fix-auth"
+    echo "fix-file" > fix-file.txt
+    git add fix-file.txt >/dev/null
+    git commit -q -m "fix: resolve auth bypass"
+    git checkout -q main 2>/dev/null || git checkout -q master 2>/dev/null || \
+        git checkout -q -b main
+    git merge -q --no-ff "hotfix/fix-auth" -m "Merge pull request #99 from acme/hotfix/fix-auth" >/dev/null
+
+    run flock "$LOCKFILE" sh -c "
+        cd '${BATS_TEST_TMPDIR}/repo' && \
+        sh '${PIPE_DIR}/detection/detect-scenario.sh' >/dev/null 2>&1 ; \
+        cat /tmp/scenario.env 2>/dev/null
+    "
+    [ "$status" -eq 0 ]
+    echo "$output" | grep -q '^SCENARIO=development_release$'
+}
+
+@test "branch name recovery: non-GitHub merge subject does not extract branch → falls back to parent check" {
+    # When the merge commit subject is NOT "Merge pull request #N from ...",
+    # extract_branch_from_merge_subject returns empty → no branch recovery.
+    # Detection falls back to Check 3 (parent subject). Since the parent subject
+    # carries the hotfix keyword here, scenario is still hotfix.
+    cd "${BATS_TEST_TMPDIR}/repo" || return 1
+    git checkout -q -b "hotfix/fix-auth"
+    echo "fix-file" > fix-file.txt
+    git add fix-file.txt >/dev/null
+    git commit -q -m "hotfix: resolve critical auth bypass"  # keyword in commit subject
+    git checkout -q main 2>/dev/null || git checkout -q master 2>/dev/null || \
+        git checkout -q -b main
+    # Non-GitHub merge commit message format (e.g. Bitbucket, GitLab)
+    git merge -q --no-ff "hotfix/fix-auth" -m "Merged hotfix/fix-auth into main" >/dev/null
+
+    run flock "$LOCKFILE" sh -c "
+        cd '${BATS_TEST_TMPDIR}/repo' && \
+        cp '${PIPE_DIR}/tests/fixtures/minimal.yml' .versioning.yml && \
+        sh '${PIPE_DIR}/detection/detect-scenario.sh' >/dev/null 2>&1 ; \
+        cat /tmp/scenario.env 2>/dev/null
+    "
+    [ "$status" -eq 0 ]
+    echo "$output" | grep -q '^SCENARIO=hotfix$'
+}
+
+@test "branch name recovery: non-GitHub merge + no keyword in parent subject → development_release" {
+    # Non-GitHub merge subject AND conventional commit subject → all 3 checks fail.
+    cd "${BATS_TEST_TMPDIR}/repo" || return 1
+    git checkout -q -b "hotfix/fix-auth"
+    echo "fix-file" > fix-file.txt
+    git add fix-file.txt >/dev/null
+    git commit -q -m "fix: resolve auth bypass"   # no hotfix keyword
+    git checkout -q main 2>/dev/null || git checkout -q master 2>/dev/null || \
+        git checkout -q -b main
+    git merge -q --no-ff "hotfix/fix-auth" -m "Merged hotfix/fix-auth into main" >/dev/null
+
+    run flock "$LOCKFILE" sh -c "
+        cd '${BATS_TEST_TMPDIR}/repo' && \
+        cp '${PIPE_DIR}/tests/fixtures/minimal.yml' .versioning.yml && \
+        sh '${PIPE_DIR}/detection/detect-scenario.sh' >/dev/null 2>&1 ; \
+        cat /tmp/scenario.env 2>/dev/null
+    "
+    [ "$status" -eq 0 ]
+    echo "$output" | grep -q '^SCENARIO=development_release$'
+}
