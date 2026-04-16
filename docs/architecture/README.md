@@ -135,7 +135,7 @@ The pipe supports hotfixes via a single unified scenario and a default-on PATCH 
 
 | Context | Signal | Detection strategy |
 |---------|--------|--------------------|
-| PR | `VERSIONING_TARGET_BRANCH` set | Dispatches on source/target branch names — `hotfix/*` → main/pre-production becomes scenario `hotfix`. Heuristic uses `hotfix.keyword` as branch prefix. |
+| PR | `VERSIONING_TARGET_BRANCH` set | Dispatches on source/target branch names — target == `branches.tag_on` → `development_release`; target in `branches.hotfix_targets` + hotfix source → `hotfix`; target in `branches.hotfix_targets` + source == `tag_on` → `promotion_to_main`. Heuristic uses `hotfix.keyword` as branch prefix. |
 | Branch (post-merge) | No `VERSIONING_TARGET_BRANCH` | **Pure git, platform-agnostic**. Primary: merge-commit subject starts with `{keyword}:` or `{keyword}(`, where keyword comes from `hotfix.keyword` (default `"hotfix"`). Secondary: for traditional 3-way merge commits (HEAD has 2+ parents), the second parent's subject is also inspected — covers the merge-commit merge style where HEAD is "Merge pull request #N from ...". No API calls, no env vars, no `gh`/`bb` CLI. |
 
 ### Bump rules

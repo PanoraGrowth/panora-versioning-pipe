@@ -1,7 +1,8 @@
 #!/usr/bin/env bats
 
 # Tests for detect-scenario.sh — runs as subprocess (not sourced)
-# Validates all 7 scenarios based on VERSIONING_BRANCH + VERSIONING_TARGET_BRANCH
+# Validates scenarios based on VERSIONING_BRANCH + VERSIONING_TARGET_BRANCH
+# using the new branches model: tag_on + hotfix_targets.
 #
 # detect-scenario.sh sources config-parser.sh which auto-calls load_config() and
 # writes to the hardcoded /tmp/.versioning-merged.yml. With --jobs 4, other test
@@ -48,48 +49,48 @@ assert_scenario() {
     echo "$output" | grep -q "SCENARIO_ENV=SCENARIO=${expected}"
 }
 
-# --- Minimal fixture (default branches: development, pre-production, main) ---
+# --- Minimal fixture (default: tag_on=development, hotfix_targets=[main, pre-production]) ---
 
-@test "scenario: development_release — feature to development" {
+@test "scenario: development_release — feature to tag_on (development)" {
     run_detect "minimal" "feature/login" "development"
     [ "$status" -eq 0 ]
     assert_output_matches "Development Release"
     assert_scenario "development_release"
 }
 
-@test "scenario: hotfix (preprod target) — hotfix to pre-production" {
+@test "scenario: hotfix — hotfix to pre-production (hotfix_target)" {
     run_detect "minimal" "hotfix/urgent-fix" "pre-production"
     [ "$status" -eq 0 ]
-    assert_output_matches "Hotfix to Pre-production"
+    assert_output_matches "Hotfix"
     assert_scenario "hotfix"
 }
 
-@test "scenario: promotion_to_preprod — development to pre-production" {
+@test "scenario: promotion_to_main — tag_on to hotfix_target (pre-production)" {
     run_detect "minimal" "development" "pre-production"
     [ "$status" -eq 0 ]
-    assert_output_matches "Promotion to Pre-production"
-    assert_scenario "promotion_to_preprod"
-}
-
-@test "scenario: hotfix (main target) — hotfix to main" {
-    run_detect "minimal" "hotfix/critical" "main"
-    [ "$status" -eq 0 ]
-    assert_output_matches "Hotfix to Production"
-    assert_scenario "hotfix"
-}
-
-@test "scenario: promotion_to_main — pre-production to main" {
-    run_detect "minimal" "pre-production" "main"
-    [ "$status" -eq 0 ]
-    assert_output_matches "Promotion to Production"
+    assert_output_matches "Promotion"
     assert_scenario "promotion_to_main"
 }
 
-@test "scenario: development_release (direct) — feature to main" {
+@test "scenario: hotfix — hotfix to main (hotfix_target)" {
+    run_detect "minimal" "hotfix/critical" "main"
+    [ "$status" -eq 0 ]
+    assert_output_matches "Hotfix"
+    assert_scenario "hotfix"
+}
+
+@test "scenario: promotion_to_main — tag_on to main (hotfix_target)" {
+    run_detect "minimal" "development" "main"
+    [ "$status" -eq 0 ]
+    assert_output_matches "Promotion"
+    assert_scenario "promotion_to_main"
+}
+
+@test "scenario: unknown — feature to hotfix_target (not hotfix/ nor tag_on)" {
     run_detect "minimal" "feature/quick-fix" "main"
     [ "$status" -eq 0 ]
-    assert_output_matches "Direct to Main Release"
-    assert_scenario "development_release"
+    assert_output_matches "Unknown"
+    assert_scenario "unknown"
 }
 
 @test "scenario: unknown — feature to random branch" {
@@ -99,40 +100,37 @@ assert_scenario() {
     assert_scenario "unknown"
 }
 
-# --- Custom-branches fixture (dev, staging, master, emergency/) ---
+# --- Custom-branches fixture (tag_on=dev, hotfix_targets=[master, staging]) ---
 
-@test "custom-branches: development_release — feature to dev" {
+@test "custom-branches: development_release — feature to dev (tag_on)" {
     run_detect "custom-branches" "feature/login" "dev"
     [ "$status" -eq 0 ]
     assert_output_matches "Development Release"
     assert_scenario "development_release"
 }
 
-@test "custom-branches: hotfix (staging target) — hotfix to staging" {
-    # custom-branches.yml sets branches but NOT hotfix.keyword,
-    # so hotfix keyword remains the default "hotfix" (matches branch "hotfix/*")
+@test "custom-branches: hotfix — hotfix to staging (hotfix_target)" {
     run_detect "custom-branches" "hotfix/db-crash" "staging"
     [ "$status" -eq 0 ]
-    assert_output_matches "Hotfix to Pre-production"
+    assert_output_matches "Hotfix"
     assert_scenario "hotfix"
 }
 
-@test "custom-branches: promotion_to_main — staging to master" {
-    run_detect "custom-branches" "staging" "master"
+@test "custom-branches: promotion_to_main — dev (tag_on) to master (hotfix_target)" {
+    run_detect "custom-branches" "dev" "master"
     [ "$status" -eq 0 ]
-    assert_output_matches "Promotion to Production"
+    assert_output_matches "Promotion"
     assert_scenario "promotion_to_main"
 }
 
-@test "custom-branches: hotfix (master target) — hotfix to master" {
-    # hotfix keyword default "hotfix" matches branch prefix "hotfix/"
+@test "custom-branches: hotfix — hotfix to master (hotfix_target)" {
     run_detect "custom-branches" "hotfix/urgent" "master"
     [ "$status" -eq 0 ]
-    assert_output_matches "Hotfix to Production"
+    assert_output_matches "Hotfix"
     assert_scenario "hotfix"
 }
 
-@test "custom-branches: unknown — feature to pre-production (not configured)" {
+@test "custom-branches: unknown — feature to pre-production (not in hotfix_targets)" {
     run_detect "custom-branches" "feature/x" "pre-production"
     [ "$status" -eq 0 ]
     assert_output_matches "Unknown"

@@ -498,46 +498,40 @@ hotfix:
 # BRANCHES CONFIGURATION
 # =============================================================================
 
-@test "get_development_branch: default is development" {
-    source_config_parser "minimal"
-    run get_development_branch
-    assert_equals "development" "$output"
-}
-
-@test "get_preprod_branch: default is pre-production" {
-    source_config_parser "minimal"
-    run get_preprod_branch
-    assert_equals "pre-production" "$output"
-}
-
-@test "get_production_branch: default is main" {
-    source_config_parser "minimal"
-    run get_production_branch
-    assert_equals "main" "$output"
-}
-
 @test "get_tag_branch: default is development" {
     source_config_parser "minimal"
     run get_tag_branch
     assert_equals "development" "$output"
 }
 
-@test "get_development_branch: custom-branches returns dev" {
+@test "get_hotfix_targets: default returns main and pre-production" {
+    source_config_parser "minimal"
+    run get_hotfix_targets
+    assert_equals "main pre-production" "$output"
+}
+
+@test "get_tag_branch: custom-branches returns dev" {
     source_config_parser "custom-branches"
-    run get_development_branch
+    run get_tag_branch
     assert_equals "dev" "$output"
 }
 
-@test "get_preprod_branch: custom-branches returns staging" {
+@test "get_hotfix_targets: custom-branches returns master and staging" {
     source_config_parser "custom-branches"
-    run get_preprod_branch
-    assert_equals "staging" "$output"
+    run get_hotfix_targets
+    assert_equals "master staging" "$output"
 }
 
-@test "get_production_branch: custom-branches returns master" {
-    source_config_parser "custom-branches"
-    run get_production_branch
-    assert_equals "master" "$output"
+@test "is_hotfix_target: returns true for branch in list" {
+    source_config_parser "minimal"
+    run is_hotfix_target "main"
+    assert_equals "0" "$status"
+}
+
+@test "is_hotfix_target: returns false for branch not in list" {
+    source_config_parser "minimal"
+    run is_hotfix_target "development"
+    [ "$status" -ne 0 ]
 }
 
 # =============================================================================

@@ -29,9 +29,9 @@ set -e
 #   - Otherwise, scenario is "development_release".
 #
 # PR context detection strategy (pre-merge):
-#   - Dispatch on TARGET_BRANCH vs PROD_BRANCH/PREPROD_BRANCH/DEV_BRANCH and
-#     SOURCE_BRANCH patterns, using the hotfix keyword base (first pattern,
-#     stripped of globs) as the branch prefix heuristic (e.g. "hotfix/*").
+#   - Dispatch on TARGET_BRANCH vs TAG_BRANCH and hotfix_targets list, using
+#     the hotfix keyword base (first pattern, stripped of globs) as the branch
+#     prefix heuristic (e.g. "hotfix/*").
 #     This is the PR-preview path used by pr-versioning.yml to comment the
 #     expected bump on the PR.
 # ------------------------------------------------------------------------------
@@ -52,10 +52,8 @@ log_info "Source Branch: $SOURCE_BRANCH"
 log_info "Target Branch: ${TARGET_BRANCH:-<branch context>}"
 echo ""
 
-# Get branch names from config
-DEV_BRANCH=$(get_development_branch)
-PREPROD_BRANCH=$(get_preprod_branch)
-PROD_BRANCH=$(get_production_branch)
+# Get branch config
+TAG_BRANCH=$(get_tag_branch)
 
 # Get hotfix detection patterns from config (list of glob patterns)
 HOTFIX_KEYWORDS=$(get_hotfix_keywords)
@@ -168,59 +166,33 @@ if [ -z "$TARGET_BRANCH" ]; then
 fi
 
 # ----------------------------------------------------------------------------
-# PR context: dispatch on target branch for preview comment on the PR.
-# Uses the hotfix branch prefix pattern (HOTFIX_BRANCH_PATTERN) to match the
-# source branch name — same signal used in branch context for consistency.
+# PR context: dispatch on target branch.
+# - tag_on target → development_release (any source)
+# - hotfix_targets target → hotfix (hotfix/ source) or promotion_to_main
+#   (source == tag_on) or unknown (anything else)
 # ----------------------------------------------------------------------------
-case "$TARGET_BRANCH" in
-    "$DEV_BRANCH")
-        # Any branch targeting development = development release
-        SCENARIO="development_release"
-        echo "Scenario: Development Release (Changelog + Tag)"
-        ;;
-
-    "$PREPROD_BRANCH")
-        # Check if it is a hotfix or a promotion
-        case "$SOURCE_BRANCH" in
-            ${HOTFIX_BRANCH_PATTERN}*)
-                SCENARIO="hotfix"
-                echo "Scenario: Hotfix to Pre-production (Changelog, no Tag)"
-                ;;
-            "$DEV_BRANCH")
-                SCENARIO="promotion_to_preprod"
-                echo "Scenario: Promotion to Pre-production (No action)"
-                ;;
-            *)
-                SCENARIO="unknown"
-                echo "Scenario: Unknown - No pipeline action"
-                ;;
-        esac
-        ;;
-
-    "$PROD_BRANCH")
-        # Production: can be hotfix, promotion, or direct feature to main
-        case "$SOURCE_BRANCH" in
-            ${HOTFIX_BRANCH_PATTERN}*)
-                SCENARIO="hotfix"
-                echo "Scenario: Hotfix to Production (Changelog + Tag)"
-                ;;
-            "$PREPROD_BRANCH")
-                SCENARIO="promotion_to_main"
-                echo "Scenario: Promotion to Production (No action)"
-                ;;
-            *)
-                # Direct-to-main workflow
-                SCENARIO="development_release"
-                echo "Scenario: Direct to Main Release (Changelog + Tag)"
-                ;;
-        esac
-        ;;
-
-    *)
-        SCENARIO="unknown"
-        echo "Scenario: Unknown - No pipeline action"
-        ;;
-esac
+if [ "$TARGET_BRANCH" = "$TAG_BRANCH" ]; then
+    SCENARIO="development_release"
+    echo "Scenario: Development Release (Changelog + Tag)"
+elif is_hotfix_target "$TARGET_BRANCH"; then
+    case "$SOURCE_BRANCH" in
+        ${HOTFIX_BRANCH_PATTERN}*)
+            SCENARIO="hotfix"
+            echo "Scenario: Hotfix (Changelog + Tag)"
+            ;;
+        "$TAG_BRANCH")
+            SCENARIO="promotion_to_main"
+            echo "Scenario: Promotion (No action)"
+            ;;
+        *)
+            SCENARIO="unknown"
+            echo "Scenario: Unknown - No pipeline action"
+            ;;
+    esac
+else
+    SCENARIO="unknown"
+    echo "Scenario: Unknown - No pipeline action"
+fi
 
 # Save scenario for other scripts to read
 echo "SCENARIO=$SCENARIO" > /tmp/scenario.env

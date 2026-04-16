@@ -18,31 +18,25 @@ AUTOMATIONS_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 # shellcheck source=../lib/config-parser.sh
 . "${AUTOMATIONS_DIR}/lib/config-parser.sh"
 
-# Get branch names from config
-DEV_BRANCH=$(get_development_branch)
-PREPROD_BRANCH=$(get_preprod_branch)
-PROD_BRANCH=$(get_production_branch)
+# Get branch config from config
+TAG_BRANCH=$(get_tag_branch)
 
 # ============================================================================
-# EARLY EXIT: Only run for PRs targeting development, pre-production, or main
+# EARLY EXIT: Only run for PRs targeting tag_on or any hotfix_target branch
 # ============================================================================
 TARGET_BRANCH="${VERSIONING_TARGET_BRANCH}"
 
-case "$TARGET_BRANCH" in
-    "$DEV_BRANCH"|"$PREPROD_BRANCH"|"$PROD_BRANCH")
-        # Continue with pipeline
-        ;;
-    *)
-        log_section "PR PIPELINE SKIPPED"
-        log_info "Target branch: $TARGET_BRANCH"
-        echo ""
-        log_info "PR pipelines only run for PRs targeting:"
-        log_info "  - $DEV_BRANCH (development releases)"
-        log_info "  - $PREPROD_BRANCH (hotfixes)"
-        log_info "  - $PROD_BRANCH (hotfixes)"
-        exit 0
-        ;;
-esac
+if [ "$TARGET_BRANCH" = "$TAG_BRANCH" ] || is_hotfix_target "$TARGET_BRANCH"; then
+    : # Continue with pipeline
+else
+    log_section "PR PIPELINE SKIPPED"
+    log_info "Target branch: $TARGET_BRANCH"
+    echo ""
+    log_info "PR pipelines only run for PRs targeting:"
+    log_info "  - $TAG_BRANCH (tag branch)"
+    log_info "  - configured hotfix_targets ($(get_hotfix_targets | tr ' ' ', '))"
+    exit 0
+fi
 
 # ============================================================================
 # SCENARIO DETECTION
