@@ -25,6 +25,15 @@ else
     DEFAULTS_FILE="${REPO_ROOT}/automations/defaults.yml"
 fi
 
+# Find commit-types.yml: same resolution order as defaults.yml
+if [ -f "${_PARSER_DIR}/../commit-types.yml" ]; then
+    COMMIT_TYPES_FILE="$(cd "${_PARSER_DIR}/.." && pwd)/commit-types.yml"
+elif [ -f "/pipe/commit-types.yml" ]; then
+    COMMIT_TYPES_FILE="/pipe/commit-types.yml"
+else
+    COMMIT_TYPES_FILE="${REPO_ROOT}/automations/commit-types.yml"
+fi
+
 # =============================================================================
 # CONFIGURATION LOADING
 # =============================================================================
@@ -36,13 +45,22 @@ load_config() {
         return 1
     fi
 
+    if [ ! -f "$COMMIT_TYPES_FILE" ]; then
+        echo "ERROR: commit-types.yml not found at $COMMIT_TYPES_FILE" >&2
+        return 1
+    fi
+
     if [ -f "$CONFIG_FILE" ]; then
-        # Merge: defaults + project overrides
-        yq eval-all 'select(fileIndex == 0) * select(fileIndex == 1)' \
-            "$DEFAULTS_FILE" "$CONFIG_FILE" > "$MERGED_CONFIG" 2>/dev/null
+        # Merge: commit-types catalog + system defaults + project overrides (in that order)
+        # commit-types.yml provides the commit_types array base
+        # defaults.yml adds all other system config (no commit_types key)
+        # .versioning.yml applies consumer overrides
+        yq eval-all 'select(fileIndex == 0) * select(fileIndex == 1) * select(fileIndex == 2)' \
+            "$COMMIT_TYPES_FILE" "$DEFAULTS_FILE" "$CONFIG_FILE" > "$MERGED_CONFIG" 2>/dev/null
     else
-        # Use defaults only
-        cp "$DEFAULTS_FILE" "$MERGED_CONFIG"
+        # Merge: commit-types catalog + system defaults only
+        yq eval-all 'select(fileIndex == 0) * select(fileIndex == 1)' \
+            "$COMMIT_TYPES_FILE" "$DEFAULTS_FILE" > "$MERGED_CONFIG" 2>/dev/null
     fi
 
     # Apply commit_type_overrides: patch or add commit types by name
