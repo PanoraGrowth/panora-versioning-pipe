@@ -115,6 +115,13 @@ class TestMergeAndTag:
             commits = scenario["commits"]
             for idx, commit in enumerate(commits):
                 files = dict(commit.get("files", {"test-artifact.txt": "test"}))
+                # Append run_id to every non-config file so the squash merge
+                # always produces a non-empty diff even when sandboxes already
+                # contain the file from a previous run with the same content.
+                files = {
+                    k: (v + f"\n# run:{run_id}" if k != ".versioning.yml" else v)
+                    for k, v in files.items()
+                }
                 if config_override and idx == 0:
                     import yaml
                     current_raw = github.get_file_content(
@@ -235,8 +242,11 @@ class TestMergeAndTag:
                     assert vf_content is not None, (
                         f"version file {vf_path} not found on {base} — expected update"
                     )
-                    assert tag_after in vf_content, (
-                        f"Expected tag '{tag_after}' not found in version file "
+                    # The pipe strips the tag prefix (e.g. "v") before writing
+                    # the version file, so compare against the plain version.
+                    version_plain = tag_after.lstrip("v")
+                    assert version_plain in vf_content, (
+                        f"Expected version '{version_plain}' not found in version file "
                         f"{vf_path} on {base}"
                     )
                 else:

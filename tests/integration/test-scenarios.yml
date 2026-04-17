@@ -474,94 +474,83 @@ scenarios:
       changelog_contains: "feat(cluster-ecs): add auto-scaling configuration"
       changelog_location: "services/001-cluster-ecs/CHANGELOG.md"
 
-  # ---------------------------------------------------------------------------
-  # SCENARIOS 17-19 temporarily disabled — tracked in ticket 056.
-  #
-  # These 3 scenarios passed the tag-creation phase (the 055 fix works correctly
-  # for their sandboxes) but failed the CHANGELOG content assertion. Root cause
-  # is in the scenario setup (per_folder config / sandbox fixtures), not the
-  # pipe itself. Other per_folder scenarios (scoped-backend, scoped-frontend,
-  # per-folder-suffix-matching) pass cleanly.
-  #
-  # Re-enable once 056 diagnoses the CHANGELOG write gap in sandboxes 17-19.
-  # ---------------------------------------------------------------------------
+  - name: per-folder-fallback-file-path
+    description: "Scoped commit with no folder match → fallback=file_path routes CHANGELOG to backend/ based on modified files. Verifies single-folder file_path resolution end-to-end."
+    base: sandbox-17
+    config_override:
+      branches:
+        tag_on: sandbox-17
+      changelog:
+        per_folder:
+          enabled: true
+          fallback: file_path
+          folders:
+            - backend
+            - frontend
+    commits:
+      - message: "fix(auth): resolve auth token expiry in backend"
+        files:
+          backend/auth.py: "# fixed token expiry"
+    expected:
+      pr_check: pass
+      tag_created: true
+      tag_pattern: "^v17\\.\\d+$"
+      changelog_contains: "fix(auth): resolve auth token expiry in backend"
+      changelog_location: "backend/CHANGELOG.md"
 
-  # - name: per-folder-fallback-file-path
-  #   description: "Unscoped commit touching backend/ files → fallback=file_path routes CHANGELOG to backend/. Verifies single-folder file_path resolution end-to-end."
-  #   base: sandbox-17
-  #   config_override:
-  #     branches:
-  #       tag_on: sandbox-17
-  #     changelog:
-  #       per_folder:
-  #         enabled: true
-  #         fallback: file_path
-  #         folders:
-  #           - backend
-  #           - frontend
-  #   commits:
-  #     - message: "fix: resolve auth token expiry in backend"
-  #       files:
-  #         backend/auth.py: "# fixed token expiry"
-  #   expected:
-  #     pr_check: pass
-  #     tag_created: true
-  #     tag_pattern: "^v17\\.\\d+$"
-  #     changelog_contains: "fix: resolve auth token expiry in backend"
-  #     changelog_location: "backend/CHANGELOG.md"
+  - name: per-folder-multi-folder-write
+    description: "Scoped commit with no folder match touching both backend/ and frontend/ → fallback=file_path writes CHANGELOG to BOTH folders. Verifies multi-folder write in real GitHub Actions."
+    base: sandbox-18
+    config_override:
+      branches:
+        tag_on: sandbox-18
+      changelog:
+        per_folder:
+          enabled: true
+          fallback: file_path
+          folders:
+            - backend
+            - frontend
+    commits:
+      - message: "feat(auth): unified auth layer across backend and frontend"
+        files:
+          backend/auth.py: "# unified auth"
+          frontend/auth.js: "// unified auth"
+    expected:
+      pr_check: pass
+      tag_created: true
+      tag_pattern: "^v18\\.\\d+$"
+      changelog_contains: "feat(auth): unified auth layer across backend and frontend"
+      changelog_location: "backend/CHANGELOG.md"
+      changelog_locations:
+        - "backend/CHANGELOG.md"
+        - "frontend/CHANGELOG.md"
 
-  # - name: per-folder-multi-folder-write
-  #   description: "Unscoped commit touching both backend/ and frontend/ → fallback=file_path writes CHANGELOG to BOTH folders. Verifies multi-folder write in real GitHub Actions."
-  #   base: sandbox-18
-  #   config_override:
-  #     branches:
-  #       tag_on: sandbox-18
-  #     changelog:
-  #       per_folder:
-  #         enabled: true
-  #         fallback: file_path
-  #         folders:
-  #           - backend
-  #           - frontend
-  #   commits:
-  #     - message: "feat: unified auth layer across backend and frontend"
-  #       files:
-  #         backend/auth.py: "# unified auth"
-  #         frontend/auth.js: "// unified auth"
-  #   expected:
-  #     pr_check: pass
-  #     tag_created: true
-  #     tag_pattern: "^v18\\.\\d+$"
-  #     changelog_contains: "feat: unified auth layer across backend and frontend"
-  #     changelog_location: "backend/CHANGELOG.md"
-  #     changelog_locations:
-  #       - "backend/CHANGELOG.md"
-  #       - "frontend/CHANGELOG.md"
-
-  # - name: version-file-groups-trigger-match
-  #   description: "version_file.groups with trigger_paths that matches commit files → version file is updated in the repo post-merge. Closes integration gap in DRAFT-coverage.md."
-  #   base: sandbox-19
-  #   config_override:
-  #     branches:
-  #       tag_on: sandbox-19
-  #     version_file:
-  #       enabled: true
-  #       groups:
-  #         - files:
-  #             - services/version.yaml
-  #           trigger_paths:
-  #             - "services/**"
-  #   commits:
-  #     - message: "feat: deploy new services layer"
-  #       files:
-  #         services/main.tf: "# new services layer"
-  #   expected:
-  #     pr_check: pass
-  #     tag_created: true
-  #     tag_pattern: "^v19\\.\\d+$"
-  #     changelog_contains: "feat: deploy new services layer"
-  #     version_file_updated: true
-  #     version_file_path: "services/version.yaml"
+  - name: version-file-groups-trigger-match
+    description: "version_file.groups with trigger_paths that matches commit files → version file is updated in the repo post-merge. Closes integration gap in DRAFT-coverage.md."
+    base: sandbox-19
+    config_override:
+      branches:
+        tag_on: sandbox-19
+      version_file:
+        enabled: true
+        groups:
+          - name: services
+            files:
+              - path: services/version.yaml
+            trigger_paths:
+              - "services/**"
+    commits:
+      - message: "feat: deploy new services layer"
+        files:
+          services/main.tf: "# new services layer"
+    expected:
+      pr_check: pass
+      tag_created: true
+      tag_pattern: "^v19\\.\\d+$"
+      changelog_contains: "feat: deploy new services layer"
+      version_file_updated: true
+      version_file_path: "services/version.yaml"
 
   - name: version-file-groups-trigger-no-match
     description: "version_file.groups with trigger_paths that does NOT match commit files → version file is NOT modified. Completes integration coverage for the groups routing logic."
