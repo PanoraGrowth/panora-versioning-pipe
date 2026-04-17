@@ -90,6 +90,8 @@ Habilita changelogs independientes por carpeta. Requiere `commits.format: conven
 |-----------|------------------------|-----------|
 | Lista con múltiples carpetas raíz (`services`, `infrastructure`) | Búsqueda se extiende a todas las carpetas configuradas | ✅ |
 | Carpeta raíz inexistente | Se ignora gracefully, no rompe la ejecución | ✅ |
+| Glob pattern (`shared/*`) | Expande a subdirectorios directos de `shared/` | ✅ |
+| Glob pattern con padre inexistente | No rompe la ejecución | ✅ |
 
 ---
 
@@ -115,21 +117,32 @@ Ejemplos de uso:
 | `suffix` | scope `cluster-rds` con múltiples subcarpetas | Encuentra la correcta entre varias | ✅ |
 | `suffix` | scope sin match en ninguna subcarpeta | Retorna vacío | ✅ |
 | `suffix` | scope vacío | Retorna vacío | ✅ |
-| `suffix` | `folders` apunta a nivel intermedio (ej. `services/003-api-gateway`) para matchear subcarpetas como `routes/` | Un nivel de profundidad — no recursivo | ❌ sin test |
+| `suffix` | scope matchea subcarpeta a 2 niveles de profundidad (`services/003-api-gateway/001-routes/`) | Encuentra con default depth=2 | ✅ |
+| `suffix` | scope más profundo que `scope_matching_depth` | No matchea — respeta el límite | ✅ |
 | `exact` | scope `api-gateway` → carpeta `api-gateway/` | El nombre de carpeta debe ser igual al scope | ✅ |
 | `exact` | scope `services` → carpeta raíz `services/` | Coincidencia exacta en carpeta raíz | ✅ |
 | `exact` | scope sin carpeta matching | Retorna vacío | ✅ |
 
 ---
 
-**`changelog.per_folder.fallback`** — `"root"` · `"file_path"` · [→ L183](../../scripts/defaults.yml#L183) · [escenario: file_path](per-folder/fallback-file-path.md)
+**`changelog.per_folder.scope_matching_depth`** — `integer` · default `2` · solo aplica a `scope_matching: "suffix"`
+
+| Escenario | Comportamiento probado | Cobertura |
+|-----------|------------------------|-----------|
+| Default `2` — encuentra subcarpeta a nivel 2 | `services/003-api-gateway/001-routes/` matchea | ✅ |
+| Default `2` — no llega a nivel 3 | `services/001/002/003-routes/` no matchea | ✅ |
+
+---
+
+**`changelog.per_folder.fallback`** — `"root"` · `"file_path"` · [→ L184](../../scripts/defaults.yml#L184) · [escenario: file_path](per-folder/fallback-file-path.md)
 
 | Valor | Escenario probado | Comportamiento | Cobertura |
 |-------|-------------------|----------------|-----------|
 | `root` | Commit sin scope matching | Va al CHANGELOG raíz | ✅ |
 | `file_path` | Commit toca archivos en una sola carpeta configurada (`api/main.go`) | Resuelve a esa carpeta | ✅ |
 | `file_path` | Commit toca múltiples archivos en la misma carpeta (`web/index.html`, `web/style.css`) | Resuelve a esa carpeta | ✅ |
-| `file_path` | Commit toca archivos en carpetas distintas (`api/main.go`, `web/index.html`) | Ambiguo — retorna vacío, va al root | ✅ |
+| `file_path` | Commit toca archivos en carpetas distintas (`api/main.go`, `web/index.html`) | Escribe en ambas carpetas | ✅ |
+| `file_path` | Commit toca archivos en 3 carpetas distintas | Escribe en las 3 carpetas | ✅ |
 | `file_path` | Commit toca archivos fuera de todas las carpetas configuradas (`docs/readme.md`) | Sin match — retorna vacío | ✅ |
 | `file_path` | Commit toca archivos en carpeta configurada + archivos en root (`api/main.go`, `README.md`) | Los archivos en root se ignoran, resuelve a la carpeta | ✅ |
 | `file_path` | Commit toca solo archivos en root (`README.md`) | Sin match — retorna vacío | ✅ |

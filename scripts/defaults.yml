@@ -88,6 +88,7 @@ changelog:
     folders: []                 # Folders that get their own CHANGELOG (e.g. ["backend", "frontend"])
     folder_pattern: ""          # Regex to filter subfolders (e.g. "^[0-9]{3}-" for numbered folders)
     scope_matching: "suffix"    # "suffix" (cluster-ecs -> 001-cluster-ecs) or "exact" (folder name = scope)
+    scope_matching_depth: 2     # max depth for suffix scan via find -maxdepth (default: 2)
     fallback: "root"            # "root" (unmatched → root CHANGELOG) or "file_path" (check modified files)
 
 hotfix:
