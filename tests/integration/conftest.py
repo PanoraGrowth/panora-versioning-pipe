@@ -14,6 +14,22 @@ from helpers.bitbucket_client import BitbucketClient
 SCENARIOS_FILE = Path(__file__).parent / "test-scenarios.yml"
 
 
+def sandbox_major(base: str) -> int:
+    """Return the sandbox major version number for a given base branch name.
+
+    For a base like "sandbox-07", returns 7.
+    For "main" or any non-sandbox base, returns 0.
+    Each worker in a pytest-xdist run owns its own session + run_id (derived
+    from uuid4()), so no cross-worker state sharing occurs.
+    """
+    if base.startswith("sandbox-"):
+        try:
+            return int(base.split("-")[1])
+        except (IndexError, ValueError):
+            return 0
+    return 0
+
+
 def deep_merge(base: dict, override: dict) -> dict:
     """Recursively merge override into base. Override wins on conflicts."""
     result = dict(base)
