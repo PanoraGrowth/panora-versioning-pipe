@@ -356,6 +356,9 @@ version_file:
 }
 
 @test "path glob no match: logs warning and continues (exit 0)" {
+    # Use an actual glob (with *) that matches nothing — post-#94, paths
+    # WITHOUT glob chars now auto-create the file, so testing "no match"
+    # requires a pattern containing * or ? that actually expands to nothing.
     write_inline_fixture '
 commits:
   format: "conventional"
@@ -369,7 +372,7 @@ version_file:
   groups:
     - name: "root"
       files:
-        - path: "nonexistent/version.yaml"
+        - path: "nonexistent/*.yaml"
 '
     run_write_version_file "1.0.0"
     [ "$status" -eq 0 ]

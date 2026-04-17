@@ -251,4 +251,20 @@ If you already merged and didn't set the PR title correctly, the release is trea
 3. The commit subject that triggered the bad tag.
 4. The `calculate-version.sh` log from the failing tag-on-merge run.
 
+---
+
+## My `major.initial` or `epoch.initial` changed but the pipe keeps producing tags in the old namespace
+
+**Cause.** This was a silent bug prior to v0.12 (ticket 055). Before the fix, `version.components.epoch.initial` and `version.components.major.initial` were ignored whenever any tag existed that matched the configured tag pattern — the pipe would parse the latest existing tag and continue in that namespace regardless of what you declared.
+
+**Post-fix behavior (v0.12+)**: namespace components (`epoch`, `major`) are **declarative authority**. The next tag always lands in the `^v{epoch.initial}.{major.initial}.*` namespace. Progression components (`patch`, `hotfix_counter`) remain cold-start-only.
+
+**Fix.** Upgrade the pipe image. Once on v0.12+:
+
+1. `.versioning.yml` with `version.components.major.initial: 2` produces the next tag in the `v2.*` namespace (even if `v1.x` / `v3.x` tags exist).
+2. If you set `patch.initial` or `hotfix_counter.initial` to a non-default value AND tags already exist in the target namespace, those values are ignored and the pipe logs an `INFO: version.components.{patch|hotfix_counter}.initial=N is ignored` note. Progression continues from the latest tag in the namespace.
+3. To revert to the pre-v0.12 behavior, pin a prior image tag (e.g. `panora-versioning-pipe:v0.11.14`). There is no config flag — by design.
+
+See `docs/architecture/README.md` → "Initial values semantics" for the full table of asymmetries.
+
 The pipe's unit tests (`tests/unit/versioning/patch-component.bats` and `hotfix-bump.bats`) lock the expected format — a failure at runtime would indicate a regression the tests didn't catch.

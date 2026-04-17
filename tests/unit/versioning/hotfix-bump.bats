@@ -62,17 +62,20 @@ run_calculate() {
 # =============================================================================
 
 @test "hotfix scenario + hotfix_counter enabled: bumps hotfix_counter 0 → 1" {
-    run_calculate "with-hotfix-counter" "hotfix" "v0.5.9" "hotfix: patch auth"
+    # Ticket 055: with-hotfix-counter fixture has epoch.initial=0 + major.initial=0,
+    # so the namespace filter is ^v0\.0\. — seed tag must live in that namespace.
+    run_calculate "with-hotfix-counter" "hotfix" "v0.0.9" "hotfix: patch auth"
     [ "$status" -eq 0 ]
     assert_output_matches 'BUMP_TYPE=patch'
-    assert_output_matches 'NEXT_VERSION=v0\.5\.9\.1'
+    assert_output_matches 'NEXT_VERSION=v0\.0\.9\.1'
 }
 
 @test "hotfix scenario + hotfix_counter enabled: bumps hotfix_counter 1 → 2" {
-    run_calculate "with-hotfix-counter" "hotfix" "v0.5.9.1" "hotfix: second patch"
+    # Ticket 055: namespace filter requires major=0 (default initial).
+    run_calculate "with-hotfix-counter" "hotfix" "v0.0.9.1" "hotfix: second patch"
     [ "$status" -eq 0 ]
     assert_output_matches 'BUMP_TYPE=patch'
-    assert_output_matches 'NEXT_VERSION=v0\.5\.9\.2'
+    assert_output_matches 'NEXT_VERSION=v0\.0\.9\.2'
 }
 
 @test "hotfix scenario + hotfix_counter disabled: no-op (empty next_version, INFO log)" {
@@ -94,26 +97,29 @@ run_calculate() {
 
 @test "development_release + minor bump (feat): bumps patch component, resets hotfix_counter" {
     # feat maps to minor in the SemVer-compatible mapping (bump: minor).
-    # with-hotfix-counter fixture has epoch.enabled=true so version is epoch.major.patch.hotfix_counter.
-    # v0.5.9.3 → epoch=0, major=5, patch=9, hotfix_counter=3. minor bump → patch=10, hotfix_counter=0 (omitted).
-    run_calculate "with-hotfix-counter" "development_release" "v0.5.9.3" "feat: new thing"
+    # with-hotfix-counter fixture has epoch.enabled=true + major.initial=0, so post-055 the
+    # namespace filter is ^v0\.0\. — seed tag must live in that namespace.
+    # v0.0.9.3 → epoch=0, major=0, patch=9, hotfix_counter=3. minor bump → patch=10, hotfix_counter=0 (omitted).
+    run_calculate "with-hotfix-counter" "development_release" "v0.0.9.3" "feat: new thing"
     [ "$status" -eq 0 ]
     assert_output_matches 'BUMP_TYPE=minor'
-    assert_output_matches 'NEXT_VERSION=v0\.5\.10$'
+    assert_output_matches 'NEXT_VERSION=v0\.0\.10$'
 }
 
 @test "development_release + patch bump (fix): bumps patch component, resets hotfix_counter" {
     # fix maps to patch in the SemVer-compatible mapping (bump: patch).
     # patch bump increments the 3rd slot (patch) and resets hotfix_counter (4th slot) to 0.
-    run_calculate "with-hotfix-counter" "development_release" "v0.5.9.2" "fix: routine fix"
+    # Ticket 055: namespace filter ^v0\.0\. requires major=0.
+    run_calculate "with-hotfix-counter" "development_release" "v0.0.9.2" "fix: routine fix"
     [ "$status" -eq 0 ]
     assert_output_matches 'BUMP_TYPE=patch'
     # After patch bump, patch=9 increments to 10, hotfix_counter=0 (omitted)
-    assert_output_matches 'NEXT_VERSION=v0\.5\.10$'
+    assert_output_matches 'NEXT_VERSION=v0\.0\.10$'
 }
 
 @test "bump_type.txt contains 'patch' after hotfix bump" {
-    run_calculate "with-hotfix-counter" "hotfix" "v0.5.9" "hotfix: check bump type file"
+    # Ticket 055: namespace filter ^v0\.0\. requires major=0 in seed tag.
+    run_calculate "with-hotfix-counter" "hotfix" "v0.0.9" "hotfix: check bump type file"
     [ "$status" -eq 0 ]
     # Explicit grep on the captured BUMP_TYPE line — anchored, no partial matches
     echo "$output" | grep -q '^BUMP_TYPE=patch$'
@@ -123,32 +129,33 @@ run_calculate() {
 # §6.2 — New SemVer-compatible bump mapping cases
 # =============================================================================
 
-@test "§6.2 case 1: fix on v1.2 yields patch bump → v1.3" {
+@test "§6.2 case 1: fix on v0.2 yields patch bump → v0.3" {
     # fix maps to patch (SemVer-compatible mapping). semver fixture has major+patch (2 slots).
-    # v1.2: major=1, patch=2. patch bump → patch=3 → v1.3
-    run_calculate "semver" "development_release" "v1.2" "fix: resolve X"
+    # Ticket 055: semver fixture has major.initial=0 → namespace filter ^v0\. — seed tag must match.
+    # v0.2: major=0, patch=2. patch bump → patch=3 → v0.3
+    run_calculate "semver" "development_release" "v0.2" "fix: resolve X"
     [ "$status" -eq 0 ]
     assert_output_matches 'BUMP_TYPE=patch'
-    assert_output_matches 'NEXT_VERSION=v1\.3$'
+    assert_output_matches 'NEXT_VERSION=v0\.3$'
 }
 
-@test "§6.2 case 2: feat on v1.2 yields minor bump → v1.3" {
+@test "§6.2 case 2: feat on v0.2 yields minor bump → v0.3" {
     # feat maps to minor (bump: minor) in the SemVer-compatible mapping.
     # Both feat and fix bump the patch slot (3rd component) post-042.
     # hotfix_counter (4th slot) is absent in semver fixture, so no .N suffix.
-    run_calculate "semver" "development_release" "v1.2" "feat: add Y"
+    run_calculate "semver" "development_release" "v0.2" "feat: add Y"
     [ "$status" -eq 0 ]
     assert_output_matches 'BUMP_TYPE=minor'
-    assert_output_matches 'NEXT_VERSION=v1\.3$'
+    assert_output_matches 'NEXT_VERSION=v0\.3$'
 }
 
-@test "§6.2 case 3: breaking on v1.2 yields major bump → v2.0" {
+@test "§6.2 case 3: breaking on v0.2 yields major bump → v1.0" {
     # breaking still maps to major — no change.
-    # patch=0 after reset, so v2.0.0 renders as v2.0.
-    run_calculate "semver" "development_release" "v1.2" "breaking: drop Z"
+    # patch=0 after reset, so v1.0.0 renders as v1.0.
+    run_calculate "semver" "development_release" "v0.2" "breaking: drop Z"
     [ "$status" -eq 0 ]
     assert_output_matches 'BUMP_TYPE=major'
-    assert_output_matches 'NEXT_VERSION=v2\.0$'
+    assert_output_matches 'NEXT_VERSION=v1\.0$'
 }
 
 @test "§6.2 case 4: docs commit with timestamp disabled — no tag (none + timestamp off)" {
@@ -160,13 +167,14 @@ run_calculate() {
     echo "$output" | grep -q '^NEXT_VERSION=$'
 }
 
-@test "§6.2 case 6: fix on v1.2 — patch bump increments patch component" {
-    # Verifies that a patch bump increments the patch (3rd) component
-    run_calculate "semver" "development_release" "v1.2" "fix: targeted fix"
+@test "§6.2 case 6: fix on v0.2 — patch bump increments patch component" {
+    # Verifies that a patch bump increments the patch component (2nd slot in semver fixture).
+    # Ticket 055: semver has major.initial=0, so seed tag must be v0.* for the namespace filter.
+    run_calculate "semver" "development_release" "v0.2" "fix: targeted fix"
     [ "$status" -eq 0 ]
     assert_output_matches 'BUMP_TYPE=patch'
     # patch increments from 2 to 3
-    assert_output_matches 'NEXT_VERSION=v1\.3$'
+    assert_output_matches 'NEXT_VERSION=v0\.3$'
 }
 
 @test "§6.2 case 7: hotfix_counter component disabled — fix commit does not crash" {

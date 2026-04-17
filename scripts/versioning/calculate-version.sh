@@ -50,8 +50,14 @@ fi
 # Get latest tag
 # =============================================================================
 TAG_PATTERN=$(get_tag_pattern)
+# Ticket 055: namespace filter so that epoch.initial / major.initial values are
+# respected even when the repo already has tags matching TAG_PATTERN. Without
+# this filter, `initial` was silently ignored whenever any tag existed, breaking
+# migrations, epoch rotations, and namespace isolation.
+INITIAL_PREFIX=$(build_initial_prefix_regex "$EPOCH_INITIAL" "$MAJOR_INITIAL")
 LATEST_TAG=$(git tag --sort=-v:refname | \
-    grep -E "$TAG_PATTERN" | head -n 1 || echo "")
+    grep -E "$TAG_PATTERN" | \
+    grep -E "$INITIAL_PREFIX" | head -n 1 || echo "")
 
 # Save latest tag for other scripts (e.g. CHANGELOG_BASE_REF)
 write_state "/tmp/latest_tag.txt" "${LATEST_TAG:-}"
@@ -72,6 +78,16 @@ else
     HOTFIX_COUNTER=$PARSED_HOTFIX_COUNTER
     CURRENT_VER=$(build_version_string "$EPOCH" "$MAJOR" "$PATCH" "$HOTFIX_COUNTER")
     log_info "Current version: ${CURRENT_VER}"
+    # Ticket 055: observability — progression components (patch, hotfix_counter)
+    # are cold-start-only. When tags exist in the namespace, their `initial` is
+    # ignored (progression continues from the latest tag). Log only when set
+    # non-default, to avoid noise for consumers who never touched these.
+    if [ "$PATCH_INITIAL" != "0" ]; then
+        log_info "Note: version.components.patch.initial=${PATCH_INITIAL} is ignored (tags exist in namespace; patch progresses from latest tag)."
+    fi
+    if [ "$HOTFIX_COUNTER_INITIAL" != "0" ]; then
+        log_info "Note: version.components.hotfix_counter.initial=${HOTFIX_COUNTER_INITIAL} is ignored (tags exist in namespace; hotfix_counter progresses from latest tag)."
+    fi
 fi
 
 echo ""
