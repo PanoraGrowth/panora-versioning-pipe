@@ -363,3 +363,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: dc86249](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/dc86249c66a2d347aa623bb0baa2a8ab200fe6c7)
 
 
+## v0.11.15 - 2026-04-17
+
+- 🐛 fix(versioning): respect epoch.initial and major.initial with existing tags (#95)
+  - _Agustín Manessi_
+  - [Commit: e3f1342](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/e3f134269f41acadd7f5eca12d9e49aeba845d66)
+
+
