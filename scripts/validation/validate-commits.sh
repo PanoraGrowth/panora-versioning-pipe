@@ -222,10 +222,13 @@ if require_commit_types && [ -n "${VERSIONING_PR_TITLE:-}" ]; then
         _HOTFIX_KEYWORDS=$(get_hotfix_keywords)
         while IFS= read -r _kw; do
             [ -z "$_kw" ] && continue
+            # Pattern comes from a variable — use eval so bracket expressions
+            # like [Hh]otfix/* expand correctly in the case pattern.
             # shellcheck disable=SC2254
-            case "$VERSIONING_PR_TITLE" in
-                $_kw) _PR_TITLE_VALID=1; break ;;
-            esac
+            if eval "case \"\$VERSIONING_PR_TITLE\" in $_kw) true ;; *) false ;; esac" 2>/dev/null; then
+                _PR_TITLE_VALID=1
+                break
+            fi
         done <<EOF
 $_HOTFIX_KEYWORDS
 EOF
