@@ -545,6 +545,10 @@ GitHub Actions does not trigger workflows from tags created by other workflows u
 
 `publish.yml` also supports `workflow_dispatch` for manual Docker image builds when needed.
 
+## Security
+
+For security model documentation, credential management, GitHub App token rotation procedures, and consumer repository security invariants and onboarding checklist, see [docs/security.md](docs/security.md).
+
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, code style, and the PR process.
