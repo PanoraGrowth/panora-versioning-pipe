@@ -377,3 +377,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: 725692e](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/725692e81d8e2efdcd5e648567ff0f22b7c5f2b4)
 
 
+## v0.1.4 - 2026-04-17
+
+- 🐛 fix(validation): accept hotfix keyword patterns as valid PR titles (#100)
+  - _Agustín Manessi_
+  - [Commit: 871fe62](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/871fe629abaf7906f52a2983b334d31d25778346)
+
+
