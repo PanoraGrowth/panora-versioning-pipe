@@ -370,3 +370,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: e3f1342](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/e3f134269f41acadd7f5eca12d9e49aeba845d66)
 
 
+## v0.1.3 - 2026-04-17
+
+- 🚀 feat(validation): validate PR title as conventional commit (#99)
+  - _Agustín Manessi_
+  - [Commit: 725692e](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/725692e81d8e2efdcd5e648567ff0f22b7c5f2b4)
+
+
