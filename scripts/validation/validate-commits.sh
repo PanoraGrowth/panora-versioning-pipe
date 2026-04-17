@@ -213,7 +213,24 @@ fi
 if require_commit_types && [ -n "${VERSIONING_PR_TITLE:-}" ]; then
     log_info "PR title: ${VERSIONING_PR_TITLE}"
     echo ""
-    if ! echo "$VERSIONING_PR_TITLE" | grep -qE "$TICKET_FULL_PATTERN"; then
+    # A PR title is valid if it matches the commit format OR a hotfix keyword pattern.
+    # Hotfix keyword patterns (e.g. "[Hh]otfix/*") are glob-style — use case matching.
+    _PR_TITLE_VALID=0
+    if echo "$VERSIONING_PR_TITLE" | grep -qE "$TICKET_FULL_PATTERN"; then
+        _PR_TITLE_VALID=1
+    else
+        _HOTFIX_KEYWORDS=$(get_hotfix_keywords)
+        while IFS= read -r _kw; do
+            [ -z "$_kw" ] && continue
+            # shellcheck disable=SC2254
+            case "$VERSIONING_PR_TITLE" in
+                $_kw) _PR_TITLE_VALID=1; break ;;
+            esac
+        done <<EOF
+$_HOTFIX_KEYWORDS
+EOF
+    fi
+    if [ "$_PR_TITLE_VALID" -eq 0 ]; then
         log_section "ERROR: PR TITLE NOT WELL-FORMED"
         echo ""
         log_info "The PR title must follow the same format as commits."

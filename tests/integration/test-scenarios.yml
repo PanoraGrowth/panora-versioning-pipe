@@ -601,7 +601,7 @@ scenarios:
       branches:
         tag_on: sandbox-21
     commits:
-      - message: "feat: valid commit inside the PR"
+      - message: "feat: valid pr title for squash merge"
         files:
           test-artifact.txt: "pr title valid squash test"
     expected:
