@@ -391,3 +391,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: ded815f](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/ded815f4932f696635a5d0b371ed64e2e603882f)
 
 
+## v0.1.6 - 2026-04-17
+
+- 🐛 fix(validation): remove false arm from eval case to avoid set-e exit in Alpine ash (#103)
+  - _Agustín Manessi_
+  - [Commit: 3c42942](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/3c4294252bb7e51be050d10b181c0865d9b197c9)
+
+
