@@ -314,3 +314,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: ca43bd5](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/ca43bd5b845bcc0afa8bda6c00793d05871fb442)
 
 
+## v0.11.8 - 2026-04-17
+
+- 🚀 feat(changelog): per-folder enhancements — glob folders, multi-level suffix, multi-folder write (#73)
+  - _Agustín Manessi_
+  - [Commit: 408d2dd](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/408d2dd9ae975bc06d2047fd90fe24c3b9ce4c19)
+
+
