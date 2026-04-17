@@ -55,6 +55,28 @@ jobs:
           username: ${{ secrets.ECR_ACCESS_KEY_ID }}
           password: ${{ secrets.ECR_SECRET_ACCESS_KEY }}
 
+      - name: Build (local scan target)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          load: true
+          tags: ${{ env.IMAGE_NAME }}:scan
+
+      - name: Scan image for vulnerabilities
+        # aquasecurity/trivy-action — third-party action, pinned to SHA per security-review.md §4
+        # renovate: datasource=github-releases depName=aquasecurity/trivy-action
+        uses: aquasecurity/trivy-action@915b19bbe73b92a6cf82a1bc12b087c9a19a5fe2  # v0.28.0
+        with:
+          image-ref: ${{ env.IMAGE_NAME }}:scan
+          exit-code: '1'
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+        # If trivy finds unfixable HIGH/CRITICAL CVEs: open an issue, document the
+        # CVE + justification in security-review.md §5, and re-run with the CVE
+        # suppressed via .trivyignore until an upstream fix is available.
+        # NEVER disable the scan permanently.
+
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
