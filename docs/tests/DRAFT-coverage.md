@@ -448,3 +448,43 @@ Controla las notificaciones a Microsoft Teams. La sección se lee directamente c
 | [`notifications.teams.enabled`](../../scripts/defaults.yml#L140) | `true` · `false` · default `true` | `false` → script loguea "disabled" y sale sin enviar · `true` → flujo de envío | ❌ sin test |
 | [`notifications.teams.on_success`](../../scripts/defaults.yml#L141) | `true` · `false` · default `false` | Controla si se notifica en ejecuciones exitosas | ❌ sin test |
 | [`notifications.teams.on_failure`](../../scripts/defaults.yml#L142) | `true` · `false` · default `true` | Controla si se notifica en fallos | ❌ sin test |
+
+---
+
+## CI / Security hardening
+
+> Implementado en Ticket 020 (PRs #75–#80, 2026-04-17). No mapea a `defaults.yml` — cubre la superficie de ataque del container y del pipeline CI.
+
+### Container hardening
+
+| Ítem | Estado | Detalle |
+|------|--------|---------|
+| `yq` instalado via APK (no `curl` sin verificación) | ✅ | Alpine 3.19 community — APK verifica integridad con firma |
+| Container corre como usuario no-root (`pipe`, uid 1001) | ✅ | `USER pipe` en Dockerfile antes del ENTRYPOINT |
+| `set -e` en todos los scripts de orquestación | ✅ | `validate-commits.sh`, `notify-teams.sh`, `bitbucket-build-status.sh` — completado en ticket 020 PR F |
+
+### CI workflow hardening
+
+| Ítem | Estado | Detalle |
+|------|--------|---------|
+| `trivy-action` escanea la imagen antes del push (HIGH+CRITICAL) | ✅ | `publish.yml` — build local → scan → push. `ignore-unfixed: true` |
+| `trivy-action` pineado a SHA completo | ✅ | `@915b19bbe73b92a6cf82a1bc12b087c9a19a5fe2` (v0.28.0) |
+| Todas las GitHub Actions pineadas a SHA completo | ✅ | `actions/checkout` v4.3.1 · `actions/create-github-app-token` v1.9.3 · docker/* v3–v6 |
+| Dependabot habilitado (GitHub Actions weekly, Docker monthly) | ✅ | `.github/dependabot.yml` — mantiene SHAs actualizados automáticamente |
+| `run-unit-tests.yml` con `permissions: contents: read` | ✅ | Mínimo privilegio en el workflow de tests unitarios |
+
+### Shell safety (auditado en ticket 020)
+
+| Ítem | Estado | Detalle |
+|------|--------|---------|
+| `eval` en `common.sh:require_env` — solo para lookup de nombre de variable | ✅ | Comentario inline documenta la invariante: nunca extender a valores controlados por usuario |
+| `case "$branch" in ${HOTFIX_BRANCH_PATTERN}*` — unquoted intencional | ✅ | Comentario inline en `detect-scenario.sh` — glob syntax requiere sin quotes; fuente es config interna |
+| `git log --format` como vector de inyección | ✅ auditado | Scripts consumen output via pipe a `grep`/`wc` — no hay `eval` sobre output de git |
+
+### Documentación de seguridad
+
+| Ítem | Estado | Detalle |
+|------|--------|---------|
+| `docs/security.md` — modelo de seguridad completo | ✅ | GitHub App token (por qué), rotación de `CI_APP_PRIVATE_KEY`, 6 invariantes del consumidor, checklist de onboarding |
+| `README.md` linkea a `docs/security.md` | ✅ | Sección `## Security` antes de `## Contributing` |
+| `release-readiness-checklist.md §2` referencia `docs/security.md` | ✅ | Items de rotación de clave y runbook de compromiso |
