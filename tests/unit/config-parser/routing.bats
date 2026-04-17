@@ -185,3 +185,66 @@ teardown() { common_teardown; }
 
     assert_empty "$output"
 }
+
+# =============================================================================
+# find_folder_for_scope — glob expansion in folders[] (038)
+# =============================================================================
+
+@test "find_folder_for_scope: glob pattern expands and matches subfolder" {
+    source_config_parser "monorepo-glob-folders"
+    mkdir -p "${BATS_TEST_TMPDIR}/repo/shared/utils"
+    mkdir -p "${BATS_TEST_TMPDIR}/repo/shared/lib"
+
+    run find_folder_for_scope \
+        "utils" \
+        "shared/*" \
+        "" \
+        "exact"
+
+    assert_equals "${BATS_TEST_TMPDIR}/repo/shared/utils" "$output"
+}
+
+@test "find_folder_for_scope: glob pattern — nonexistent parent does not error" {
+    source_config_parser "monorepo-glob-folders"
+    # shared/ does not exist at all
+
+    run find_folder_for_scope \
+        "utils" \
+        "shared/*" \
+        "" \
+        "exact"
+
+    assert_empty "$output"
+}
+
+# =============================================================================
+# find_folder_for_scope — multi-level suffix matching (036)
+# =============================================================================
+
+@test "find_folder_for_scope: suffix match — finds subfolder 2 levels deep" {
+    source_config_parser "monorepo"
+    # 2 levels deep: services/003-api-gateway/001-routes/
+    mkdir -p "${BATS_TEST_TMPDIR}/repo/services/003-api-gateway/001-routes"
+
+    run find_folder_for_scope \
+        "routes" \
+        "services" \
+        "^[0-9]{3}-" \
+        "suffix"
+
+    assert_equals "${BATS_TEST_TMPDIR}/repo/services/003-api-gateway/001-routes/" "$output"
+}
+
+@test "find_folder_for_scope: suffix match — does not find folder beyond default depth" {
+    source_config_parser "monorepo"
+    # depth=2 by default; level 3 (inside services/l1/l2/) should not be reached
+    mkdir -p "${BATS_TEST_TMPDIR}/repo/services/001-level1/002-level2/003-routes"
+
+    run find_folder_for_scope \
+        "routes" \
+        "services" \
+        "^[0-9]{3}-" \
+        "suffix"
+
+    assert_empty "$output"
+}

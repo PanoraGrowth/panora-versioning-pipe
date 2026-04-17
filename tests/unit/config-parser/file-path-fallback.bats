@@ -53,12 +53,14 @@ create_commit_with_files() {
     assert_empty "$output"
 }
 
-@test "find_folder_by_file_path: returns empty on ambiguous match (files in multiple folders)" {
+@test "find_folder_by_file_path: returns all matched folders when files span multiple folders" {
     source_config_parser "monorepo-file-path-fallback"
     local hash=$(create_commit_with_files "api/main.go" "web/index.html")
 
     run find_folder_by_file_path "$hash" "api web shared"
-    assert_empty "$output"
+    assert_line_count 2
+    assert_line "${BATS_TEST_TMPDIR}/repo/api"
+    assert_line "${BATS_TEST_TMPDIR}/repo/web"
 }
 
 @test "find_folder_by_file_path: handles nested files within a folder correctly" {
@@ -75,6 +77,17 @@ create_commit_with_files() {
 
     run find_folder_by_file_path "$hash" "api web shared"
     assert_empty "$output"
+}
+
+@test "find_folder_by_file_path: returns all three folders when files span three configured folders" {
+    source_config_parser "monorepo-file-path-fallback"
+    local hash=$(create_commit_with_files "api/main.go" "web/index.html" "shared/utils/helpers.sh")
+
+    run find_folder_by_file_path "$hash" "api web shared"
+    assert_line_count 3
+    assert_line "${BATS_TEST_TMPDIR}/repo/api"
+    assert_line "${BATS_TEST_TMPDIR}/repo/web"
+    assert_line "${BATS_TEST_TMPDIR}/repo/shared"
 }
 
 @test "find_folder_by_file_path: mixed root and folder files — unmatched root files are ignored" {

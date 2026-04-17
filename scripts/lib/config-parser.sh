@@ -381,6 +381,11 @@ get_per_folder_scope_matching() {
     config_get "changelog.per_folder.scope_matching" "suffix"
 }
 
+# Get max depth for suffix scope matching (default: 2)
+get_per_folder_scope_matching_depth() {
+    config_get "changelog.per_folder.scope_matching_depth" "2"
+}
+
 # Get fallback mode: "root" or "file_path"
 get_per_folder_fallback() {
     config_get "changelog.per_folder.fallback" "root"
@@ -397,6 +402,8 @@ extract_scope_from_commit() {
 # Find folder matching a scope
 # Routing: scope → folder match → subfolder discovery → (caller handles fallback)
 # Args: scope, folders (space-separated), folder_pattern, scope_matching
+# Glob patterns in folders (e.g. "shared/*") are expanded before matching.
+# Suffix matching scans up to scope_matching_depth levels deep (default: 2).
 find_folder_for_scope() {
     local scope="$1"
     local folders="$2"
@@ -407,52 +414,57 @@ find_folder_for_scope() {
         return
     fi
 
-    for folder in $folders; do
-        local folder_path="${REPO_ROOT}/${folder}"
-        if [ ! -d "$folder_path" ]; then
-            continue
-        fi
+    local depth
+    depth=$(get_per_folder_scope_matching_depth)
 
-        local folder_name
-        folder_name=$(basename "$folder")
+    for folder_entry in $folders; do
+        # 038: expand glob patterns — "shared/*" → "shared/utils shared/lib ..."
+        for folder in ${REPO_ROOT}/${folder_entry}; do
+            [ -d "$folder" ] || continue
 
-        if [ "$scope_matching" = "exact" ]; then
-            # Step 2: Exact match — scope IS the configured folder name
-            if [ "$scope" = "$folder_name" ]; then
-                echo "$folder_path"
-                return
-            fi
+            local folder_name
+            folder_name=$(basename "$folder")
 
-            # Step 3: Subfolder discovery — scope matches a subfolder within this folder
-            # Scans one level deep only
-            if [ -d "${folder_path}/${scope}" ]; then
-                echo "${folder_path}/${scope}"
-                return
-            fi
-        elif [ "$scope_matching" = "suffix" ]; then
-            # Suffix match: search subfolders whose name ends with the scope
-            for subfolder in "$folder_path"/*/; do
-                [ -d "$subfolder" ] || continue
-                local subfolder_name
-                subfolder_name=$(basename "$subfolder")
-
-                # Apply folder_pattern filter if set
-                if [ -n "$folder_pattern" ]; then
-                    echo "$subfolder_name" | grep -qE "$folder_pattern" || continue
+            if [ "$scope_matching" = "exact" ]; then
+                # Step 2: Exact match — scope IS the configured folder name
+                if [ "$scope" = "$folder_name" ]; then
+                    echo "$folder"
+                    return
                 fi
 
-                # Check if folder name ends with the scope
-                case "$subfolder_name" in
-                    *-"$scope") echo "$subfolder"; return ;;
-                esac
-            done
-        fi
+                # Step 3: Subfolder discovery — scope matches a subfolder within this folder
+                # Scans one level deep only
+                if [ -d "${folder}/${scope}" ]; then
+                    echo "${folder}/${scope}"
+                    return
+                fi
+            elif [ "$scope_matching" = "suffix" ]; then
+                # 036: suffix match — search subfolders up to scope_matching_depth levels deep
+                while IFS= read -r subfolder; do
+                    [ -d "$subfolder" ] || continue
+                    local subfolder_name
+                    subfolder_name=$(basename "$subfolder")
+
+                    # Apply folder_pattern filter if set
+                    if [ -n "$folder_pattern" ]; then
+                        echo "$subfolder_name" | grep -qE "$folder_pattern" || continue
+                    fi
+
+                    # Check if folder name ends with the scope
+                    case "$subfolder_name" in
+                        *-"$scope") echo "${subfolder%/}/"; return ;;
+                    esac
+                done <<EOF
+$(find "$folder" -mindepth 1 -maxdepth "$depth" -type d)
+EOF
+            fi
+        done
     done
 }
 
-# Find folder for a commit by checking which configured folder contains the modified files
+# Find folders for a commit by checking which configured folders contain the modified files
 # Args: commit_hash, folders (space-separated)
-# Returns: folder path if files fall within exactly ONE configured folder, empty otherwise
+# Returns: newline-separated list of matched folder paths (one or more)
 find_folder_by_file_path() {
     local commit_hash="$1"
     local folders="$2"
@@ -464,26 +476,28 @@ find_folder_by_file_path() {
         return
     fi
 
-    local _matched=""
+    local _matched_list=""
     for file in $changed_files; do
         [ -z "$file" ] && continue
         for folder in $folders; do
             case "$file" in
                 "${folder}"/*)
-                    if [ -z "$_matched" ]; then
-                        _matched="$folder"
-                    elif [ "$_matched" != "$folder" ]; then
-                        # Ambiguous — files in multiple folders
-                        return
-                    fi
+                    # Add folder to list if not already present
+                    case "$_matched_list" in
+                        *"${folder}"*) ;;
+                        *) _matched_list="${_matched_list:+$_matched_list
+}${folder}" ;;
+                    esac
                     break
                     ;;
             esac
         done
     done
 
-    if [ -n "$_matched" ]; then
-        echo "${REPO_ROOT}/${_matched}"
+    if [ -n "$_matched_list" ]; then
+        echo "$_matched_list" | while IFS= read -r matched; do
+            echo "${REPO_ROOT}/${matched}"
+        done
     fi
 }
 
