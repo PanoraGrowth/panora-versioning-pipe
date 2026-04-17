@@ -547,7 +547,7 @@ GitHub Actions does not trigger workflows from tags created by other workflows u
 
 ## Security
 
-For security model documentation, credential management, GitHub App token rotation procedures, and consumer repository security invariants and onboarding checklist, see [docs/security.md](docs/security.md).
+For the pipe's security model, GitHub App token rationale, `CI_APP_PRIVATE_KEY` rotation runbook, and consumer security invariants, see [`docs/security.md`](docs/security.md).
 
 ## Contributing
 
