@@ -328,3 +328,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: b1c239f](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/b1c239f0f2f433468c55895016bf177afe3fb502)
 
 
+## v0.11.10 - 2026-04-17
+
+- 🐛 fix(scripts): document eval safety invariant and audit git log output chain (#78)
+  - _Agustín Manessi_
+  - [Commit: 745146e](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/745146e0b10288755ee3e1d41111e4d2019ef6a7)
+
+
