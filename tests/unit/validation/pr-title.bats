@@ -187,13 +187,12 @@ run_validate() {
     # Validates the eval-based glob matching for bracket expressions in variables.
     # This is the exact case that broke without eval: case "$var" in $kw) does not
     # expand [Hh] when kw comes from a variable.
+    # No *) false arm — that triggers set -e in Alpine ash when unmatched.
     local title="Hotfix/urgent security patch"
     local kw='[Hh]otfix/*'
     local matched=0
     # shellcheck disable=SC2254
-    if eval "case \"\$title\" in $kw) true ;; *) false ;; esac" 2>/dev/null; then
-        matched=1
-    fi
+    eval "case \"\$title\" in $kw) matched=1 ;; esac" 2>/dev/null || true
     [ "$matched" -eq 1 ]
 }
 
@@ -202,9 +201,7 @@ run_validate() {
     local kw='[Hh]otfix/*'
     local matched=0
     # shellcheck disable=SC2254
-    if eval "case \"\$title\" in $kw) true ;; *) false ;; esac" 2>/dev/null; then
-        matched=1
-    fi
+    eval "case \"\$title\" in $kw) matched=1 ;; esac" 2>/dev/null || true
     [ "$matched" -eq 1 ]
 }
 
@@ -213,9 +210,7 @@ run_validate() {
     local kw='[Hh]otfix/*'
     local matched=0
     # shellcheck disable=SC2254
-    if eval "case \"\$title\" in $kw) true ;; *) false ;; esac" 2>/dev/null; then
-        matched=1
-    fi
+    eval "case \"\$title\" in $kw) matched=1 ;; esac" 2>/dev/null || true
     [ "$matched" -eq 0 ]
 }
 

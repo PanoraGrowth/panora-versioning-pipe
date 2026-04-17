@@ -224,11 +224,10 @@ if require_commit_types && [ -n "${VERSIONING_PR_TITLE:-}" ]; then
             [ -z "$_kw" ] && continue
             # Pattern comes from a variable — use eval so bracket expressions
             # like [Hh]otfix/* expand correctly in the case pattern.
+            # No *) false arm: that would trigger set -e in Alpine ash when unmatched.
             # shellcheck disable=SC2254
-            if eval "case \"\$VERSIONING_PR_TITLE\" in $_kw) true ;; *) false ;; esac" 2>/dev/null; then
-                _PR_TITLE_VALID=1
-                break
-            fi
+            eval "case \"\$VERSIONING_PR_TITLE\" in $_kw) _PR_TITLE_VALID=1 ;; esac" 2>/dev/null || true
+            [ "$_PR_TITLE_VALID" -eq 1 ] && break
         done <<EOF
 $_HOTFIX_KEYWORDS
 EOF
