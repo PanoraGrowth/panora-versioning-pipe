@@ -43,13 +43,14 @@ Enables or disables per-folder CHANGELOG routing. When `false`, all entries go t
 
 #### `per_folder.folders`
 
-List of directory paths where separate CHANGELOGs are maintained. Can be at any nesting level:
+List of directory paths where separate CHANGELOGs are maintained. Supports literal paths and glob patterns:
 
 ```yaml
 folders:
-  - "backend"                           # top-level folder
-  - "frontend"                          # top-level folder
-  - "backend/auth-service/microservices" # deep nesting (explicit path)
+  - "backend"                           # literal path
+  - "frontend"                          # literal path
+  - "shared/*"                          # glob — expands to all direct subdirs of shared/
+  - "packages/**"                       # glob — expands to all subdirs of packages/
 ```
 
 #### `per_folder.scope_matching`
@@ -59,7 +60,7 @@ How the commit scope is matched against folders.
 | Value | Behavior | Example |
 |-------|----------|---------|
 | `exact` | Scope must match the folder name exactly, or a subfolder name within a configured folder | `feat(backend):` matches `backend/`, `feat(auth-service):` matches `backend/auth-service/` |
-| `suffix` | Scope matches the suffix of a subfolder name after a dash | `feat(ecs):` matches `001-cluster-ecs/` |
+| `suffix` | Scope matches the suffix of a subfolder name after a dash. Scans up to `scope_matching_depth` levels deep (default: 2) | `feat(ecs):` matches `001-cluster-ecs/` |
 
 #### `per_folder.fallback`
 
@@ -68,7 +69,15 @@ What to do when a scope doesn't match any configured folder or discoverable subf
 | Value | Behavior |
 |-------|----------|
 | `root` | Entry goes to root `CHANGELOG.md` (default, backward compatible) |
-| `file_path` | Check which files the commit modified. If files fall within ONE configured folder, route there. Otherwise, root. |
+| `file_path` | Check which files the commit modified. Routes to ALL matched configured folders. If no files match any configured folder, goes to root. |
+
+#### `per_folder.scope_matching_depth`
+
+Max depth for suffix scan. Only applies when `scope_matching: "suffix"`. Default: `2`.
+
+```yaml
+scope_matching_depth: 3    # scan up to 3 levels deep within each folder
+```
 
 #### `per_folder.folder_pattern`
 
@@ -89,22 +98,23 @@ Every commit is routed through this decision tree:
    NO  --> root CHANGELOG.md
    YES --> continue
 
-2. Scope matches a configured folder name?
+2. Scope matches a configured folder name? (exact mode)
    YES --> {folder}/CHANGELOG.md
    NO  --> continue
 
 3. Scope matches a SUBFOLDER within any configured folder?
-   (scans one level deep: {folder}/{scope}/ — must exist on filesystem)
-   YES --> {folder}/{scope}/CHANGELOG.md
+   (suffix: scans up to scope_matching_depth levels deep — default 2)
+   (exact: scans one level: {folder}/{scope}/ — must exist on filesystem)
+   YES --> {folder}/{subfolder}/CHANGELOG.md
    NO  --> continue
 
 4. Is fallback == "file_path"?
    NO  --> root CHANGELOG.md
    YES --> continue
 
-5. Do the commit's modified files fall within ONE configured folder?
-   YES --> {folder}/CHANGELOG.md
-   NO  --> root CHANGELOG.md (ambiguous or outside configured folders)
+5. Do the commit's modified files fall within any configured folder(s)?
+   YES --> write to ALL matched folders' CHANGELOG.md
+   NO  --> root CHANGELOG.md (outside all configured folders)
 ```
 
 ### Exclusive routing
@@ -113,15 +123,8 @@ Each commit entry goes to EITHER a subfolder CHANGELOG OR the root CHANGELOG, ne
 
 ### Subfolder discovery
 
-The system automatically scans **one level** of subdirectories within each configured folder. If a subfolder name matches the commit scope exactly and the folder exists on the filesystem, the CHANGELOG is created there.
-
-For deeper nesting, add the full path to `folders` explicitly:
-
-```yaml
-folders:
-  - "backend"
-  - "backend/auth-service/microservices"   # explicit deep path
-```
+- **exact mode**: scans one level deep — `{folder}/{scope}/` must exist on the filesystem.
+- **suffix mode**: scans up to `scope_matching_depth` levels deep (default: 2) using `find -maxdepth`. Increase the depth for deeper monorepo structures.
 
 ---
 
@@ -176,7 +179,7 @@ repo/
 | `fix(mobile-app): fix nav` | `frontend/mobile-app/src/nav.tsx` | Step 3: subfolder discovery | `frontend/mobile-app/CHANGELOG.md` | Subfolder exists |
 | `chore(scripts): deploy fix` | `scripts/deploy.sh` | Step 5: no match | `CHANGELOG.md` (root) | `scripts/` not configured |
 | `feat: add feature` | `backend/new.py` | Step 1: no scope | `CHANGELOG.md` (root) | No scope = no routing |
-| `feat(api): full stack` | `backend/api.py` + `frontend/api.tsx` | Step 5: ambiguous | `CHANGELOG.md` (root) | Files in multiple folders |
+| `feat(api): full stack` | `backend/api.py` + `frontend/api.tsx` | Step 5: multiple matches | `backend/CHANGELOG.md` + `frontend/CHANGELOG.md` | Files in multiple folders — writes to all |
 
 ### Example 2: suffix mode (numbered folders)
 

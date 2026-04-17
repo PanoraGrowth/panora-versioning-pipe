@@ -63,8 +63,8 @@ repo/
 - `folder_pattern: "^[0-9]{3}-"` filtra las subcarpetas: una carpeta llamada `cluster-ecs/` (sin prefijo numérico) **no** sería candidata aunque el suffix coincida.
 - Commits sin scope y commits con scope que no matchea ninguna carpeta van al `CHANGELOG.md` raíz por `fallback: "root"`.
 
-## Limitaciones conocidas
+## Capacidades adicionales (implementadas en PR #73)
 
-**Un solo nivel de profundidad** — `suffix` escanea solo `services/*/`, no baja recursivamente. `feat(routes)` con `folders: [services]` no matchea `services/003-api-gateway/routes/`. Ver [ticket 036](../../../temp/features/036-per-folder-suffix-multi-level.md) — **no implementado, sin test**.
+**Multi-level depth** — `suffix` ahora escanea hasta `scope_matching_depth` niveles (default: 2). `feat(routes)` con `folders: [services]` matchea `services/003-api-gateway/001-routes/` si existe. Configurable con `scope_matching_depth: N`.
 
-**Glob patterns en folders[]** — `folders: [shared/**]` no funciona, `folders` solo acepta paths literales. Ver [ticket 038](../../../temp/features/038-per-folder-glob-in-folders.md) — **no implementado, sin test**.
+**Glob patterns en folders[]** — `folders: [shared/*]` expande a todos los subdirectorios directos de `shared/`. Expansión nativa bash, sin performance overhead.
