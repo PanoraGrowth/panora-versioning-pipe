@@ -349,3 +349,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: c98d92d](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/c98d92d8bfbcf505be845f71fe4d4c41b63cb0bb)
 
 
+## v0.11.13 - 2026-04-17
+
+- 🐛 fix(docker): apk upgrade to patch musl CVE-2026-40200 (HIGH) (#89)
+  - _Agustín Manessi_
+  - [Commit: bdc1324](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/bdc13243d3ec151cb4d03e6a3dc356951a71e42b)
+
+
