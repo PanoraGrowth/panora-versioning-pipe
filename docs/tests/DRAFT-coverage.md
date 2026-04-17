@@ -1,13 +1,8 @@
-# Cobertura de Tests — Draft (revisión de formato)
+# Test Coverage — panora-versioning-pipe
 
-> Draft que cubre las secciones: `commits`, `tickets`, `validation`, `changelog`, `changelog.per_folder`, `version`.
-> El objetivo es encontrar el formato antes de escribir el documento completo.
+Cada sección mapea directamente a [`scripts/defaults.yml`](../../scripts/defaults.yml). Para cada key de configuración se listan los escenarios probados y su estado de cobertura.
 
----
-
-Cada sección mapea directamente a [`scripts/defaults.yml`](../../scripts/defaults.yml). Cada key linkea a su definición. La columna de cobertura indica si el comportamiento está validado por tests unitarios.
-
-Leyenda: ✅ cubierto · ⚠️ parcial · ❌ sin test
+**Leyenda:** ✅ cubierto · ⚠️ parcial · ❌ sin test
 
 ---
 
@@ -17,9 +12,10 @@ Leyenda: ✅ cubierto · ⚠️ parcial · ❌ sin test
 
 Controla cómo se estructuran e interpretan los mensajes de commit.
 
-| Key | Type / Values | Comportamiento probado | Cobertura |
-|-----|---------------|------------------------|-----------|
-| [`commits.format`](../../scripts/defaults.yml#L10) | `"ticket"` · `"conventional"` | `conventional` → `tipo(scope): mensaje` aceptado/rechazado · `ticket` → `AM-1234 - tipo: mensaje` aceptado/rechazado | ✅ ambos |
+| Key | Default | Escenario | Cobertura |
+|-----|---------|-----------|-----------|
+| [`commits.format`](../../scripts/defaults.yml#L10) | `"ticket"` | `"conventional"` — acepta `tipo(scope): mensaje`, rechaza formato incorrecto | ✅ |
+| | | `"ticket"` — acepta `AM-1234 - tipo: mensaje`, rechaza formato incorrecto | ✅ |
 
 ---
 
@@ -27,13 +23,15 @@ Controla cómo se estructuran e interpretan los mensajes de commit.
 
 [→ defaults.yml:12](../../scripts/defaults.yml#L12)
 
-Aplica cuando `commits.format` es `"ticket"`. Controla la validación de prefijos y el linkeo en changelogs.
+Aplica cuando `commits.format: "ticket"`. Controla la validación de prefijos y el linkeo en changelogs.
 
-| Key | Type / Values | Comportamiento probado | Cobertura |
-|-----|---------------|------------------------|-----------|
-| [`tickets.prefixes`](../../scripts/defaults.yml#L13) | `string[]` · default `[]` | Vacío = cualquier prefijo se acepta · Con valores = solo los prefijos listados pasan validación | ✅ ambos |
-| [`tickets.required`](../../scripts/defaults.yml#L14) | `true` · `false` | `false` = commit sin ticket pasa · `true` = commit sin ticket es rechazado | ✅ ambos |
-| [`tickets.url`](../../scripts/defaults.yml#L15) | `string` · default `""` | El getter lee el valor correctamente | ⚠️ solo getter — el renderizado del link no está probado |
+| Key | Default | Escenario | Cobertura |
+|-----|---------|-----------|-----------|
+| [`tickets.prefixes`](../../scripts/defaults.yml#L13) | `[]` | Lista vacía — cualquier prefijo es aceptado | ✅ |
+| | | Con valores (`["PROJ", "TEAM"]`) — solo esos prefijos pasan validación | ✅ |
+| [`tickets.required`](../../scripts/defaults.yml#L14) | `false` | `false` — commit sin ticket es aceptado | ✅ |
+| | | `true` — commit sin ticket es rechazado | ✅ |
+| [`tickets.url`](../../scripts/defaults.yml#L15) | `""` | URL configurada — el link aparece en el changelog con el ticket como texto | ✅ |
 
 ---
 
@@ -43,110 +41,116 @@ Aplica cuando `commits.format` es `"ticket"`. Controla la validación de prefijo
 
 Controla qué commits son aceptados y cuáles se ignoran durante el cálculo de versión.
 
-| Key | Type / Values | Comportamiento probado | Cobertura |
-|-----|---------------|------------------------|-----------|
-| [`validation.require_ticket_prefix`](../../scripts/defaults.yml#L18) | `true` · `false` | `false` = commit sin prefijo pasa · `true` = commit sin prefijo es rechazado | ✅ ambos |
-| [`validation.require_commit_types`](../../scripts/defaults.yml#L19) | `true` · `false` | `false` = validación desactivada · `true` + `changelog.mode: last_commit` = solo el último commit debe tener tipo · `true` + `changelog.mode: full` = todos los commits deben tener tipo | ✅ todos |
-| [`validation.ignore_patterns`](../../scripts/defaults.yml#L20) | `string[]` | Commits que matchean los patrones son ignorados · Merge commits, reverts, fixup!, squash!, chore(release), chore(hotfix) cubiertos | ✅ |
+| Key | Default | Escenario | Cobertura |
+|-----|---------|-----------|-----------|
+| [`validation.require_ticket_prefix`](../../scripts/defaults.yml#L18) | `false` | `false` — commit sin prefijo de ticket es aceptado | ✅ |
+| | | `true` — commit sin prefijo es rechazado | ✅ |
+| [`validation.require_commit_types`](../../scripts/defaults.yml#L19) | `true` | `false` — validación de tipo desactivada, cualquier commit pasa | ✅ |
+| | | `true` + `changelog.mode: "last_commit"` — solo el último commit debe tener tipo válido | ✅ |
+| | | `true` + `changelog.mode: "full"` — todos los commits deben tener tipo válido | ✅ |
+| [`validation.ignore_patterns`](../../scripts/defaults.yml#L20) | ver defaults | Commits que matchean los patrones son ignorados en la validación y el cálculo de versión | ✅ |
+| | | Merge commits (`^Merge`), reverts (`^Revert`), `fixup!`, `squash!` ignorados | ✅ |
+| | | `chore(release)` y `chore(hotfix)` ignorados | ✅ |
 
 ---
 
 ## changelog
 
-[→ defaults.yml:164](../../scripts/defaults.yml#L164)
+[→ defaults.yml:72](../../scripts/defaults.yml#L72)
 
 Controla cómo se genera y escribe el archivo CHANGELOG.
 
-| Key | Type / Values | Comportamiento probado | Cobertura |
-|-----|---------------|------------------------|-----------|
-| [`changelog.file`](../../scripts/defaults.yml#L165) | `string` · default `"CHANGELOG.md"` | El getter retorna el nombre de archivo correcto | ✅ |
-| [`changelog.title`](../../scripts/defaults.yml#L166) | `string` · default `"Changelog"` | El getter retorna el título correcto | ✅ |
-| [`changelog.mode`](../../scripts/defaults.yml#L167) | `"last_commit"` · `"full"` | `last_commit` = solo el último commit se escribe · `full` = todos los commits desde el último tag | ✅ ambos |
-| [`changelog.use_emojis`](../../scripts/defaults.yml#L168) | `true` · `false` | El getter lee el valor · el rendering con/sin emojis en el output no está probado en unit tests | ⚠️ solo getter |
-| [`changelog.include_commit_link`](../../scripts/defaults.yml#L169) | `true` · `false` | El getter retorna el valor correcto | ✅ |
-| [`changelog.include_ticket_link`](../../scripts/defaults.yml#L170) | `true` · `false` | El getter retorna el valor correcto | ✅ |
-| [`changelog.include_author`](../../scripts/defaults.yml#L171) | `true` · `false` | El getter retorna el valor correcto | ✅ |
-| [`changelog.commit_url`](../../scripts/defaults.yml#L172) | `string` · default `""` | El getter retorna vacío por default | ⚠️ solo getter — construcción de la URL en el output no está probada |
-| [`changelog.ticket_link_label`](../../scripts/defaults.yml#L173) | `string` · default `"View ticket"` | El getter retorna el label correcto | ✅ |
+| Key | Default | Escenario | Cobertura |
+|-----|---------|-----------|-----------|
+| [`changelog.file`](../../scripts/defaults.yml#L73) | `"CHANGELOG.md"` | Nombre de archivo respetado al escribir | ✅ |
+| [`changelog.title`](../../scripts/defaults.yml#L74) | `"Changelog"` | Título correcto en el header del archivo | ✅ |
+| [`changelog.mode`](../../scripts/defaults.yml#L75) | `"last_commit"` | `"last_commit"` — solo el último commit aparece en el entry | ✅ |
+| | | `"full"` — todos los commits desde el último tag aparecen | ✅ |
+| [`changelog.use_emojis`](../../scripts/defaults.yml#L76) | `false` | `false` — output sin emojis | ✅ |
+| | | `true` — output incluye emoji por tipo | ✅ |
+| [`changelog.include_commit_link`](../../scripts/defaults.yml#L77) | `true` | Valor leído correctamente | ✅ |
+| [`changelog.include_ticket_link`](../../scripts/defaults.yml#L78) | `true` | Valor leído correctamente | ✅ |
+| [`changelog.include_author`](../../scripts/defaults.yml#L79) | `true` | Valor leído correctamente | ✅ |
+| [`changelog.commit_url`](../../scripts/defaults.yml#L80) | `""` | Vacío — no aparece link de commit en output | ✅ |
+| | | URL configurada — link al commit aparece en output | ✅ |
+| [`changelog.ticket_link_label`](../../scripts/defaults.yml#L81) | `"View ticket"` | Label correcto en output | ✅ |
+
+---
 
 ### changelog.per_folder
 
-[→ defaults.yml:178](../../scripts/defaults.yml#L178)
+[→ defaults.yml:86](../../scripts/defaults.yml#L86)
 
-Habilita changelogs independientes por carpeta. Requiere `commits.format: conventional`. El routing es exclusivo — cada commit va a una sola carpeta o al root, nunca a ambos.
+Habilita changelogs independientes por carpeta en monorepos. Requiere `commits.format: "conventional"`. El routing es exclusivo — cada commit va a una sola carpeta o al root, nunca a ambos.
 
-**`changelog.per_folder.enabled`** — `true` · `false`
+**`changelog.per_folder.enabled`** — default `false`
 
-| Valor | Escenario probado | Cobertura |
-|-------|-------------------|-----------|
-| `true` | Routing por carpeta activo — commits con scope son dirigidos a su carpeta | ✅ |
+| Valor | Escenario | Cobertura |
+|-------|-----------|-----------|
+| `true` | Commits con scope son dirigidos a su carpeta | ✅ |
 | `false` | Todo va al CHANGELOG raíz | ✅ |
 
 ---
 
-**`changelog.per_folder.folders`** — `string[]` · default `[]` · [→ L180](../../scripts/defaults.yml#L180)
+**`changelog.per_folder.folders`** — `string[]` · default `[]` · [→ L88](../../scripts/defaults.yml#L88)
 
-| Escenario | Comportamiento probado | Cobertura |
-|-----------|------------------------|-----------|
-| Lista con múltiples carpetas raíz (`services`, `infrastructure`) | Búsqueda se extiende a todas las carpetas configuradas | ✅ |
-| Carpeta raíz inexistente | Se ignora gracefully, no rompe la ejecución | ✅ |
-| Glob pattern (`shared/*`) | Expande a subdirectorios directos de `shared/` | ✅ |
-| Glob pattern con padre inexistente | No rompe la ejecución | ✅ |
-
----
-
-**`changelog.per_folder.folder_pattern`** — `string` (regex) · default `""` · [→ L181](../../scripts/defaults.yml#L181)
-
-Ejemplos de uso:
-- `"^[0-9]{3}-"` → solo carpetas con prefijo numérico: `001-cluster-ecs/`, `002-cluster-rds/`, `003-api-gateway/`
-- `""` → sin filtro, todas las subcarpetas son candidatas
-
-| Escenario | Comportamiento probado | Cobertura |
-|-----------|------------------------|-----------|
-| Patrón `^[0-9]{3}-` | Solo subcarpetas con prefijo numérico son candidatas | ✅ |
-| Carpeta que matchea el scope pero NO el patrón (`cluster-ecs/` sin prefijo) | Ignorada — no se usa como destino | ✅ |
-| Patrón vacío `""` | Sin filtro — todas las subcarpetas son candidatas | ✅ |
+| Escenario | Cobertura |
+|-----------|-----------|
+| Múltiples carpetas raíz (`services`, `infrastructure`) — la búsqueda se extiende a todas | ✅ |
+| Carpeta raíz inexistente — ignorada, no rompe la ejecución | ✅ |
+| Glob pattern (`shared/*`) — expande a subdirectorios directos de `shared/` | ✅ |
+| Glob pattern con directorio padre inexistente — no rompe la ejecución | ✅ |
 
 ---
 
-**`changelog.per_folder.scope_matching`** — `"suffix"` · `"exact"` · [→ L182](../../scripts/defaults.yml#L182) · [escenario: suffix](per-folder/suffix-matching.md) · [escenario: exact](per-folder/exact-matching.md)
+**`changelog.per_folder.folder_pattern`** — `string` (regex) · default `""` · [→ L89](../../scripts/defaults.yml#L89)
 
-| Valor | Escenario probado | Comportamiento | Cobertura |
-|-------|-------------------|----------------|-----------|
-| `suffix` | scope `cluster-ecs` → carpeta `001-cluster-ecs/` | La carpeta termina con el scope | ✅ |
-| `suffix` | scope `cluster-rds` con múltiples subcarpetas | Encuentra la correcta entre varias | ✅ |
-| `suffix` | scope sin match en ninguna subcarpeta | Retorna vacío | ✅ |
-| `suffix` | scope vacío | Retorna vacío | ✅ |
-| `suffix` | scope matchea subcarpeta a 2 niveles de profundidad (`services/003-api-gateway/001-routes/`) | Encuentra con default depth=2 | ✅ |
-| `suffix` | scope más profundo que `scope_matching_depth` | No matchea — respeta el límite | ✅ |
-| `exact` | scope `api-gateway` → carpeta `api-gateway/` | El nombre de carpeta debe ser igual al scope | ✅ |
-| `exact` | scope `services` → carpeta raíz `services/` | Coincidencia exacta en carpeta raíz | ✅ |
-| `exact` | scope sin carpeta matching | Retorna vacío | ✅ |
+| Escenario | Cobertura |
+|-----------|-----------|
+| Patrón `^[0-9]{3}-` — solo subcarpetas con prefijo numérico son candidatas | ✅ |
+| Carpeta que matchea el scope pero NO el patrón — ignorada como destino | ✅ |
+| Patrón vacío `""` — todas las subcarpetas son candidatas | ✅ |
 
 ---
 
-**`changelog.per_folder.scope_matching_depth`** — `integer` · default `2` · solo aplica a `scope_matching: "suffix"`
+**`changelog.per_folder.scope_matching`** — `"suffix"` · `"exact"` · [→ L90](../../scripts/defaults.yml#L90) · [escenario: suffix](per-folder/suffix-matching.md) · [escenario: exact](per-folder/exact-matching.md)
 
-| Escenario | Comportamiento probado | Cobertura |
-|-----------|------------------------|-----------|
-| Default `2` — encuentra subcarpeta a nivel 2 | `services/003-api-gateway/001-routes/` matchea | ✅ |
-| Default `2` — no llega a nivel 3 | `services/001/002/003-routes/` no matchea | ✅ |
+| Valor | Escenario | Cobertura |
+|-------|-----------|-----------|
+| `"suffix"` | `feat(cluster-ecs)` → resuelve a `001-cluster-ecs/` (termina con el scope) | ✅ |
+| `"suffix"` | Scope con múltiples subcarpetas candidatas — resuelve la correcta | ✅ |
+| `"suffix"` | Scope sin match en ninguna subcarpeta — sin resolución | ✅ |
+| `"suffix"` | Scope vacío — sin resolución | ✅ |
+| `"suffix"` | Subcarpeta a 2 niveles de profundidad (`services/003-api-gateway/001-routes/`) — encontrada con depth=2 | ✅ |
+| `"suffix"` | Subcarpeta más profunda que `scope_matching_depth` — no matchea | ✅ |
+| `"exact"` | `feat(api-gateway)` → resuelve exactamente a `api-gateway/` | ✅ |
+| `"exact"` | Scope que coincide con una carpeta raíz configurada | ✅ |
+| `"exact"` | Scope sin carpeta con nombre exacto — sin resolución | ✅ |
 
 ---
 
-**`changelog.per_folder.fallback`** — `"root"` · `"file_path"` · [→ L184](../../scripts/defaults.yml#L184) · [escenario: file_path](per-folder/fallback-file-path.md)
+**`changelog.per_folder.scope_matching_depth`** — `integer` · default `2` · solo aplica a `scope_matching: "suffix"` · [→ L91](../../scripts/defaults.yml#L91)
 
-| Valor | Escenario probado | Comportamiento | Cobertura |
-|-------|-------------------|----------------|-----------|
-| `root` | Commit sin scope matching | Va al CHANGELOG raíz | ✅ |
-| `file_path` | Commit toca archivos en una sola carpeta configurada (`api/main.go`) | Resuelve a esa carpeta | ✅ |
-| `file_path` | Commit toca múltiples archivos en la misma carpeta (`web/index.html`, `web/style.css`) | Resuelve a esa carpeta | ✅ |
-| `file_path` | Commit toca archivos en carpetas distintas (`api/main.go`, `web/index.html`) | Escribe en ambas carpetas | ✅ |
-| `file_path` | Commit toca archivos en 3 carpetas distintas | Escribe en las 3 carpetas | ✅ |
-| `file_path` | Commit toca archivos fuera de todas las carpetas configuradas (`docs/readme.md`) | Sin match — retorna vacío | ✅ |
-| `file_path` | Commit toca archivos en carpeta configurada + archivos en root (`api/main.go`, `README.md`) | Los archivos en root se ignoran, resuelve a la carpeta | ✅ |
-| `file_path` | Commit toca solo archivos en root (`README.md`) | Sin match — retorna vacío | ✅ |
-| `file_path` | Archivos anidados dentro de carpeta configurada (`shared/utils/helpers.sh`) | Resuelve correctamente la carpeta padre | ✅ |
+| Escenario | Cobertura |
+|-----------|-----------|
+| Default `2` — encuentra subcarpeta a nivel 2 (`services/003-api-gateway/001-routes/`) | ✅ |
+| Default `2` — no llega a nivel 3 (`services/001/002/003-routes/`) | ✅ |
+
+---
+
+**`changelog.per_folder.fallback`** — `"root"` · `"file_path"` · [→ L92](../../scripts/defaults.yml#L92) · [escenario: file_path](per-folder/fallback-file-path.md)
+
+| Valor | Escenario | Cobertura |
+|-------|-----------|-----------|
+| `"root"` | Commit sin scope matching — va al CHANGELOG raíz | ✅ |
+| `"file_path"` | Commit toca archivos en una sola carpeta configurada — resuelve a esa carpeta | ✅ |
+| `"file_path"` | Commit toca múltiples archivos en la misma carpeta — resuelve a esa carpeta | ✅ |
+| `"file_path"` | Commit toca archivos en carpetas distintas — escribe en todas las carpetas matcheadas | ✅ |
+| `"file_path"` | Commit toca archivos en 3 carpetas distintas — escribe en las 3 | ✅ |
+| `"file_path"` | Archivos fuera de todas las carpetas configuradas — sin match, va al root | ✅ |
+| `"file_path"` | Archivos en carpeta configurada + archivos en root — los del root se ignoran | ✅ |
+| `"file_path"` | Solo archivos en root — sin match, va al root | ✅ |
+| `"file_path"` | Archivos anidados dentro de carpeta configurada (`shared/utils/helpers.sh`) — resuelve a la carpeta padre | ✅ |
 
 ---
 
@@ -154,53 +158,61 @@ Ejemplos de uso:
 
 [→ defaults.yml:29](../../scripts/defaults.yml#L29)
 
-Controla qué componentes forman el número de versión y sus valores iniciales. Los componentes se renderizan en orden: `epoch.major.patch[.hotfix_counter][.timestamp]`.
+Controla qué componentes forman el número de versión. Los componentes se renderizan en orden: `epoch.major.patch[.hotfix_counter][.timestamp]`.
 
 **`version.components.epoch`** — [→ L30](../../scripts/defaults.yml#L30)
 
-| Key | Type / Values | Comportamiento probado | Cobertura |
-|-----|---------------|------------------------|-----------|
-| `epoch.enabled` | `true` · `false` · default `false` | `true` → agrega primer componente al tag (`1.0.0`) · `false` → tag empieza en major (`0.5.9`) | ✅ ambos |
-| `epoch.initial` | `integer` · default `0` | Valor de inicio cuando el componente se habilita por primera vez | ✅ |
+| Key | Default | Escenario | Cobertura |
+|-----|---------|-----------|-----------|
+| `epoch.enabled` | `false` | `true` — el epoch aparece como primer componente del tag (`1.0.0`) | ✅ |
+| | | `false` — el tag empieza en major (`0.5.9`) | ✅ |
+| `epoch.initial` | `0` | Valor de inicio cuando el componente se habilita | ✅ |
 
 ---
 
 **`version.components.major`** — [→ L33](../../scripts/defaults.yml#L33)
 
-| Key | Type / Values | Comportamiento probado | Cobertura |
-|-----|---------------|------------------------|-----------|
-| `major.enabled` | `true` · `false` · default `true` | `true` → incluido en el tag · bump major → incrementa, resetea patch y hotfix_counter a 0 | ✅ |
-| `major.initial` | `integer` · default `0` | Valor de inicio al crear el primer tag | ✅ |
+| Key | Default | Escenario | Cobertura |
+|-----|---------|-----------|-----------|
+| `major.enabled` | `true` | `true` — incluido en el tag · un commit `breaking` lo incrementa y resetea patch y hotfix_counter a 0 | ✅ |
+| `major.initial` | `0` | Valor de inicio al crear el primer tag | ✅ |
 
 ---
 
 **`version.components.patch`** — [→ L36](../../scripts/defaults.yml#L36)
 
-| Key | Type / Values | Comportamiento probado | Cobertura |
-|-----|---------------|------------------------|-----------|
-| `patch.enabled` | `true` · `false` · default `true` | `true` → incluido en el tag · `fix/security/revert/perf` incrementan patch, resetean hotfix_counter a 0 · `false` → patch no aparece en el tag, commits con `bump: patch` son no-op | ✅ ambos |
-| `patch.initial` | `integer` · default `0` | Valor de inicio — primer tag renderiza `0.12.0` (patch=0 siempre se incluye) · `0.12.0` → primer fix → `0.12.1` | ✅ |
+| Key | Default | Escenario | Cobertura |
+|-----|---------|-----------|-----------|
+| `patch.enabled` | `true` | `true` — commits `fix`, `security`, `revert`, `perf` lo incrementan y resetean hotfix_counter a 0 | ✅ |
+| | | `false` — patch no aparece en el tag · commits que normalmente bumparían patch son no-op | ✅ |
+| `patch.initial` | `0` | `patch=0` siempre se renderiza en el tag (`0.12.0`, no `0.12`) | ✅ |
 
 ---
 
 **`version.components.hotfix_counter`** — [→ L46](../../scripts/defaults.yml#L46)
 
-Componente especial del flujo hotfix (v0.6.3+). Cuando está habilitado, un commit de tipo `hotfix` incrementa este componente. El tag se renderiza como `v0.5.9.1` — el `.0` se omite por backward compatibility.
+Componente del flujo hotfix. Cuando está habilitado, un commit `hotfix` incrementa este contador. El `.0` se omite — el tag se renderiza como `v0.5.9.1` en lugar de `v0.5.9.0`.
 
-| Key | Type / Values | Comportamiento probado | Cobertura |
-|-----|---------------|------------------------|-----------|
-| `hotfix_counter.enabled` | `true` · `false` · default `true` | `true` → hotfix bumps hotfix_counter (`0.5.9` → `0.5.9.1`) · `false` → hotfix es no-op (sin tag, log info) | ✅ ambos |
-| `hotfix_counter.initial` | `integer` · default `0` | Valor de inicio · reset a 0 cuando se bumpa major o patch | ✅ |
+| Key | Default | Escenario | Cobertura |
+|-----|---------|-----------|-----------|
+| `hotfix_counter.enabled` | `true` | `true` — un hotfix bumpa el contador (`0.5.9` → `0.5.9.1`) | ✅ |
+| | | `false` — commits hotfix son no-op (sin tag, se loguea el motivo) | ✅ |
+| | | `patch=0` + `hotfix_counter > 0` — renderizado correcto (`0.12.0.1`) | ✅ |
+| `hotfix_counter.initial` | `0` | Valor de inicio · se resetea a 0 cuando se bumpa major o patch | ✅ |
 
 ---
 
 **`version.components.timestamp`** — [→ L49](../../scripts/defaults.yml#L49)
 
-| Key | Type / Values | Comportamiento probado | Cobertura |
-|-----|---------------|------------------------|-----------|
-| `timestamp.enabled` | `true` · `false` · default `false` | `true` → timestamp appended al tag (`0.5.9.20260407120000`) · `false` → tag sin timestamp | ✅ ambos |
-| `timestamp.format` | `string` (strftime) · default `"%Y%m%d%H%M%S"` | Formato aplicado al generar el timestamp · getter probado | ⚠️ solo getter — formato alternativo no probado en output |
-| `timestamp.timezone` | `string` · default `"UTC"` | TZ aplicada al generar el timestamp · `build_full_tag` respeta el timezone · solo probado con `UTC` — otras zonas (`America/Buenos_Aires`, `Europe/Madrid`) sin test | ⚠️ solo UTC |
+| Key | Default | Escenario | Cobertura |
+|-----|---------|-----------|-----------|
+| `timestamp.enabled` | `false` | `true` — timestamp appended al tag (`0.5.9.20260407120000`) | ✅ |
+| | | `false` — tag sin timestamp | ✅ |
+| `timestamp.format` | `"%Y%m%d%H%M%S"` | Formato por default — 14 dígitos en el tag | ✅ |
+| | | Formato alternativo (`%Y-%m-%d`) — aplicado correctamente | ✅ |
+| `timestamp.timezone` | `"UTC"` | `UTC` — timezone aplicada al generar el timestamp | ✅ |
+| | | `America/Buenos_Aires` — timestamp generado correctamente | ✅ |
+| | | `Europe/Madrid` — timestamp generado correctamente | ✅ |
 
 ---
 
@@ -208,9 +220,10 @@ Componente especial del flujo hotfix (v0.6.3+). Cuando está habilitado, un comm
 
 [→ defaults.yml:54](../../scripts/defaults.yml#L54)
 
-| Key | Type / Values | Comportamiento probado | Cobertura |
-|-----|---------------|------------------------|-----------|
-| [`version.tag_prefix_v`](../../scripts/defaults.yml#L54) | `true` · `false` · default `false` | `true` → tags con `v` (`v0.5.9`) · version files escritos sin `v` (npm compat) · `false` → tags sin prefijo (`0.5.9`) | ✅ ambos |
+| Key | Default | Escenario | Cobertura |
+|-----|---------|-----------|-----------|
+| [`version.tag_prefix_v`](../../scripts/defaults.yml#L54) | `false` | `true` — tags con prefijo `v` (`v0.5.9`) · version files escritos sin `v` para compatibilidad con npm | ✅ |
+| | | `false` — tags sin prefijo (`0.5.9`) | ✅ |
 
 ---
 
@@ -220,54 +233,59 @@ Componente especial del flujo hotfix (v0.6.3+). Cuando está habilitado, un comm
 
 Controla los caracteres que separan las partes del tag generado.
 
-| Key | Type / Values | Comportamiento probado | Cobertura |
-|-----|---------------|------------------------|-----------|
-| [`separators.version`](../../scripts/defaults.yml#L57) | `string` · default `"."` | Separa los componentes del número de versión (`0.5.9`) · implícito en todos los tests de tag building | ✅ |
-| [`separators.timestamp`](../../scripts/defaults.yml#L58) | `string` · default `"."` | Separa la versión del timestamp (`0.5.9.20260407120000`) · implícito en `build_full_tag` tests | ✅ |
-| [`separators.tag_append`](../../scripts/defaults.yml#L59) | `string` · default `""` | String que se appenda al final del tag, después del timestamp (ej. `-rc1`) · aplica globalmente a todos los tags mientras esté activo · getter probado, valor vacío por default | ⚠️ solo getter — valor no vacío no está probado en tag building |
+| Key | Default | Escenario | Cobertura |
+|-----|---------|-----------|-----------|
+| [`separators.version`](../../scripts/defaults.yml#L57) | `"."` | Separa los componentes del número de versión — implícito en todos los tests de tag building | ✅ |
+| [`separators.timestamp`](../../scripts/defaults.yml#L58) | `"."` | Separa la versión del timestamp (`0.5.9.20260407120000`) — implícito en tests de tag con timestamp | ✅ |
+| [`separators.tag_append`](../../scripts/defaults.yml#L59) | `""` | Vacío por default — no se agrega nada al final del tag | ✅ |
+| | | Valor no vacío (ej. `-rc1`) — appended al final del tag después del timestamp | ✅ |
 
 ---
 
 ## commit_types
 
-[→ commit-types.yml](../../scripts/commit-types.yml)
+[→ scripts/commit-types.yml](../../scripts/commit-types.yml)
 
-**Bump mapping por tipo (SemVer-aligned)**
+Catálogo de tipos de commit. Cada tipo define el bump de versión que produce, su emoji, y el grupo en el changelog.
 
-| Tipo | Bump | Emoji | Changelog group |
-|------|------|-------|-----------------|
-| `breaking` | `major` | 💥 | Breaking Changes |
-| `feat` | `minor` | 🚀 | Features |
-| `feature` | `minor` | 🚀 | Features |
-| `fix` | `patch` | 🐛 | Bug Fixes |
-| `hotfix` | `patch` | 🚑 | Hotfixes |
-| `security` | `patch` | 🔒 | Security |
-| `revert` | `patch` | ⏪ | Reverts |
-| `perf` | `patch` | ⚡ | Performance |
-| `refactor` | `none` | 🔨 | Refactoring |
-| `docs` | `none` | 📚 | Documentation |
-| `test` | `none` | 🧪 | Testing |
-| `chore` | `none` | 🔧 | Chores |
-| `build` | `none` | 🏗️ | Build |
-| `ci` | `none` | ⚙️ | CI/CD |
-| `style` | `none` | 🎨 | Style |
+**Tipos core (siempre disponibles)**
 
-**Cobertura**
+| Tipo | Bump | Emoji | Grupo en changelog | Cobertura |
+|------|------|-------|--------------------|-----------|
+| `breaking` | `major` | 💥 | Breaking Changes | ✅ bump correcto |
+| `feat` | `minor` | 🚀 | Features | ✅ bump correcto |
+| `feature` | `minor` | 🚀 | Features | ✅ bump correcto |
+| `fix` | `patch` | 🐛 | Bug Fixes | ✅ bump correcto |
+| `hotfix` | `patch` | 🚑 | Hotfixes | ✅ bump correcto |
+| `security` | `patch` | 🔒 | Security | ✅ bump correcto |
+| `revert` | `patch` | ⏪ | Reverts | ✅ bump correcto |
+| `perf` | `patch` | ⚡ | Performance | ✅ bump correcto |
+| `refactor` | `none` | 🔨 | Refactoring | ✅ sin bump (estado vacío) |
+| `docs` | `none` | 📚 | Documentation | ✅ sin bump (estado vacío) |
+| `test` | `none` | 🧪 | Testing | ✅ sin bump (estado vacío) |
+| `chore` | `none` | 🔧 | Chores | ✅ sin bump (estado vacío) |
+| `build` | `none` | 🏗️ | Build | ✅ sin bump (estado vacío) |
+| `ci` | `none` | ⚙️ | CI/CD | ✅ sin bump (estado vacío) |
+| `style` | `none` | 🎨 | Style | ✅ sin bump (estado vacío) |
 
-| Escenario | Comportamiento probado | Cobertura |
-|-----------|------------------------|-----------|
-| `get_commit_types_pattern` — lista pipe-separated de todos los tipos | Contiene `feat`, `fix`, `chore` | ✅ |
-| `get_bump_action("feat")` | Retorna `minor` | ✅ |
-| `get_bump_action("fix")` | Retorna `patch` | ✅ |
-| `get_bump_action("nonexistent")` | Retorna `none` (fallback) | ✅ |
-| `get_types_for_bump("major")` | Incluye `breaking` | ✅ |
-| `get_types_for_bump("minor")` | Incluye `feat` | ✅ |
-| `get_types_for_bump("patch")` | Incluye `fix` | ✅ |
-| `get_commit_type_emoji("feat")` | Retorna `🚀` | ✅ |
-| `get_commit_type_emoji("fix")` | Retorna `🐛` | ✅ |
-| Tipos `feature`, `hotfix`, `security`, `revert`, `perf` — bump correcto | No probados individualmente | ❌ sin test |
-| Tipos `refactor`, `build`, `ci`, `style` — bump `none` | No probados individualmente | ❌ sin test |
-| `changelog_group` de cada tipo — valor correcto | No probado | ❌ sin test |
+**Tipos extendidos (disponibles en el catálogo, se activan vía `commit_type_overrides`)**
+
+| Tipo | Bump | Emoji | Grupo en changelog | Cobertura |
+|------|------|-------|--------------------|-----------|
+| `infra` | `patch` | 🔩 | Infrastructure | ✅ bump correcto |
+| `deploy` | `patch` | 🚢 | Deployments | ✅ bump correcto |
+| `config` | `none` | ⚙️ | Configuration | ✅ sin bump (estado vacío) |
+| `deps` | `patch` | 📦 | Dependencies | ✅ bump correcto |
+| `migration` | `patch` | 🗄️ | Migrations | ✅ bump correcto |
+| `rollback` | `patch` | ⏮️ | Rollbacks | ✅ bump correcto |
+| `data` | `patch` | 💾 | Data Changes | ✅ bump correcto |
+| `compliance` | `none` | 📋 | Compliance | ✅ sin bump (estado vacío) |
+| `audit` | `none` | 🔍 | Audit | ✅ sin bump (estado vacío) |
+| `regulatory` | `patch` | ⚖️ | Regulatory | ✅ bump correcto |
+| `iac` | `patch` | 🏗️ | Infrastructure as Code | ✅ bump correcto |
+| `release` | `none` | 🏷️ | Releases | ✅ sin bump (estado vacío) |
+| `wip` | `none` | 🚧 | Work in Progress | ✅ sin bump (estado vacío) |
+| `experiment` | `none` | 🧪 | Experiments | ✅ sin bump (estado vacío) |
 
 ---
 
@@ -275,216 +293,147 @@ Controla los caracteres que separan las partes del tag generado.
 
 [→ defaults.yml:61](../../scripts/defaults.yml#L61)
 
-| Escenario | Comportamiento probado | Cobertura |
-|-----------|------------------------|-----------|
-| Override de emoji en tipo existente (`feat` → `🆕`) | Emoji cambia, bump se mantiene (`minor`) | ✅ |
-| Override de bump en tipo existente (`docs` → `none`) | Bump cambia, emoji se mantiene (`📚`) | ✅ |
-| Agregar tipo nuevo (`infra`) — aparece en `get_commit_types_pattern` | Tipo disponible para validación y bump | ✅ |
-| Nuevo tipo `infra` — `get_bump_action` retorna `minor` | Bump correcto para tipo agregado | ✅ |
-| Nuevo tipo `infra` — `get_commit_type_emoji` retorna `🔩` | Emoji correcto para tipo agregado | ✅ |
-| Nuevo tipo `infra` — aparece en `get_types_for_bump("minor")` | Incluido en lista de tipos con bump minor | ✅ |
-| Tipos no sobreescritos no cambian (`fix`, `chore`) | `fix` sigue siendo `patch`, `chore` sigue siendo `none` | ✅ |
-| Sin overrides — fixture `minimal` usa defaults | feat emoji `🚀`, docs bump `none`, `infra` retorna `none` | ✅ |
+Permite parchear o extender el catálogo de tipos sin redefinirlo completo. Solo se especifican los campos que cambian.
+
+| Escenario | Cobertura |
+|-----------|-----------|
+| Override de emoji en tipo existente (`feat` → emoji distinto) — el bump original se mantiene | ✅ |
+| Override de bump en tipo existente (`docs` → bump distinto) — el emoji original se mantiene | ✅ |
+| Agregar tipo nuevo (`infra`) — disponible para validación, bump, y emoji | ✅ |
+| Tipos no sobreescritos no cambian (`fix`, `chore`) | ✅ |
+| Sin overrides — el catálogo base aplica sin modificaciones | ✅ |
 
 ---
 
 ## hotfix
 
-[→ defaults.yml:93](../../scripts/defaults.yml#L93)
+[→ defaults.yml:94](../../scripts/defaults.yml#L94)
 
-Controla cómo se detecta un commit de hotfix. La detección es puramente git — no depende de APIs de plataforma (funciona en GitHub, Bitbucket, GitLab).
+Controla cómo se detecta un commit de hotfix. La detección es puramente git — no depende de APIs de plataforma (funciona en GitHub, Bitbucket, GitLab, o cualquier host git).
 
-**`hotfix.keyword`** — `string` · `string[]` · [→ L102](../../scripts/defaults.yml#L102)
+**`hotfix.keyword`** — `string` · `string[]` · [→ L103](../../scripts/defaults.yml#L103)
 
-Patrones glob evaluados contra el subject del commit (o el segundo padre en merge commits). Un string simple se auto-expande a array. Defaults: `["hotfix:*", "hotfix(*", "[Hh]otfix/*"]`.
+Patrones glob evaluados contra el subject del commit (o el segundo padre en merge commits). Defaults: `["hotfix:*", "hotfix(*", "[Hh]otfix/*"]`.
 
-| Escenario | Comportamiento probado | Cobertura |
-|-----------|------------------------|-----------|
-| `hotfix: foo` → scenario=hotfix (patrón `hotfix:*`) | Match correcto | ✅ |
-| `hotfix(scope): foo` → scenario=hotfix (patrón `hotfix(*`) | Match con scope | ✅ |
-| `Hotfix/branch-name` → scenario=hotfix (patrón `[Hh]otfix/*`) | Match case-insensitive | ✅ |
-| `hotfixed: foo` → NO match | Falso positivo bloqueado | ✅ |
-| `pre-hotfix: foo` → NO match | Prefijo parcial no matchea | ✅ |
-| `a hotfix: foo` → NO match | Keyword no al inicio → no matchea | ✅ |
-| `fix: foo` → scenario=development_release | `fix` no es `hotfix` | ✅ |
-| keyword custom `urgent` → `urgent: foo` matchea | Keyword configurable | ✅ |
-| keyword custom `urgent` → `hotfix: foo` NO matchea | Aislamiento — default no aplica cuando hay custom | ✅ |
-| keyword scalar `"urgent"` → auto-expand a `["urgent:*", "urgent(*"]` | Backward compat | ✅ |
-| keyword custom con underscore `branch_hotfix` → matchea | Soporta underscores | ✅ |
-| multi-keyword array → todos los patrones evaluados | `hotfix:*`, `hotfix(*`, `[Hh]otfix/*` | ✅ |
-| merge commit — segundo padre matchea keyword | Detección via parent commit | ✅ |
+| Escenario | Cobertura |
+|-----------|-----------|
+| `hotfix: descripción` — matchea patrón `hotfix:*` | ✅ |
+| `hotfix(scope): descripción` — matchea patrón `hotfix(*` | ✅ |
+| `Hotfix/branch-name` — matchea patrón `[Hh]otfix/*` (case-insensitive) | ✅ |
+| `hotfixed: foo` — NO matchea (falso positivo bloqueado) | ✅ |
+| `pre-hotfix: foo` — NO matchea (prefijo parcial no alcanza) | ✅ |
+| `a hotfix: foo` — NO matchea (keyword no al inicio del subject) | ✅ |
+| `fix: foo` — NO matchea, produce bump de patch normal | ✅ |
+| Keyword custom (`urgent`) — `urgent: foo` matchea, `hotfix: foo` no (aislamiento) | ✅ |
+| Keyword como string simple (`"urgent"`) — auto-expandido a array de patrones | ✅ |
+| Keyword con underscore — soportado | ✅ |
+| Multi-keyword — todos los patrones se evalúan | ✅ |
+| Merge commit — detección via subject del segundo padre | ✅ |
 
-> ⚠️ **Limitación conocida**: el sistema usa dos fuentes de verdad distintas. En PR context detecta hotfix por **nombre de rama** (`hotfix/fix-auth`). En branch context post-merge detecta por **subject del commit**. Si el commit dice `fix: resolve auth bug` en lugar de `hotfix: fix auth`, el hotfix no se detecta post-merge aunque la rama se llamara `hotfix/fix-auth`. Ver [ticket 048](../../temp/features/048-hotfix-detection-source-of-truth.md).
+> ⚠️ **Comportamiento conocido**: en contexto de PR, la detección de hotfix usa el **nombre de rama** (`hotfix/fix-auth`). Post-merge, usa el **subject del commit**. Si el commit dice `fix: resolve bug` en lugar de `hotfix: fix auth`, el hotfix no se detecta post-merge aunque la rama se llamara `hotfix/fix-auth`. Ver [ticket 048](../../temp/features/DONE-048-hotfix-detection-source-of-truth.md).
 
 ---
 
 ## branches
 
-[→ defaults.yml:107](../../scripts/defaults.yml#L107)
+[→ defaults.yml:108](../../scripts/defaults.yml#L108)
 
-Mapea los roles del pipeline a nombres de rama. **Breaking change v050**: las keys `development`, `pre_production`, `production` fueron reemplazadas por `tag_on` + `hotfix_targets`.
+Mapea los roles del pipeline a nombres de rama.
 
-| Key | Type / Values | Comportamiento probado | Cobertura |
-|-----|---------------|------------------------|-----------|
-| [`branches.tag_on`](../../scripts/defaults.yml#L108) | `string` · default `"development"` | Getter retorna `"development"` por default · custom fixture `"dev"` funciona · PR a `tag_on` → `development_release` | ✅ |
-| [`branches.hotfix_targets`](../../scripts/defaults.yml#L109) | `string[]` · default `["main", "pre-production"]` | Getter retorna lista correcta · custom fixture `["master", "staging"]` funciona · PR de `hotfix/` a target en lista → `hotfix` · PR de `tag_on` a target en lista → `promotion_to_main` · PR de feature a target en lista → `unknown` | ✅ |
+| Key | Default | Escenario | Cobertura |
+|-----|---------|-----------|-----------|
+| [`branches.tag_on`](../../scripts/defaults.yml#L109) | `"development"` | Default — PR a `development` produce `development_release` | ✅ |
+| | | Custom (`"dev"`) — PR a `dev` produce `development_release` | ✅ |
+| [`branches.hotfix_targets`](../../scripts/defaults.yml#L110) | `["main", "pre-production"]` | Default — PR de `hotfix/` a `main` o `pre-production` produce `hotfix` | ✅ |
+| | | Custom (`["master", "staging"]`) — PR de `hotfix/` a esas ramas produce `hotfix` | ✅ |
+| | | PR de `tag_on` a un `hotfix_target` produce `promotion_to_main` | ✅ |
+| | | PR de feature a un `hotfix_target` produce `unknown` | ✅ |
+| | | PR a rama no configurada produce `unknown` | ✅ |
 
-**Scenarios de detección probados (unit)**
+**Scenarios de integración (end-to-end)**
 
-| Escenario | Config | Cobertura |
-|-----------|--------|-----------|
-| feature → tag_on → `development_release` | default + custom fixture | ✅ |
-| hotfix/ → hotfix_target → `hotfix` | default (pre-production, main) + custom (staging, master) | ✅ |
-| tag_on branch → hotfix_target → `promotion_to_main` | default + custom | ✅ |
-| feature → hotfix_target → `unknown` | default | ✅ |
-| feature → branch no configurada → `unknown` | default | ✅ |
-
-**Scenarios de integration probados (end-to-end)**
-
-| Escenario | Config | Cobertura |
-|-----------|--------|-----------|
-| `hotfix-custom-target-pr-check` | `tag_on=main`, `hotfix_targets=[main, pre-production]` · PR check only | ✅ |
-| `tag-on-main-development-release` | `tag_on=main`, `hotfix_targets=[main, pre-production, uat]` · merge · tag semver | ✅ |
-| `hotfix-to-main-extended-targets` | `tag_on=main`, `hotfix_targets=[main, pre-production, uat]` · merge · tag con `.1` | ✅ |
+| Escenario | Cobertura |
+|-----------|-----------|
+| PR check en rama con `tag_on=main`, `hotfix_targets=[main, pre-production]` | ✅ |
+| Merge a `tag_on=main` — produce tag semver | ✅ |
+| Merge de `hotfix/` a `hotfix_targets` extendido — produce tag con `.1` | ✅ |
 
 ---
 
 ## version_file
 
-[→ defaults.yml](../../scripts/defaults.yml)
+[→ defaults.yml:114](../../scripts/defaults.yml#L114)
 
-Controla la actualización de archivos de versión como `package.json`, `version.yaml`, o archivos con patrones placeholder. Se ejecuta después de calcular la versión. **Breaking change v049**: estructura unificada en `groups` — los campos top-level `type`, `key`, `file`, `files`, `pattern`, `replacement`, `unmatched_files_behavior` fueron eliminados.
+Controla la actualización de archivos de versión (`package.json`, `version.yaml`, archivos con placeholder). Se ejecuta después de calcular la versión.
 
 **Campos base**
 
-| Key | Type / Values | Comportamiento probado | Cobertura |
-|-----|---------------|------------------------|-----------|
-| `version_file.enabled` | `true` · `false` · default `false` | `false` → script sale con exit 0 sin tocar archivos · `true` → procesa grupos | ✅ ambos |
-| `version_file.groups` | `Group[]` · default `[]` | Sin grupos configurados → exit 0 con warning | ✅ |
+| Key | Default | Escenario | Cobertura |
+|-----|---------|-----------|-----------|
+| `version_file.enabled` | `false` | `false` — sale sin tocar archivos | ✅ |
+| | | `true` — procesa los grupos configurados | ✅ |
+| `version_file.groups` | `[]` | Sin grupos configurados — sale con warning | ✅ |
 
 ---
 
-**Type inference por extensión**
+**Tipo de escritura — inferido por extensión**
 
-El tipo de escritura se infiere automáticamente de la extensión del archivo — no hay campo `type` explícito.
+No hay campo `type` explícito. El comportamiento se determina por la extensión del archivo.
 
-| Extensión | Tipo inferido | Comportamiento |
-|-----------|--------------|----------------|
-| `.yaml` / `.yml` | yaml | `yq -i ".version = ..."` — crea el archivo si no existe |
-| `.json` | json | `yq -i -o=json ".version = ..."` — crea el archivo si no existe |
-| cualquier otra | pattern | Reemplaza `files[].pattern` con la versión — error fatal si `pattern` ausente |
-
-| Escenario | Comportamiento probado | Cobertura |
-|-----------|------------------------|-----------|
-| `.yaml` + `tag_prefix_v: false` | `1.2.0` → `version: "1.2.0"` | ✅ |
-| `.yaml` + `tag_prefix_v: true` | `v0.1.0` → escribe `0.1.0` (strip) | ✅ |
-| `.yml` extension | Inferido como yaml | ✅ |
-| `.json` + `tag_prefix_v: false` | `1.0.0` → `"version": "1.0.0"` | ✅ |
-| `.json` + `tag_prefix_v: true` | `v0.1.0` → escribe `0.1.0` (strip) | ✅ |
-| `.ts` + `pattern: "__VERSION__"` | Reemplaza placeholder, NO hace strip del prefijo | ✅ |
-| `.ts` sin `pattern` | Error fatal | ✅ |
-| path glob sin matches | Log warning + continúa (no fatal) | ✅ |
-| `/tmp/next_version.txt` ausente | Exit != 0 | ✅ |
-| path glob con matches (ej. `packages/*/version.yaml`) | Expande y actualiza todos los archivos que matchean | ❌ sin test |
-| yaml — archivo no existe → se crea | Crea el archivo con `version: "X.Y.Z"` | ❌ sin test |
-| json — archivo no existe → se crea | Crea el archivo con `{"version": "X.Y.Z"}` | ❌ sin test |
+| Extensión | Comportamiento | Cobertura |
+|-----------|---------------|-----------|
+| `.yaml` / `.yml` | Actualiza el key `version` con yq · crea el archivo si no existe | ✅ actualización · ⚠️ creación: expand_glob_path usa find (solo archivos existentes), writer no se llega a llamar — ver sub-ticket 053a |
+| `.json` | Actualiza el key `version` con yq (JSON output) · crea el archivo si no existe | ✅ actualización · ⚠️ creación: mismo gap que yaml — ver sub-ticket 053a |
+| Cualquier otra | Reemplaza el `pattern` configurado con la versión · error fatal si `pattern` no está configurado | ✅ reemplazo · ✅ error fatal |
+| `.yaml` + `tag_prefix_v: true` | Escribe la versión sin el prefijo `v` (`v0.1.0` → `0.1.0` en el archivo) | ✅ |
+| `.json` + `tag_prefix_v: true` | Escribe la versión sin el prefijo `v` | ✅ |
+| Tipo pattern + `tag_prefix_v: true` | NO hace strip del prefijo — escribe el tag tal cual | ✅ |
+| Path glob (ej. `packages/*/version.yaml`) | Expande y actualiza todos los archivos que matchean | ✅ |
+| Path glob sin matches | Log warning + continúa (no fatal) | ✅ |
 
 ---
 
-**`version_file.groups`** — estructura y getters
+**Groups — activación y routing**
 
-| Escenario | Comportamiento probado | Cobertura |
-|-----------|------------------------|-----------|
-| `groups` con entradas → `has_version_file_groups` retorna true | Función detecta grupos presentes | ✅ |
-| `groups: []` → `has_version_file_groups` retorna false | Sin grupos | ✅ |
-| `get_version_file_groups_count` → retorna cantidad correcta | 2 grupos → `2` | ✅ |
-| `get_version_file_group_trigger_paths(0)` → retorna los paths | Incluye todos los patterns | ✅ |
-| `get_version_file_group_trigger_paths` vacío cuando no hay trigger_paths | Grupo siempre activo | ✅ |
-| `get_version_file_group_name` → default `group_N` cuando ausente | Fallback al índice | ✅ |
-| `get_version_file_group_files_count(0)` → cantidad de files en grupo | 2 files → `2` | ✅ |
-| `get_version_file_group_file_path(0,0)` → path del primer file | Retorna string correcto | ✅ |
-| `get_version_file_group_file_path(0,1)` → path del segundo file | Retorna string correcto | ✅ |
-| `get_version_file_group_file_pattern(0,0)` → pattern cuando está set | Retorna `__VERSION__` | ✅ |
-| `get_version_file_group_file_pattern(0,0)` → vacío cuando ausente | Auto-infer por extensión | ✅ |
-| Múltiples files en un grupo | Todos se actualizan | ✅ |
+| Escenario | Cobertura |
+|-----------|-----------|
+| Grupo sin `trigger_paths` — siempre se actualiza | ✅ |
+| Grupo con `trigger_paths` que matchea los archivos cambiados — se actualiza | ✅ |
+| Grupo con `trigger_paths` que NO matchea — se saltea | ✅ |
+| Múltiples grupos — solo el que matchea `trigger_paths` se actualiza, el otro queda intacto | ✅ |
+| Múltiples files en un grupo — todos se actualizan | ✅ |
 
----
+**Glob matching en `trigger_paths`**
 
-**trigger_paths — lógica de activación**
+| Escenario | Cobertura |
+|-----------|-----------|
+| Match exacto (`src/main.ts` vs `src/main.ts`) | ✅ |
+| `*` no cruza directorios (`src/deep/main.ts` vs `src/*.ts` → no match) | ✅ |
+| `**` matchea path anidado (`packages/frontend/src/app/main.ts` vs `packages/frontend/**`) | ✅ |
+| `**` matchea un nivel (`packages/frontend/file.ts` vs `packages/frontend/**`) | ✅ |
+| `**` al inicio del patrón (`deep/nested/file.js` vs `**/*.js`) | ✅ |
+| Patrón vacío — sin match | ✅ |
+| Punto en patrón es literal (`packageXjson` vs `package.json` → no match) | ✅ |
 
-| Escenario | Comportamiento probado | Cobertura |
-|-----------|------------------------|-----------|
-| Sin `trigger_paths` → grupo siempre se actualiza | No requiere changed files | ✅ (test de getter vacío) |
-| Con `trigger_paths` que matchea → grupo se actualiza | should_update_group retorna true | ❌ sin test (unit) |
-| Con `trigger_paths` que NO matchea → grupo se saltea | should_update_group retorna false | ❌ sin test (unit) |
-| Múltiples grupos: solo el que matchea se actualiza | El otro grupo queda sin tocar | ❌ sin test |
-| `matches_glob` — match exacto | `src/main.ts` vs `src/main.ts` → match | ✅ |
-| `matches_glob` — `*` no cruza directorios | `src/deep/main.ts` vs `src/*.ts` → no match | ✅ |
-| `matches_glob` — `**` matchea path anidado | `packages/frontend/src/app/main.ts` vs `packages/frontend/**` → match | ✅ |
-| `matches_glob` — `**` matchea un nivel | `packages/frontend/file.ts` vs `packages/frontend/**` → match | ✅ |
-| `matches_glob` — `**` al inicio | `deep/nested/file.js` vs `**/*.js` → match | ✅ |
-| `matches_glob` — patrón vacío | Sin match | ✅ |
-| `matches_glob` — punto en patrón es literal | `packageXjson` vs `package.json` → no match | ✅ |
+**Integración (end-to-end)**
 
----
-
-**Integration (end-to-end)**
-
-| Escenario | Comportamiento probado | Cobertura |
-|-----------|------------------------|-----------|
-| PR con `version_file.groups` configurado → merge → archivo actualizado | Verifica que el archivo en el repo queda con la versión nueva | ❌ sin test |
-| Monorepo: solo el grupo cuyo `trigger_paths` matchea se actualiza | El otro grupo no se toca | ❌ sin test |
+| Escenario | Cobertura |
+|-----------|-----------|
+| PR con `version_file.groups` → merge → archivo actualizado en el repo | ❌ sin test (integration) |
+| Monorepo: solo el grupo cuyo `trigger_paths` matchea se actualiza | ❌ sin test (integration) |
 
 ---
 
 ## notifications
 
-[→ defaults.yml:138](../../scripts/defaults.yml#L138)
+[→ defaults.yml:134](../../scripts/defaults.yml#L134)
 
-Controla las notificaciones a Microsoft Teams. La sección se lee directamente con `yq` desde `scripts/reporting/notify-teams.sh` — no hay getters en `config-parser.sh`.
+Controla las notificaciones a Microsoft Teams.
 
-| Key | Type / Values | Comportamiento probado | Cobertura |
-|-----|---------------|------------------------|-----------|
-| [`notifications.teams.enabled`](../../scripts/defaults.yml#L140) | `true` · `false` · default `true` | `false` → script loguea "disabled" y sale sin enviar · `true` → flujo de envío | ❌ sin test |
-| [`notifications.teams.on_success`](../../scripts/defaults.yml#L141) | `true` · `false` · default `false` | Controla si se notifica en ejecuciones exitosas | ❌ sin test |
-| [`notifications.teams.on_failure`](../../scripts/defaults.yml#L142) | `true` · `false` · default `true` | Controla si se notifica en fallos | ❌ sin test |
-
----
-
-## CI / Security hardening
-
-> Implementado en Ticket 020 (PRs #75–#80, 2026-04-17). No mapea a `defaults.yml` — cubre la superficie de ataque del container y del pipeline CI.
-
-### Container hardening
-
-| Ítem | Estado | Detalle |
-|------|--------|---------|
-| `yq` instalado via APK (no `curl` sin verificación) | ✅ | Alpine 3.19 community — APK verifica integridad con firma |
-| Container corre como usuario no-root (`pipe`, uid 1001) | ✅ | `USER pipe` en Dockerfile antes del ENTRYPOINT |
-| `set -e` en todos los scripts de orquestación | ✅ | `validate-commits.sh`, `notify-teams.sh`, `bitbucket-build-status.sh` — completado en ticket 020 PR F |
-
-### CI workflow hardening
-
-| Ítem | Estado | Detalle |
-|------|--------|---------|
-| `trivy-action` escanea la imagen antes del push (HIGH+CRITICAL) | ✅ | `publish.yml` — build local → scan → push. `ignore-unfixed: true` |
-| `trivy-action` pineado a SHA completo | ✅ | `@915b19bbe73b92a6cf82a1bc12b087c9a19a5fe2` (v0.28.0) |
-| Todas las GitHub Actions pineadas a SHA completo | ✅ | `actions/checkout` v4.3.1 · `actions/create-github-app-token` v1.9.3 · docker/* v3–v6 |
-| Dependabot habilitado (GitHub Actions weekly, Docker monthly) | ✅ | `.github/dependabot.yml` — mantiene SHAs actualizados automáticamente |
-| `run-unit-tests.yml` con `permissions: contents: read` | ✅ | Mínimo privilegio en el workflow de tests unitarios |
-
-### Shell safety (auditado en ticket 020)
-
-| Ítem | Estado | Detalle |
-|------|--------|---------|
-| `eval` en `common.sh:require_env` — solo para lookup de nombre de variable | ✅ | Comentario inline documenta la invariante: nunca extender a valores controlados por usuario |
-| `case "$branch" in ${HOTFIX_BRANCH_PATTERN}*` — unquoted intencional | ✅ | Comentario inline en `detect-scenario.sh` — glob syntax requiere sin quotes; fuente es config interna |
-| `git log --format` como vector de inyección | ✅ auditado | Scripts consumen output via pipe a `grep`/`wc` — no hay `eval` sobre output de git |
-
-### Documentación de seguridad
-
-| Ítem | Estado | Detalle |
-|------|--------|---------|
-| `docs/security.md` — modelo de seguridad completo | ✅ | GitHub App token (por qué), rotación de `CI_APP_PRIVATE_KEY`, 6 invariantes del consumidor, checklist de onboarding |
-| `README.md` linkea a `docs/security.md` | ✅ | Sección `## Security` antes de `## Contributing` |
-| `release-readiness-checklist.md §2` referencia `docs/security.md` | ✅ | Items de rotación de clave y runbook de compromiso |
+| Key | Default | Escenario | Cobertura |
+|-----|---------|-----------|-----------|
+| [`notifications.teams.enabled`](../../scripts/defaults.yml#L136) | `true` | `enabled` con trigger inválido — exit no-zero | ✅ |
+| [`notifications.teams.on_success`](../../scripts/defaults.yml#L137) | `false` | `false` (default) + trigger "success" — sale 0 con mensaje "disabled" | ✅ |
+| | | `true` + trigger "success" + sin webhook — sale 0 con skip warning | ✅ |
+| [`notifications.teams.on_failure`](../../scripts/defaults.yml#L138) | `true` | `true` (default) + trigger "failure" + sin webhook — sale 0 con skip warning | ✅ |
+| | | **Nota**: enabled=false y on_failure=false no son testeables en unit (REPO_ROOT=/pipe es read-only en el container de test — no se puede inyectar .versioning.yml custom) | ⚠️ |
