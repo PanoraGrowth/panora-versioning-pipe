@@ -43,8 +43,10 @@ elif [ "${GITHUB_ACTIONS:-}" = "true" ]; then
         # PR event: read PR number from event payload
         if [ -n "${GITHUB_EVENT_PATH:-}" ] && [ -f "${GITHUB_EVENT_PATH}" ]; then
             _GH_PR_ID=$(jq -r '.pull_request.number // empty' "$GITHUB_EVENT_PATH" 2>/dev/null || echo "")
+            _GH_PR_TITLE=$(jq -r '.pull_request.title // empty' "$GITHUB_EVENT_PATH" 2>/dev/null || echo "")
         fi
         export VERSIONING_PR_ID="${VERSIONING_PR_ID:-${_GH_PR_ID:-}}"
+        export VERSIONING_PR_TITLE="${VERSIONING_PR_TITLE:-${_GH_PR_TITLE:-}}"
         export VERSIONING_BRANCH="${VERSIONING_BRANCH:-${GITHUB_HEAD_REF:-}}"
         export VERSIONING_TARGET_BRANCH="${VERSIONING_TARGET_BRANCH:-${GITHUB_BASE_REF:-}}"
     else

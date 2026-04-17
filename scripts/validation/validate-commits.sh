@@ -202,6 +202,57 @@ if require_commit_types; then
     fi
 fi
 
+# =============================================================================
+# VALIDATION 3: PR title must follow the same format as commits
+# Applies when VERSIONING_PR_TITLE is set (GitHub Actions PR event) and
+# require_commit_types is enabled. In squash merge, the PR title becomes the
+# squash commit subject — the one that determines the version bump. Validating
+# it here prevents bump:none surprises at merge time.
+# Skipped silently when VERSIONING_PR_TITLE is empty (Bitbucket, generic CI).
+# =============================================================================
+if require_commit_types && [ -n "${VERSIONING_PR_TITLE:-}" ]; then
+    log_info "PR title: ${VERSIONING_PR_TITLE}"
+    echo ""
+    if ! echo "$VERSIONING_PR_TITLE" | grep -qE "$TICKET_FULL_PATTERN"; then
+        log_section "ERROR: PR TITLE NOT WELL-FORMED"
+        echo ""
+        log_info "The PR title must follow the same format as commits."
+        log_info "In squash merge, the PR title becomes the commit that determines the version bump."
+        echo ""
+        if is_conventional_commits; then
+            log_info "PR title must follow Conventional Commits format:"
+            log_info "  <type>(scope): <message>  or  <type>: <message>"
+        elif has_ticket_prefixes; then
+            log_info "PR title must follow format:"
+            log_info "  ${EXAMPLE_PREFIX}-XXXX - <type>: <message>"
+        else
+            log_info "PR title must include a commit type:"
+            log_info "  <type>: <message>"
+        fi
+        echo ""
+        log_info "Current PR title:"
+        echo "  x ${VERSIONING_PR_TITLE}"
+        echo ""
+        log_info "Valid types: $(echo "$COMMIT_TYPES" | tr '|' ', ')"
+        echo ""
+        log_info "Examples:"
+        if is_conventional_commits; then
+            log_info "  feat: add new feature"
+            log_info "  fix(auth): resolve token expiry"
+            log_info "  chore: update dependencies"
+        elif has_ticket_prefixes; then
+            log_info "  ${EXAMPLE_PREFIX}-1234 - feat: add new feature"
+            log_info "  ${EXAMPLE_PREFIX}-1234 - fix: resolve bug"
+        else
+            log_info "  feat: add new feature"
+            log_info "  fix: resolve bug"
+        fi
+        echo ""
+        exit 1
+    fi
+    log_success "+ PR title is well-formed"
+fi
+
 echo ""
 if require_ticket_prefix; then
     log_success "+ All commits have valid ticket prefix"

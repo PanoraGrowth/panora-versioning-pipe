@@ -126,3 +126,51 @@ teardown() { common_teardown; }
     [ "$status" -eq 1 ]
     assert_output_matches "Cannot determine pipeline type"
 }
+
+@test "platform: GitHub Actions PR — exports VERSIONING_PR_TITLE from event payload" {
+    local event_file="${BATS_TEST_TMPDIR}/event.json"
+    echo '{"pull_request":{"number":42,"title":"feat: add login flow"}}' > "$event_file"
+
+    # Override pr-pipeline.sh to print VERSIONING_PR_TITLE so we can assert it
+    cat > "${BATS_TEST_TMPDIR}/mock-pipe/orchestration/pr-pipeline.sh" <<'MOCK'
+#!/bin/sh
+echo "PR TITLE EXPORTED: ${VERSIONING_PR_TITLE}"
+MOCK
+    chmod +x "${BATS_TEST_TMPDIR}/mock-pipe/orchestration/pr-pipeline.sh"
+
+    run env -i HOME="$HOME" PATH="$PATH" \
+        GITHUB_ACTIONS="true" \
+        GITHUB_EVENT_NAME="pull_request" \
+        GITHUB_EVENT_PATH="$event_file" \
+        GITHUB_HEAD_REF="feature/gh-test" \
+        GITHUB_BASE_REF="main" \
+        GITHUB_SHA="def456" \
+        bash "${BATS_TEST_TMPDIR}/mock-pipe.sh"
+
+    [ "$status" -eq 0 ]
+    assert_output_matches "PR TITLE EXPORTED: feat: add login flow"
+}
+
+@test "platform: GitHub Actions PR — VERSIONING_PR_TITLE manual override takes priority" {
+    local event_file="${BATS_TEST_TMPDIR}/event.json"
+    echo '{"pull_request":{"number":42,"title":"feat: from event payload"}}' > "$event_file"
+
+    cat > "${BATS_TEST_TMPDIR}/mock-pipe/orchestration/pr-pipeline.sh" <<'MOCK'
+#!/bin/sh
+echo "PR TITLE EXPORTED: ${VERSIONING_PR_TITLE}"
+MOCK
+    chmod +x "${BATS_TEST_TMPDIR}/mock-pipe/orchestration/pr-pipeline.sh"
+
+    run env -i HOME="$HOME" PATH="$PATH" \
+        GITHUB_ACTIONS="true" \
+        GITHUB_EVENT_NAME="pull_request" \
+        GITHUB_EVENT_PATH="$event_file" \
+        GITHUB_HEAD_REF="feature/gh-test" \
+        GITHUB_BASE_REF="main" \
+        GITHUB_SHA="def456" \
+        VERSIONING_PR_TITLE="feat: manual override" \
+        bash "${BATS_TEST_TMPDIR}/mock-pipe.sh"
+
+    [ "$status" -eq 0 ]
+    assert_output_matches "PR TITLE EXPORTED: feat: manual override"
+}
