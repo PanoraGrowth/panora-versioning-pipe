@@ -20,6 +20,7 @@
 #   16 per-folder-suffix-matching  17 per-folder-fallback-file-path
 #   18 per-folder-multi-folder-write  19 version-file-groups-trigger-match
 #   20 version-file-groups-trigger-no-match
+#   21 pr-title-valid-squash
 
 scenarios:
 
@@ -576,3 +577,61 @@ scenarios:
       changelog_contains: "feat: update infrastructure docs"
       version_file_updated: false
       version_file_path: "services/version.yaml"
+
+  # --- PR title validation (feature 046) ---
+
+  - name: pr-title-invalid-squash
+    description: "PR title non-conventional + squash merge → PR pipeline fails. In squash merge the PR title becomes the commit subject that determines the version bump — it must follow the same format as commits."
+    commits:
+      - message: "feat: valid commit inside the PR"
+        files:
+          test-artifact.txt: "pr title invalid squash test"
+    # pr_title default would be "test: pr-title-invalid-squash" (conventional) — override with invalid
+    pr_title: "Development (#17)"
+    expected:
+      pr_check: fail
+      tag_created: false
+
+  - name: pr-title-valid-squash
+    description: "PR title conventional + squash merge → PR pipeline passes, tag created. The squash commit subject (= PR title) is conventional so the version bump is correct."
+    base: sandbox-21
+    merge_method: squash
+    pr_title: "feat: valid pr title for squash merge"
+    config_override:
+      branches:
+        tag_on: sandbox-21
+    commits:
+      - message: "feat: valid commit inside the PR"
+        files:
+          test-artifact.txt: "pr title valid squash test"
+    expected:
+      pr_check: pass
+      tag_created: true
+      tag_pattern: "^v21\\.\\d+$"
+      changelog_contains: "valid pr title for squash merge"
+
+  - name: pr-title-invalid-merge-commit
+    description: "PR title non-conventional + merge commit style → PR pipeline also fails. The PR title is validated in PR context regardless of merge method — the gate must block before merge."
+    merge_method: merge
+    pr_title: "Development (#17)"
+    commits:
+      - message: "feat: valid commit inside the PR"
+        files:
+          test-artifact.txt: "pr title invalid merge commit test"
+    expected:
+      pr_check: fail
+      tag_created: false
+
+  - name: pr-title-validation-disabled
+    description: "require_commit_types: false + non-conventional PR title → PR pipeline passes. When validation is disabled, neither commits nor PR title are validated."
+    pr_title: "Development (#17)"
+    config_override:
+      validation:
+        require_commit_types: false
+    commits:
+      - message: "not a conventional commit at all"
+        files:
+          test-artifact.txt: "pr title validation disabled test"
+    expected:
+      pr_check: pass
+      tag_created: false
