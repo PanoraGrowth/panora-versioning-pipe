@@ -164,7 +164,14 @@ main() {
             }
 
             local pr_json
-            pr_json=$(gh pr view "$arg" --json title,body,commits)
+            pr_json=$(gh pr view "$arg" --json title,body,commits,author)
+
+            local pr_author
+            pr_author=$(printf '%s' "$pr_json" | jq -r '.author.login // ""')
+            if [[ "$pr_author" == "dependabot[bot]" || "$pr_author" == "renovate[bot]" ]]; then
+                printf 'INFO: PR #%s authored by %s — skipping commit hygiene lint (bot-generated body may contain upstream skip markers)\n' "$arg" "$pr_author"
+                exit 0
+            fi
 
             local title body
             title=$(printf '%s' "$pr_json" | jq -r '.title // ""')
