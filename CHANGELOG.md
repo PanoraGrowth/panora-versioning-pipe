@@ -321,3 +321,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: 408d2dd](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/408d2dd9ae975bc06d2047fd90fe24c3b9ce4c19)
 
 
+## v0.11.9 - 2026-04-17
+
+- 🐛 fix(scripts): add set -e to all executable scripts (Finding #21) (#76)
+  - _Agustín Manessi_
+  - [Commit: b1c239f](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/b1c239f0f2f433468c55895016bf177afe3fb502)
+
+
