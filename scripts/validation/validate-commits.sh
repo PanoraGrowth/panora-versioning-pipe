@@ -1,5 +1,6 @@
 #!/bin/sh
 # shellcheck shell=ash
+set -e
 # =============================================================================
 # validate-commits.sh - Validate commits follow configured format
 # =============================================================================
