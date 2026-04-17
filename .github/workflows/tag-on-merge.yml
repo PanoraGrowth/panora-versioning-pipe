@@ -23,13 +23,13 @@ jobs:
     steps:
       - name: Generate CI token
         id: ci-token
-        uses: actions/create-github-app-token@v1
+        uses: actions/create-github-app-token@7bfa3a4717ef143a604ee0a99d859b8886a96d00  # v1.9.3
         with:
           app-id: ${{ secrets.CI_APP_ID }}
           private-key: ${{ secrets.CI_APP_PRIVATE_KEY }}
 
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4.3.1
         with:
           fetch-depth: 0
           ref: main
