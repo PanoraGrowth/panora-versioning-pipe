@@ -17,6 +17,8 @@ REQUIRED_VARS="BITBUCKET_COMMIT BITBUCKET_REPO_OWNER BITBUCKET_REPO_SLUG BITBUCK
 MISSING_VARS=""
 
 for var in $REQUIRED_VARS; do
+    # eval is safe here: $var is a hardcoded variable name from REQUIRED_VARS,
+    # never user-controlled input. Do not extend this pattern to dynamic values.
     eval "value=\${$var:-}"
     if [ -z "$value" ]; then
         MISSING_VARS="$MISSING_VARS $var"

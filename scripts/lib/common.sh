@@ -162,6 +162,8 @@ require_tool() {
 # Validate that an env var is defined
 require_env() {
     local var="$1"
+    # eval is safe here: $var is a hardcoded variable name passed by the caller,
+    # never user-controlled input. Do not extend this pattern to dynamic values.
     eval "local value=\${$var:-}"
     if [ -z "$value" ]; then
         log_error "Required environment variable not set: $var"
