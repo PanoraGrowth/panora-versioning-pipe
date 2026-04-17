@@ -12,7 +12,7 @@ import time
 
 DEFAULT_REPO = "PanoraGrowth/panora-versioning-pipe-test"
 POLL_INTERVAL = 10  # seconds between status checks
-MAX_WAIT = 300  # 5 minutes max wait for pipelines
+MAX_WAIT = 180  # 3 minutes max wait for pipelines
 
 
 class GitHubClient:
@@ -45,12 +45,13 @@ class GitHubClient:
 
     # --- Branch operations ---
 
-    def get_default_branch_sha(self) -> str:
-        data = self._gh_api("git/ref/heads/main")
+    def get_default_branch_sha(self, ref: str = "main") -> str:
+        data = self._gh_api(f"git/ref/heads/{ref}")
         return data["object"]["sha"]
 
-    def create_branch(self, name: str, from_sha: str | None = None) -> None:
-        sha = from_sha or self.get_default_branch_sha()
+    def create_branch(self, name: str, from_sha: str | None = None,
+                      from_ref: str = "main") -> None:
+        sha = from_sha or self.get_default_branch_sha(from_ref)
         self._gh_api(
             "git/refs",
             method="POST",
@@ -198,7 +199,8 @@ class GitHubClient:
 
         raise TimeoutError(f"PR #{pr_number} checks did not complete within {timeout}s")
 
-    def dispatch_tag_workflow(self, image_tag: str | None = None) -> None:
+    def dispatch_tag_workflow(self, image_tag: str | None = None,
+                              ref: str = "main") -> None:
         """Manually trigger tag-on-merge via workflow_dispatch.
 
         Used as fallback when the push event doesn't trigger the workflow
@@ -206,40 +208,48 @@ class GitHubClient:
 
         image_tag: if set, passes the image_tag input to the workflow so it
         runs a preview image instead of the default VERSIONING_PIPE_TAG.
+        ref: branch ref to run the workflow on (default: main).
         """
         cmd = ["gh", "workflow", "run", "tag-on-merge.yml", "-R", self.repo,
-               "--ref", "main"]
+               "--ref", ref]
         if image_tag:
             cmd += ["-f", f"image_tag={image_tag}"]
         subprocess.run(cmd, capture_output=True, text=True, timeout=60)
 
-    def get_latest_workflow_run_id(self) -> int | None:
-        """Get the database ID of the latest tag-on-merge workflow run."""
-        result = subprocess.run(
-            ["gh", "run", "list", "-R", self.repo, "--workflow", "tag-on-merge.yml",
-             "--limit", "1", "--json", "databaseId"],
-            capture_output=True, text=True, timeout=30,
-        )
+    def get_latest_workflow_run_id(self, branch: str | None = None) -> int | None:
+        """Get the database ID of the latest tag-on-merge workflow run.
+
+        branch: if set, filters results to runs triggered on that branch.
+        """
+        args = ["gh", "run", "list", "-R", self.repo, "--workflow",
+                "tag-on-merge.yml", "--limit", "1", "--json", "databaseId"]
+        if branch:
+            args += ["--branch", branch]
+        result = subprocess.run(args, capture_output=True, text=True, timeout=30)
         if result.returncode != 0:
             return None
         runs = json.loads(result.stdout)
         return runs[0]["databaseId"] if runs else None
 
     def wait_for_tag_workflow(self, previous_run_id: int | None = None,
-                              timeout: int = MAX_WAIT) -> bool:
+                              timeout: int = MAX_WAIT,
+                              branch: str | None = None) -> bool:
         """Wait for a NEW tag-on-merge workflow run to complete.
 
         If previous_run_id is provided, waits until a run with a DIFFERENT ID
         appears and completes. This prevents returning early when seeing a
         previously completed run.
+        branch: if set, filters polling to runs on that branch only — critical
+        for parallel execution where multiple sandboxes run simultaneously.
         """
         deadline = time.time() + timeout
         while time.time() < deadline:
-            result = subprocess.run(
-                ["gh", "run", "list", "-R", self.repo, "--workflow", "tag-on-merge.yml",
-                 "--limit", "1", "--json", "databaseId,status,conclusion"],
-                capture_output=True, text=True, timeout=60,
-            )
+            args = ["gh", "run", "list", "-R", self.repo, "--workflow",
+                    "tag-on-merge.yml", "--limit", "1", "--json",
+                    "databaseId,status,conclusion"]
+            if branch:
+                args += ["--branch", branch]
+            result = subprocess.run(args, capture_output=True, text=True, timeout=60)
             if result.returncode != 0:
                 time.sleep(POLL_INTERVAL)
                 continue
@@ -266,20 +276,40 @@ class GitHubClient:
 
     # --- Tag operations ---
 
-    def get_latest_tag(self) -> str | None:
-        """Get the most recent tag by date."""
-        result = subprocess.run(
-            ["gh", "api", f"repos/{self.repo}/tags", "--jq", ".[0].name"],
-            capture_output=True, text=True, timeout=30,
-        )
-        return result.stdout.strip() if result.stdout.strip() else None
+    def get_latest_tag(self, prefix: str | None = None) -> str | None:
+        """Get the most recent tag by date.
+
+        prefix: if set (e.g. "v3."), filters to tags starting with that prefix
+        before returning the latest. Critical for parallel runs — prevents a
+        worker on sandbox-N from seeing another sandbox's tag as the latest.
+        """
+        if prefix:
+            # Fetch enough tags to find one matching the prefix; repos accumulate
+            # tags from many sandbox runs so we look beyond just the first page.
+            result = subprocess.run(
+                ["gh", "api", f"repos/{self.repo}/tags?per_page=100",
+                 "--jq", f'[.[] | select(.name | startswith("{prefix}"))][0].name'],
+                capture_output=True, text=True, timeout=30,
+            )
+        else:
+            result = subprocess.run(
+                ["gh", "api", f"repos/{self.repo}/tags", "--jq", ".[0].name"],
+                capture_output=True, text=True, timeout=30,
+            )
+        tag = result.stdout.strip()
+        return tag if tag and tag != "null" else None
 
     def wait_for_new_tag(self, previous_tag: str | None,
-                         timeout: int = MAX_WAIT) -> str:
-        """Poll until a new tag appears that differs from previous_tag."""
+                         timeout: int = MAX_WAIT,
+                         prefix: str | None = None) -> str:
+        """Poll until a new tag appears that differs from previous_tag.
+
+        prefix: if set (e.g. "v3."), polls only within that tag namespace.
+        Prevents cross-sandbox tag confusion during parallel runs.
+        """
         deadline = time.time() + timeout
         while time.time() < deadline:
-            current = self.get_latest_tag()
+            current = self.get_latest_tag(prefix=prefix)
             if current and current != previous_tag:
                 return current
             time.sleep(POLL_INTERVAL)

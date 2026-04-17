@@ -382,8 +382,8 @@ No hay campo `type` explícito. El comportamiento se determina por la extensión
 
 | Extensión | Comportamiento | Cobertura |
 |-----------|---------------|-----------|
-| `.yaml` / `.yml` | Actualiza el key `version` con yq · crea el archivo si no existe | ✅ actualización · ⚠️ creación: expand_glob_path usa find (solo archivos existentes), writer no se llega a llamar — ver sub-ticket 053a |
-| `.json` | Actualiza el key `version` con yq (JSON output) · crea el archivo si no existe | ✅ actualización · ⚠️ creación: mismo gap que yaml — ver sub-ticket 053a |
+| `.yaml` / `.yml` | Actualiza el key `version` con yq · crea el archivo si no existe (path sin glob chars) | ✅ actualización · ✅ creación (fix PR #94) |
+| `.json` | Actualiza el key `version` con yq (JSON output) · crea el archivo si no existe (path sin glob chars) | ✅ actualización · ✅ creación (fix PR #94) |
 | Cualquier otra | Reemplaza el `pattern` configurado con la versión · error fatal si `pattern` no está configurado | ✅ reemplazo · ✅ error fatal |
 | `.yaml` + `tag_prefix_v: true` | Escribe la versión sin el prefijo `v` (`v0.1.0` → `0.1.0` en el archivo) | ✅ |
 | `.json` + `tag_prefix_v: true` | Escribe la versión sin el prefijo `v` | ✅ |

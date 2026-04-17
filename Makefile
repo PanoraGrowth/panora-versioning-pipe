@@ -41,8 +41,8 @@ test-unit: build-test ## Run unit tests in Docker
 test-unit-filter: build-test ## Run specific test: make test-unit-filter F=config-parser/getters
 	docker run --rm $(IMAGE_NAME)-test:$(IMAGE_TAG) bats tests/unit/$(F).bats
 
-test-integration: ## Run integration tests — GitHub (requires gh CLI authenticated)
-	cd tests/integration && pip install -q -r requirements.txt && pytest -v test_github.py
+test-integration: ## Run integration tests — GitHub (parallel, requires gh CLI authenticated)
+	cd tests/integration && pip install -q -r requirements.txt && pytest -v -n 15 --dist worksteal test_github.py
 
 test-integration-bitbucket: ## Run integration tests — Bitbucket (requires BB_TOKEN)
 	cd tests/integration && pip install -q -r requirements.txt && pytest -v test_bitbucket.py -x
@@ -50,7 +50,7 @@ test-integration-bitbucket: ## Run integration tests — Bitbucket (requires BB_
 test-integration-all: ## Run integration tests on both platforms
 	cd tests/integration && pip install -q -r requirements.txt && pytest -v test_github.py test_bitbucket.py -x
 
-test-integration-filter: ## Run specific integration scenario: make test-integration-filter S=feat-minor-bump
+test-integration-filter: ## Run specific integration scenario (sequential): make test-integration-filter S=feat-minor-bump
 	cd tests/integration && pip install -q -r requirements.txt && pytest -v test_github.py -k "$(S)"
 
 test-integration-bitbucket-filter: ## Run specific Bitbucket scenario: make test-integration-bitbucket-filter S=feat-minor-bump

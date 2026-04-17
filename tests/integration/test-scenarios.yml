@@ -3,11 +3,23 @@
 # Each scenario defines:
 #   - name: unique identifier (used in branch names)
 #   - description: what this scenario tests
-#   - config_override: if set, deep-merged on top of the test repo's .versioning.yml
+#   - base: sandbox branch to target (default: main for PR-only scenarios)
+#   - config_override: if set, deep-merged on top of the sandbox's .versioning.yml
 #   - commits: list of commits to create (message + optional file changes)
 #   - expected: what to verify after the pipe runs
 #
 # Branch naming: test/auto-{name}-{run_id}
+#
+# Sandbox mapping (merge scenarios only — each owns a disjoint tag namespace vN.*):
+#   01 feat-minor-bump         02 fix-patch-bump           03 scoped-backend
+#   04 scoped-frontend         05 unscoped-to-root         06 multi-commit-last-wins
+#   07 full-mode-all-typed-passes  08 tag-on-main-development-release
+#   09 hotfix-to-main-extended-targets  10 hotfix-to-main-with-patch-bump
+#   11 hotfix-scoped-patch-bump  12 hotfix-patch-bump-regression
+#   13 hotfix-uppercase-branch-prefix  14 feat-minor-bump-semver  15 fix-patch-bump-semver
+#   16 per-folder-suffix-matching  17 per-folder-fallback-file-path
+#   18 per-folder-multi-folder-write  19 version-file-groups-trigger-match
+#   20 version-file-groups-trigger-no-match
 
 scenarios:
 
@@ -15,6 +27,10 @@ scenarios:
 
   - name: feat-minor-bump
     description: "feat commit triggers MINOR version bump (SemVer-aligned: feat → minor)"
+    base: sandbox-01
+    config_override:
+      branches:
+        tag_on: sandbox-01
     commits:
       - message: "feat: add automated test feature"
         files:
@@ -22,11 +38,15 @@ scenarios:
     expected:
       pr_check: pass
       tag_created: true
-      tag_pattern: "^v\\d+\\.\\d+\\.\\d+$"
+      tag_pattern: "^v1\\.\\d+\\.\\d+$"
       changelog_contains: "feat: add automated test feature"
 
   - name: fix-patch-bump
     description: "fix commit triggers PATCH version bump (SemVer-aligned: fix → patch)"
+    base: sandbox-02
+    config_override:
+      branches:
+        tag_on: sandbox-02
     commits:
       - message: "fix: resolve automated test bug"
         files:
@@ -34,7 +54,7 @@ scenarios:
     expected:
       pr_check: pass
       tag_created: true
-      tag_pattern: "^v\\d+\\.\\d+\\.\\d+$"
+      tag_pattern: "^v2\\.\\d+\\.\\d+$"
       changelog_contains: "fix: resolve automated test bug"
 
   - name: chore-minor-bump
@@ -51,6 +71,10 @@ scenarios:
 
   - name: scoped-backend
     description: "feat(backend) commit routes changelog to backend/"
+    base: sandbox-03
+    config_override:
+      branches:
+        tag_on: sandbox-03
     commits:
       - message: "feat(backend): add automated backend feature"
         files:
@@ -58,12 +82,16 @@ scenarios:
     expected:
       pr_check: pass
       tag_created: true
-      tag_pattern: "^v\\d+\\.\\d+\\.\\d+$"
+      tag_pattern: "^v3\\.\\d+\\.\\d+$"
       changelog_contains: "feat(backend): add automated backend feature"
       changelog_location: "backend/CHANGELOG.md"
 
   - name: scoped-frontend
     description: "fix(frontend) commit routes changelog to frontend/ and triggers PATCH bump"
+    base: sandbox-04
+    config_override:
+      branches:
+        tag_on: sandbox-04
     commits:
       - message: "fix(frontend): resolve automated frontend bug"
         files:
@@ -71,12 +99,16 @@ scenarios:
     expected:
       pr_check: pass
       tag_created: true
-      tag_pattern: "^v\\d+\\.\\d+\\.\\d+\\.\\d+$"
+      tag_pattern: "^v4\\.\\d+\\.\\d+$"
       changelog_contains: "fix(frontend): resolve automated frontend bug"
       changelog_location: "frontend/CHANGELOG.md"
 
   - name: unscoped-to-root
     description: "commit without scope goes to root CHANGELOG; fix → PATCH bump"
+    base: sandbox-05
+    config_override:
+      branches:
+        tag_on: sandbox-05
     commits:
       - message: "fix: resolve general automated test issue"
         files:
@@ -84,7 +116,7 @@ scenarios:
     expected:
       pr_check: pass
       tag_created: true
-      tag_pattern: "^v\\d+\\.\\d+\\.\\d+\\.\\d+$"
+      tag_pattern: "^v5\\.\\d+\\.\\d+$"
       changelog_contains: "fix: resolve general automated test issue"
       changelog_location: "CHANGELOG.md"
 
@@ -92,7 +124,11 @@ scenarios:
 
   - name: multi-commit-last-wins
     description: "multi-commit merge PR — the LAST commit determines the bump (pipe uses last-commit-only semantics, NOT highest-bump-wins). For squash merges, this distinction is invisible because there is only one commit."
+    base: sandbox-06
     merge_method: merge  # must use merge (not squash) to preserve individual commits
+    config_override:
+      branches:
+        tag_on: sandbox-06
     commits:
       # Order matters: feat MUST be last to trigger a minor bump under last-wins semantics.
       # If flipped (feat first, fix last), this scenario would produce a patch bump instead.
@@ -106,7 +142,7 @@ scenarios:
     expected:
       pr_check: pass
       tag_created: true
-      tag_pattern: "^v\\d+\\.\\d+\\.\\d+$"
+      tag_pattern: "^v6\\.\\d+\\.\\d+$"
       changelog_contains: "feature as the last commit in multi-commit"
 
   # --- PR validation ---
@@ -146,7 +182,10 @@ scenarios:
 
   - name: full-mode-all-typed-passes
     description: "changelog.mode=full + all commits typed passes PR validation"
+    base: sandbox-07
     config_override:
+      branches:
+        tag_on: sandbox-07
       changelog:
         mode: "full"
     commits:
@@ -156,7 +195,7 @@ scenarios:
     expected:
       pr_check: pass
       tag_created: true
-      tag_pattern: "^v\\d+\\.\\d+\\.\\d+$"
+      tag_pattern: "^v7\\.\\d+\\.\\d+$"
       changelog_contains: "feat: add full mode feature"
 
   # --- Hotfix flow ---
@@ -194,13 +233,14 @@ scenarios:
       tag_created: false
 
   - name: tag-on-main-development-release
-    description: "feature/ branch → main with tag_on=main + 3-entry hotfix_targets. Validates development_release scenario fires (not hotfix) and creates a regular tag."
+    description: "feature/ branch → sandbox-08 with tag_on=sandbox-08 + 3-entry hotfix_targets. Validates development_release scenario fires (not hotfix) and creates a regular tag."
+    base: sandbox-08
     merge_method: squash
     config_override:
       branches:
-        tag_on: "main"
+        tag_on: sandbox-08
         hotfix_targets:
-          - "main"
+          - "sandbox-08"
           - "pre-production"
           - "uat"
     commits:
@@ -210,19 +250,20 @@ scenarios:
     expected:
       pr_check: pass
       tag_created: true
-      tag_pattern: "^v\\d+\\.\\d+\\.\\d+$"
+      tag_pattern: "^v8\\.\\d+\\.\\d+$"
       changelog_contains: "validate tag_on main with extended hotfix_targets"
 
   - name: hotfix-to-main-extended-targets
-    description: "hotfix/ branch → main with tag_on=main + hotfix_targets=[main, pre-production, uat]. Validates hotfix scenario fires and creates tag with hotfix_counter bump."
+    description: "hotfix/ branch → sandbox-09 with tag_on=sandbox-09 + hotfix_targets=[sandbox-09, pre-production, uat]. Validates hotfix scenario fires and creates tag with hotfix_counter bump."
+    base: sandbox-09
     merge_method: squash
     branch_prefix: "hotfix/auto"
     pr_title: "hotfix: validate extended hotfix_targets with uat"
     config_override:
       branches:
-        tag_on: "main"
+        tag_on: sandbox-09
         hotfix_targets:
-          - "main"
+          - "sandbox-09"
           - "pre-production"
           - "uat"
       version:
@@ -236,12 +277,13 @@ scenarios:
     expected:
       pr_check: pass
       tag_created: true
-      tag_pattern: '^v\d+\.\d+\.\d+\.1$'
+      tag_pattern: '^v9\.\d+\.\d+\.1$'
       changelog_contains: "validate extended hotfix_targets with uat"
       changelog_section_marker: "(Hotfix)"
 
   - name: hotfix-to-main-with-patch-bump
-    description: "Full hotfix wire-up end-to-end: a hotfix/ branch is merged to main (squash), the pipe bumps PATCH, tags v*.*.*.1, and the CHANGELOG header carries the (Hotfix) marker. Runs on BOTH GitHub and Bitbucket harnesses since detection is now pure-git (v0.6.3+)."
+    description: "Full hotfix wire-up end-to-end: a hotfix/ branch is merged to sandbox-10 (squash), the pipe bumps PATCH, tags v10.*.*.1, and the CHANGELOG header carries the (Hotfix) marker. Runs on BOTH GitHub and Bitbucket harnesses since detection is now pure-git (v0.6.3+)."
+    base: sandbox-10
     merge_method: squash
     branch_prefix: "hotfix/auto"
     # PR title must start with 'hotfix:' so the squash merge subject carries
@@ -249,11 +291,15 @@ scenarios:
     # subject via the commit-type convention (purely git-based, v0.6.3+).
     pr_title: "hotfix: wire-up patch bump integration test"
     # Delta-only config_override — the test framework deep-merges this on
-    # top of the test repo's .versioning.yml (ticket 027). Only keys that
-    # differ from the base config need to be specified here.
+    # top of the sandbox's .versioning.yml. Only keys that differ from the
+    # base config need to be specified here.
     # hotfix_counter.enabled defaults to true since v0.6.3+, but we keep it explicit
     # as defensive clarity for this hotfix scenario.
     config_override:
+      branches:
+        tag_on: sandbox-10
+        hotfix_targets:
+          - "sandbox-10"
       version:
         components:
           hotfix_counter:
@@ -265,16 +311,21 @@ scenarios:
     expected:
       pr_check: pass
       tag_created: true
-      tag_pattern: '^v\d+\.\d+\.\d+\.1$'
+      tag_pattern: '^v10\.\d+\.\d+\.1$'
       changelog_contains: "wire-up patch bump integration test"
       changelog_section_marker: "(Hotfix)"
 
   - name: hotfix-scoped-patch-bump
     description: "Hotfix with scope — hotfix(security): msg — validates the 'hotfix(*' glob pattern produces patch bump + (Hotfix) marker. Squash merge so PR title becomes the commit subject."
+    base: sandbox-11
     merge_method: squash
     branch_prefix: "hotfix/auto"
     pr_title: "hotfix(security): patch auth token validation"
     config_override:
+      branches:
+        tag_on: sandbox-11
+        hotfix_targets:
+          - "sandbox-11"
       version:
         components:
           hotfix_counter:
@@ -286,7 +337,7 @@ scenarios:
     expected:
       pr_check: pass
       tag_created: true
-      tag_pattern: '^v\d+\.\d+\.\d+\.1$'
+      tag_pattern: '^v11\.\d+\.\d+\.1$'
       changelog_contains: "patch auth token validation"
       changelog_section_marker: "(Hotfix)"
 
@@ -294,6 +345,10 @@ scenarios:
 
   - name: feat-minor-bump-semver
     description: "feat commit triggers MINOR version bump (SemVer-correct mapping: feat → minor, not major)"
+    base: sandbox-14
+    config_override:
+      branches:
+        tag_on: sandbox-14
     commits:
       - message: "feat: add semver minor bump feature"
         files:
@@ -301,11 +356,15 @@ scenarios:
     expected:
       pr_check: pass
       tag_created: true
-      tag_pattern: "^v\\d+\\.\\d+\\.\\d+$"
+      tag_pattern: "^v14\\.\\d+\\.\\d+$"
       changelog_contains: "feat: add semver minor bump feature"
 
   - name: fix-patch-bump-semver
     description: "fix commit triggers PATCH version bump (SemVer-correct mapping: fix → patch). Post-042: fix bumps the 3rd slot (patch component); hotfix_counter (4th slot) resets to 0 and is omitted."
+    base: sandbox-15
+    config_override:
+      branches:
+        tag_on: sandbox-15
     commits:
       - message: "fix: resolve semver patch bump issue"
         files:
@@ -313,7 +372,7 @@ scenarios:
     expected:
       pr_check: pass
       tag_created: true
-      tag_pattern: "^v\\d+\\.\\d+\\.\\d+$"
+      tag_pattern: "^v15\\.\\d+\\.\\d+$"
       changelog_contains: "fix: resolve semver patch bump issue"
 
   - name: refactor-no-bump
@@ -328,10 +387,15 @@ scenarios:
 
   - name: hotfix-patch-bump-regression
     description: "Regression guard: hotfix flow still bumps HOTFIX_COUNTER after commit-type remap (fix → patch). Ensures the hotfix path is independent of the commit-type-to-bump mapping table."
+    base: sandbox-12
     merge_method: squash
     branch_prefix: "hotfix/auto"
     pr_title: "hotfix: regression guard for patch bump after remap"
     config_override:
+      branches:
+        tag_on: sandbox-12
+        hotfix_targets:
+          - "sandbox-12"
       version:
         components:
           hotfix_counter:
@@ -343,12 +407,13 @@ scenarios:
     expected:
       pr_check: pass
       tag_created: true
-      tag_pattern: '^v\d+\.\d+\.\d+\.1$'
+      tag_pattern: '^v12\.\d+\.\d+\.1$'
       changelog_contains: "regression guard for patch bump after remap"
       changelog_section_marker: "(Hotfix)"
 
   - name: hotfix-uppercase-branch-prefix
     description: "Hotfix with uppercase Hotfix/ branch prefix — validates the '[Hh]otfix/*' glob pattern. The commit uses a conventional message to pass PR validation, but merge_subject overrides the squash commit subject to 'Hotfix/...' (simulating repos where GitHub auto-generates the PR title from the branch name)."
+    base: sandbox-13
     merge_method: squash
     branch_prefix: "Hotfix/auto"
     pr_title: "Hotfix/urgent security patch"
@@ -357,6 +422,10 @@ scenarios:
     # which would be "fix: ..." and miss the hotfix detection.
     merge_subject: "Hotfix/urgent security patch"
     config_override:
+      branches:
+        tag_on: sandbox-13
+        hotfix_targets:
+          - "sandbox-13"
       version:
         components:
           hotfix_counter:
@@ -376,6 +445,133 @@ scenarios:
     expected:
       pr_check: pass
       tag_created: true
-      tag_pattern: '^v\d+\.\d+\.\d+\.1$'
+      tag_pattern: '^v13\.\d+\.\d+\.1$'
       changelog_contains: "urgent security patch"
       changelog_section_marker: "(Hotfix)"
+
+  # --- New scenarios: per-folder extensions and version_file.groups ---
+
+  - name: per-folder-suffix-matching
+    description: "feat(cluster-ecs) with scope_matching=suffix routes changelog to services/001-cluster-ecs/ (folder ending in scope). Validates end-to-end suffix resolution in real GitHub Actions context."
+    base: sandbox-16
+    config_override:
+      branches:
+        tag_on: sandbox-16
+      changelog:
+        per_folder:
+          enabled: true
+          scope_matching: suffix
+          folders:
+            - services
+    commits:
+      - message: "feat(cluster-ecs): add auto-scaling configuration"
+        files:
+          services/001-cluster-ecs/config.tf: "# cluster ecs auto-scaling"
+    expected:
+      pr_check: pass
+      tag_created: true
+      tag_pattern: "^v16\\.\\d+\\.\\d+$"
+      changelog_contains: "feat(cluster-ecs): add auto-scaling configuration"
+      changelog_location: "services/001-cluster-ecs/CHANGELOG.md"
+
+  - name: per-folder-fallback-file-path
+    description: "Unscoped commit touching backend/ files → fallback=file_path routes CHANGELOG to backend/. Verifies single-folder file_path resolution end-to-end."
+    base: sandbox-17
+    config_override:
+      branches:
+        tag_on: sandbox-17
+      changelog:
+        per_folder:
+          enabled: true
+          fallback: file_path
+          folders:
+            - backend
+            - frontend
+    commits:
+      - message: "fix: resolve auth token expiry in backend"
+        files:
+          backend/auth.py: "# fixed token expiry"
+    expected:
+      pr_check: pass
+      tag_created: true
+      tag_pattern: "^v17\\.\\d+\\.\\d+$"
+      changelog_contains: "fix: resolve auth token expiry in backend"
+      changelog_location: "backend/CHANGELOG.md"
+
+  - name: per-folder-multi-folder-write
+    description: "Unscoped commit touching both backend/ and frontend/ → fallback=file_path writes CHANGELOG to BOTH folders. Verifies multi-folder write in real GitHub Actions."
+    base: sandbox-18
+    config_override:
+      branches:
+        tag_on: sandbox-18
+      changelog:
+        per_folder:
+          enabled: true
+          fallback: file_path
+          folders:
+            - backend
+            - frontend
+    commits:
+      - message: "feat: unified auth layer across backend and frontend"
+        files:
+          backend/auth.py: "# unified auth"
+          frontend/auth.js: "// unified auth"
+    expected:
+      pr_check: pass
+      tag_created: true
+      tag_pattern: "^v18\\.\\d+\\.\\d+$"
+      changelog_contains: "feat: unified auth layer across backend and frontend"
+      changelog_location: "backend/CHANGELOG.md"
+      changelog_locations:
+        - "backend/CHANGELOG.md"
+        - "frontend/CHANGELOG.md"
+
+  - name: version-file-groups-trigger-match
+    description: "version_file.groups with trigger_paths that matches commit files → version file is updated in the repo post-merge. Closes integration gap in DRAFT-coverage.md."
+    base: sandbox-19
+    config_override:
+      branches:
+        tag_on: sandbox-19
+      version_file:
+        enabled: true
+        groups:
+          - files:
+              - services/version.yaml
+            trigger_paths:
+              - "services/**"
+    commits:
+      - message: "feat: deploy new services layer"
+        files:
+          services/main.tf: "# new services layer"
+    expected:
+      pr_check: pass
+      tag_created: true
+      tag_pattern: "^v19\\.\\d+\\.\\d+$"
+      changelog_contains: "feat: deploy new services layer"
+      version_file_updated: true
+      version_file_path: "services/version.yaml"
+
+  - name: version-file-groups-trigger-no-match
+    description: "version_file.groups with trigger_paths that does NOT match commit files → version file is NOT modified. Completes integration coverage for the groups routing logic."
+    base: sandbox-20
+    config_override:
+      branches:
+        tag_on: sandbox-20
+      version_file:
+        enabled: true
+        groups:
+          - files:
+              - services/version.yaml
+            trigger_paths:
+              - "services/**"
+    commits:
+      - message: "feat: update infrastructure docs"
+        files:
+          infrastructure/README.md: "# docs update"
+    expected:
+      pr_check: pass
+      tag_created: true
+      tag_pattern: "^v20\\.\\d+\\.\\d+$"
+      changelog_contains: "feat: update infrastructure docs"
+      version_file_updated: false
+      version_file_path: "services/version.yaml"
