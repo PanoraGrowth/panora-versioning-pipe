@@ -384,3 +384,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: 871fe62](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/871fe629abaf7906f52a2983b334d31d25778346)
 
 
+## v0.1.5 - 2026-04-17
+
+- 🐛 fix(validation): use eval for hotfix keyword glob matching in PR title (#101)
+  - _Agustín Manessi_
+  - [Commit: ded815f](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/ded815f4932f696635a5d0b371ed64e2e603882f)
+
+
