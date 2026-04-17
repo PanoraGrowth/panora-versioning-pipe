@@ -398,3 +398,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: 3c42942](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/3c4294252bb7e51be050d10b181c0865d9b197c9)
 
 
+## v0.1.7 - 2026-04-17
+
+- 🐛 fix(validation): escape open-paren in hotfix keywords before eval case expansion (#104)
+  - _Agustín Manessi_
+  - [Commit: 56e8778](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/56e8778a27ab1cd22fe3e0c920ac23bfb6440090)
+
+
