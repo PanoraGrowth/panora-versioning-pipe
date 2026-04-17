@@ -356,3 +356,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: bdc1324](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/bdc13243d3ec151cb4d03e6a3dc356951a71e42b)
 
 
+## v0.11.14 - 2026-04-17
+
+- 🐛 fix(version-file): create file when path has no glob chars (#94)
+  - _Agustín Manessi_
+  - [Commit: dc86249](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/dc86249c66a2d347aa623bb0baa2a8ab200fe6c7)
+
+
