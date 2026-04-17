@@ -7,8 +7,10 @@ FROM ${BASE_IMAGE}
 # Override entrypoint from production image
 ENTRYPOINT []
 
-# Install bats-core
+# Switch to root to install test dependencies, then back to non-root
+USER root
 RUN apk add --no-cache bats parallel
+USER pipe
 
 # Copy test files
 COPY tests/ /pipe/tests/
