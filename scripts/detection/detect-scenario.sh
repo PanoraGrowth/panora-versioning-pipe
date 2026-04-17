@@ -81,6 +81,8 @@ matches_hotfix_keyword() {
 # Returns 0 (true) if the branch starts with the prefix, 1 (false) otherwise.
 matches_hotfix_branch() {
     local branch="$1"
+    # ${HOTFIX_BRANCH_PATTERN}* is intentionally unquoted — case patterns require glob syntax.
+    # HOTFIX_BRANCH_PATTERN comes from config via get_hotfix_keyword(), not from user input.
     case "$branch" in
         ${HOTFIX_BRANCH_PATTERN}*) return 0 ;;
     esac
@@ -175,6 +177,8 @@ if [ "$TARGET_BRANCH" = "$TAG_BRANCH" ]; then
     SCENARIO="development_release"
     echo "Scenario: Development Release (Changelog + Tag)"
 elif is_hotfix_target "$TARGET_BRANCH"; then
+    # ${HOTFIX_BRANCH_PATTERN}* is intentionally unquoted — case patterns require glob syntax.
+    # HOTFIX_BRANCH_PATTERN comes from config via get_hotfix_keyword(), not from user input.
     case "$SOURCE_BRANCH" in
         ${HOTFIX_BRANCH_PATTERN}*)
             SCENARIO="hotfix"
