@@ -69,17 +69,10 @@ read_json_key() {
 }
 
 # =============================================================================
-# yaml/json — file does not exist
-#
-# NOTE (sub-ticket 053a): expand_glob_path uses `find` which only locates
-# existing files. When a file does not exist the EXPANDED list is empty and
-# the writer is never called, even though write_yaml_file / write_json_file
-# have creation logic. The documented behaviour ("creates if not exists") is
-# NOT implemented end-to-end. The script logs "no files matched" and exits 0.
-# See temp/features/053a-version-file-creation-gap.md for follow-up.
+# yaml/json — file does not exist (creation)
 # =============================================================================
 
-@test "yaml: logs warning and exits 0 when file does not exist (creation gap)" {
+@test "yaml: creates file with version when file does not exist" {
     write_inline_fixture '
 commits:
   format: "conventional"
@@ -97,10 +90,11 @@ version_file:
 '
     run_write_version_file "2.3.0"
     [ "$status" -eq 0 ]
-    [[ "$output" == *"no files matched"* ]]
+    actual=$(read_yaml_key "${BATS_TEST_TMPDIR}/repo/newdir/version.yaml" "version")
+    assert_equals "2.3.0" "$actual"
 }
 
-@test "json: logs warning and exits 0 when file does not exist (creation gap)" {
+@test "json: creates file with version when file does not exist" {
     write_inline_fixture '
 commits:
   format: "conventional"
@@ -118,7 +112,8 @@ version_file:
 '
     run_write_version_file "3.0.0"
     [ "$status" -eq 0 ]
-    [[ "$output" == *"no files matched"* ]]
+    actual=$(read_json_key "${BATS_TEST_TMPDIR}/repo/newpkg/package.json" "version")
+    assert_equals "3.0.0" "$actual"
 }
 
 # =============================================================================

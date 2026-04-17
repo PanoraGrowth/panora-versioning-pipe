@@ -97,7 +97,11 @@ expand_glob_path() {
     local dir base
     dir=$(dirname "${REPO_ROOT}/${pattern}")
     base=$(basename "${pattern}")
-    # find with -name glob; silently returns nothing if no match
+    # If no glob chars, return path directly so writers can create the file
+    case "$pattern" in
+        *\**|*\?*) ;;
+        *) echo "${REPO_ROOT}/${pattern}"; return ;;
+    esac
     find "$dir" -maxdepth 1 -name "$base" 2>/dev/null || true
 }
 
