@@ -166,6 +166,60 @@ run_validate() {
 }
 
 # =============================================================================
+# Hotfix keyword patterns as valid PR titles
+# =============================================================================
+
+@test "pr-title: hotfix keyword pattern matches 'hotfix: fix auth'" {
+    source_config_parser "with-hotfix-counter"
+    local pattern
+    pattern=$(build_ticket_full_pattern)
+    echo "hotfix: fix auth" | grep -Eq "$pattern"
+}
+
+@test "pr-title: hotfix keyword pattern matches 'hotfix(security): fix auth'" {
+    source_config_parser "with-hotfix-counter"
+    local pattern
+    pattern=$(build_ticket_full_pattern)
+    echo "hotfix(security): fix auth" | grep -Eq "$pattern"
+}
+
+@test "pr-title: '[Hh]otfix/*' glob matches 'Hotfix/urgent security patch' via eval" {
+    # Validates the eval-based glob matching for bracket expressions in variables.
+    # This is the exact case that broke without eval: case "$var" in $kw) does not
+    # expand [Hh] when kw comes from a variable.
+    local title="Hotfix/urgent security patch"
+    local kw='[Hh]otfix/*'
+    local matched=0
+    # shellcheck disable=SC2254
+    if eval "case \"\$title\" in $kw) true ;; *) false ;; esac" 2>/dev/null; then
+        matched=1
+    fi
+    [ "$matched" -eq 1 ]
+}
+
+@test "pr-title: '[Hh]otfix/*' glob matches 'hotfix/fix-auth' via eval" {
+    local title="hotfix/fix-auth"
+    local kw='[Hh]otfix/*'
+    local matched=0
+    # shellcheck disable=SC2254
+    if eval "case \"\$title\" in $kw) true ;; *) false ;; esac" 2>/dev/null; then
+        matched=1
+    fi
+    [ "$matched" -eq 1 ]
+}
+
+@test "pr-title: '[Hh]otfix/*' glob does NOT match 'Development (#17)' via eval" {
+    local title="Development (#17)"
+    local kw='[Hh]otfix/*'
+    local matched=0
+    # shellcheck disable=SC2254
+    if eval "case \"\$title\" in $kw) true ;; *) false ;; esac" 2>/dev/null; then
+        matched=1
+    fi
+    [ "$matched" -eq 0 ]
+}
+
+# =============================================================================
 # mode: last_commit — PR title is validated (not only mode: full)
 # =============================================================================
 

@@ -52,6 +52,28 @@ Controla qué commits son aceptados y cuáles se ignoran durante el cálculo de 
 | | | Merge commits (`^Merge`), reverts (`^Revert`), `fixup!`, `squash!` ignorados | ✅ |
 | | | `chore(release)` y `chore(hotfix)` ignorados | ✅ |
 
+**PR title validation** (`VERSIONING_PR_TITLE`) — feature 046
+
+En squash merge, el PR title se convierte en el commit subject que determina el bump. Si `require_commit_types: true`, el pipe valida que el PR title siga el mismo formato que los commits.
+
+| Escenario | Cobertura |
+|-----------|-----------|
+| PR title conventional válido (`feat: ...`) — pasa | ✅ unit `pr-title.bats` |
+| PR title no-conventional (`Development (#17)`) — falla | ✅ unit `pr-title.bats` + integration `pr-title-invalid-squash` |
+| PR title ticket-prefix válido (`AM-123 - feat: ...`) — pasa | ✅ unit `pr-title.bats` |
+| PR title ticket-prefix inválido (`AM-123 - Development`) — falla | ✅ unit `pr-title.bats` |
+| `VERSIONING_PR_TITLE` vacío — validación se saltea silenciosamente (Bitbucket, generic CI) | ✅ unit `pr-title.bats` |
+| `require_commit_types: false` — ni commits ni PR title se validan | ✅ unit `pr-title.bats` + integration `pr-title-validation-disabled` |
+| `mode: last_commit` — PR title se valida igual que en `mode: full` | ✅ unit `pr-title.bats` |
+| PR title con hotfix keyword convencional (`hotfix: fix auth`) — pasa | ✅ unit `pr-title.bats` |
+| PR title con hotfix keyword glob (`Hotfix/urgent security patch` matchea `[Hh]otfix/*`) — pasa | ✅ unit `pr-title.bats` (eval-based glob) + integration `hotfix-uppercase-branch-prefix` |
+| PR title no-conventional + merge commit style — PR pipeline falla igual | ✅ integration `pr-title-invalid-merge-commit` |
+| PR title conventional + squash merge — PR pipeline pasa, tag creado | ✅ integration `pr-title-valid-squash` (sandbox-21) |
+
+**Nota de implementación:** los hotfix keyword patterns como `[Hh]otfix/*` son globs con bracket expressions. Cuando el pattern viene de una variable shell, el `case` nativo no expande los brackets correctamente — se usa `eval` para forzar la expansión (mismo comportamiento que `detect-scenario.sh`).
+
+**Gap pendiente:** Bitbucket no expone el PR title como variable nativa (`BITBUCKET_PR_TITLE` no existe). La validación se saltea silenciosamente. Cuando Bitbucket lo agregue, solo hay que mapearlo en `pipe.sh`. Ver ticket 022.
+
 ---
 
 ## changelog
