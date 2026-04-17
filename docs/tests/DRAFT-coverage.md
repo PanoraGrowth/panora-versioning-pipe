@@ -151,6 +151,8 @@ Habilita changelogs independientes por carpeta en monorepos. Requiere `commits.f
 | `"file_path"` | Archivos en carpeta configurada + archivos en root — los del root se ignoran | ✅ |
 | `"file_path"` | Solo archivos en root — sin match, va al root | ✅ |
 | `"file_path"` | Archivos anidados dentro de carpeta configurada (`shared/utils/helpers.sh`) — resuelve a la carpeta padre | ✅ |
+| `"file_path"` | E2E: PR → merge → CHANGELOG escrito en carpeta correcta (single folder) | ✅ sandbox-17 (`per-folder-fallback-file-path`) |
+| `"file_path"` | E2E: PR → merge → CHANGELOG escrito en múltiples carpetas (multi-folder) | ✅ sandbox-18 (`per-folder-multi-folder-write`) |
 
 ---
 
@@ -419,8 +421,8 @@ No hay campo `type` explícito. El comportamiento se determina por la extensión
 
 | Escenario | Cobertura |
 |-----------|-----------|
-| PR con `version_file.groups` → merge → archivo actualizado en el repo | ❌ sin test (integration) |
-| Monorepo: solo el grupo cuyo `trigger_paths` matchea se actualiza | ❌ sin test (integration) |
+| PR con `version_file.groups` → merge → archivo actualizado en el repo | ✅ sandbox-19 (`version-file-groups-trigger-match`) |
+| Monorepo: solo el grupo cuyo `trigger_paths` matchea se actualiza | ✅ sandbox-19 + sandbox-20 (`version-file-groups-trigger-no-match`) |
 
 ---
 
