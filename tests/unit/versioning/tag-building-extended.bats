@@ -76,6 +76,7 @@ run_calculate_inline() {
 # =============================================================================
 
 @test "tag_append: non-empty value (-rc1) is appended to the end of the tag" {
+    # Ticket 055: major.initial must match seed tag's major — namespace filter is ^v{major.initial}\.
     run_calculate_inline '
 commits:
   format: "conventional"
@@ -86,7 +87,7 @@ version:
       enabled: false
     major:
       enabled: true
-      initial: 0
+      initial: 1
     patch:
       enabled: true
       initial: 0
@@ -103,6 +104,7 @@ version:
 }
 
 @test "tag_append: empty value (default) — tag has no suffix" {
+    # Ticket 055: major.initial must match seed tag's major.
     run_calculate_inline '
 commits:
   format: "conventional"
@@ -113,7 +115,7 @@ version:
       enabled: false
     major:
       enabled: true
-      initial: 0
+      initial: 1
     patch:
       enabled: true
       initial: 0

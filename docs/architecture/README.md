@@ -1,6 +1,6 @@
 # Architecture
 
-**Last updated:** 2026-04-13 (floating version tags, ticket 032)
+**Last updated:** 2026-04-17 (initial values semantics, ticket 055)
 
 ---
 
@@ -361,12 +361,37 @@ commit_type_overrides:
 
 ---
 
+## Initial values semantics
+
+`version.components.*.initial` does NOT behave uniformly across all four components. The pipe treats namespace components (`epoch`, `major`) as **declarative authority** and progression components (`patch`, `hotfix_counter`) as **cold-start values only**. Understanding this asymmetry is required for consumers migrating from other tools, rotating epochs, or running sandbox isolation patterns.
+
+| Component | Semantics | When `initial` takes effect |
+|-----------|-----------|------------------------------|
+| `epoch` | **Declarative authority** — defines the tag namespace | Always — the pipe restricts tag lookup to `^{epoch.initial}.{major.initial}.*` |
+| `major` | **Declarative authority** — defines the tag namespace | Always — same namespace filter as above |
+| `patch` | **Cold-start only** — progression, not authority | Only when no tag exists in the configured namespace |
+| `hotfix_counter` | **Cold-start only** — progression, not authority | Only when no tag exists in the configured namespace |
+
+### What this means in practice
+
+- **Migration from another tool** — repo has `v1.0.0, v1.5.2, v1.8.0` from a prior pipeline. You set `version.components.major.initial: 2` in `.versioning.yml`. The next tag is in the `v2.*` namespace (e.g. `v2.1.0` on a feat commit). The existing `v1.*` tags are not considered for progression.
+- **Epoch rotation** — declare a new era of versioning by setting `version.components.epoch.initial: 1` and `version.components.major.initial: 0`. The next tag lands in the `v1.0.*` namespace regardless of any `v0.*` history.
+- **Namespace isolation** — short-lived branches (sandboxes, preview environments, integration-test matrices) can each set a unique `major.initial` to isolate their tag namespaces from the main branch's history without manipulating tags.
+- **Intentional downgrade** — setting `major.initial: 2` when the current highest tag is `v3.0.0` lands the next tag in the `v2.*` namespace. The pipe respects what you declared; it does not invent heuristics to override your config.
+- **Progression `initial` with existing tags** — if tags already exist in the configured namespace, `patch.initial` and `hotfix_counter.initial` are ignored (progression continues from the latest matching tag). The pipe logs a diagnostic line when these values are set to a non-default (non-zero) value in that case.
+
+### Rollback
+
+The declarative behavior of namespace `initial` has no config flag to revert. If you need the pre-ticket-055 behavior of silently ignoring `epoch.initial` / `major.initial` when tags exist, pin an earlier container image (`panora-versioning-pipe:<pre-v0.12>`).
+
+---
+
 ## Known limitations
 
 1. **Last commit only for bumps**: only the last commit determines the version bump type. `changelog.mode: "full"` shows all commits in the CHANGELOG, but the bump is still from the last commit only. See "Bump calculation semantics" above for the rationale and the squash-merge recommendation.
 
 2. **config_get_array and spaces**: array values with spaces in config (like regex patterns) will be split incorrectly. Avoid spaces in `ignore_patterns`.
 
-3. **Tag format migration**: changing version format config (epoch, timestamp, v-prefix) causes old tags to be ignored. The pipe starts from initial values if no tags match the current pattern.
+3. **Tag format migration**: changing version format config (epoch, timestamp, v-prefix) causes old tags to be ignored. The pipe starts from `initial` values whenever the configured namespace (`epoch.initial` + `major.initial`) is empty — see "Initial values semantics" above for the full declarative vs cold-start rules.
 
 4. **Orphaned hotfix generator (REMOVED in v0.6.3)**: `scripts/changelog/generate-hotfix-changelog.sh` and its test file `tests/unit/changelog/hotfix.bats` were deleted in PR #49 (ticket 031). The unified wire-up (ticket 024) already routed hotfix releases through `generate-changelog-last-commit.sh` with a `(Hotfix)` header marker — the old generator was dead code.

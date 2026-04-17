@@ -626,6 +626,30 @@ get_tag_pattern() {
     fi
 }
 
+# Build a regex matching tags in the configured namespace (epoch.initial + major.initial).
+# Chained AFTER TAG_PATTERN filter in calculate-version.sh to make `initial` values
+# of namespace components (epoch, major) behave as declarative authority — ticket 055.
+#
+# Asymmetry (deliberate): namespace components (epoch, major) are authoritative here.
+# Progression components (patch, hotfix_counter) are cold-start values — do NOT filter
+# them in this regex or a repo at v1.0.8 with default patch.initial=0 would never find
+# its latest tag and collide via the -2 handler on every run.
+#
+# Trailing `\.` anchor prevents `v1.` matching `v10.*` / `v100.*` (POSIX-safe, no
+# lookahead needed). Do not drop it under any "simplification".
+build_initial_prefix_regex() {
+    local epoch_initial="$1"
+    local major_initial="$2"
+    local prefix=""
+    use_tag_prefix_v && prefix="v"
+
+    if is_component_enabled "epoch"; then
+        echo "^${prefix}${epoch_initial}\\.${major_initial}\\."
+    else
+        echo "^${prefix}${major_initial}\\."
+    fi
+}
+
 # Build version string from epoch/major/patch/hotfix_counter based on enabled components.
 # Args: (epoch, major, patch[, hotfix_counter])
 # hotfix_counter is rendered only when enabled AND non-zero, so tags like v0.5.9
