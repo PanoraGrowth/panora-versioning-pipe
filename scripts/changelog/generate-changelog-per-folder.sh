@@ -149,28 +149,24 @@ echo "$COMMITS_TO_PROCESS" | while IFS='|' read -r commit_hash commit_author com
     target_folder=$(find_folder_for_scope "$scope" "$FOLDERS" "$FOLDER_PATTERN" "$SCOPE_MATCHING")
 
     # Step 4: If no match and fallback is file_path, try by modified files
+    # 037: find_folder_by_file_path now returns a newline-separated list of matched folders
+    target_folders_list=""
     if [ -z "$target_folder" ] && [ "$FALLBACK" = "file_path" ]; then
-        target_folder=$(find_folder_by_file_path "$commit_hash" "$FOLDERS")
-        if [ -n "$target_folder" ]; then
-            log_info "Scope '$scope' → fallback file_path → $(basename "$target_folder")/"
+        target_folders_list=$(find_folder_by_file_path "$commit_hash" "$FOLDERS")
+        if [ -n "$target_folders_list" ]; then
+            log_info "Scope '$scope' → fallback file_path → $(echo "$target_folders_list" | while IFS= read -r tf; do basename "$tf"; done | tr '\n' ' ')"
         fi
+    else
+        target_folders_list="$target_folder"
     fi
 
     # No match at all → skip (goes to root)
-    if [ -z "$target_folder" ]; then
+    if [ -z "$target_folders_list" ]; then
         log_info "Scope '$scope' no match: $commit_msg → root CHANGELOG"
         continue
     fi
 
-    # Remove trailing slash if any
-    target_folder=$(echo "$target_folder" | sed 's|/$||')
-
-    log_info "Scope '$scope' → $(echo "$target_folder" | sed "s|${REPO_ROOT}/||")/CHANGELOG.md"
-
-    # Mark commit as routed
-    echo "$commit_hash" >> /tmp/routed_commits.txt
-
-    # Build CHANGELOG entry
+    # Build CHANGELOG entry once, write to each matched folder
     short_hash=$(git log -1 "$commit_hash" --pretty=format:"%h")
     commit_type=$(echo "$commit_msg" | sed -n 's/^\([a-z]*\)(.*/\1/p')
     clean_msg=$(echo "$commit_msg" | sed 's/^[a-z]*([^)]*): //')
@@ -195,11 +191,20 @@ echo "$COMMITS_TO_PROCESS" | while IFS='|' read -r commit_hash commit_author com
   [Commit: ${short_hash}](${COMMIT_URL_BASE}/${commit_hash})"
     fi
 
-    # Write to folder CHANGELOG
-    FOLDER_CHANGELOG="${target_folder}/CHANGELOG.md"
+    # Mark commit as routed (once, regardless of how many folders)
+    echo "$commit_hash" >> /tmp/routed_commits.txt
 
-    if [ ! -f "$FOLDER_CHANGELOG" ]; then
-        echo "# Changelog
+    echo "$target_folders_list" | while IFS= read -r tf; do
+        # Remove trailing slash if any
+        tf=$(echo "$tf" | sed 's|/$||')
+
+        log_info "Scope '$scope' → $(echo "$tf" | sed "s|${REPO_ROOT}/||")/CHANGELOG.md"
+
+        # Write to folder CHANGELOG
+        FOLDER_CHANGELOG="${tf}/CHANGELOG.md"
+
+        if [ ! -f "$FOLDER_CHANGELOG" ]; then
+            echo "# Changelog
 
 ---
 
@@ -208,27 +213,28 @@ echo "$COMMITS_TO_PROCESS" | while IFS='|' read -r commit_hash commit_author com
 ${ENTRY}
 
 " > "$FOLDER_CHANGELOG"
-    else
-        if grep -q "^## ${NEXT_VERSION}" "$FOLDER_CHANGELOG"; then
-            TEMP_FILE=$(mktemp)
-            awk -v version="## ${NEXT_VERSION}" -v entry="$ENTRY" '
-                index($0, version) == 1 { print; found=1; next }
-                found && /^$/ { print entry; print ""; found=0 }
-                { print }
-            ' "$FOLDER_CHANGELOG" > "$TEMP_FILE"
-            mv "$TEMP_FILE" "$FOLDER_CHANGELOG"
         else
-            echo "
+            if grep -q "^## ${NEXT_VERSION}" "$FOLDER_CHANGELOG"; then
+                TEMP_FILE=$(mktemp)
+                awk -v version="## ${NEXT_VERSION}" -v entry="$ENTRY" '
+                    index($0, version) == 1 { print; found=1; next }
+                    found && /^$/ { print entry; print ""; found=0 }
+                    { print }
+                ' "$FOLDER_CHANGELOG" > "$TEMP_FILE"
+                mv "$TEMP_FILE" "$FOLDER_CHANGELOG"
+            else
+                echo "
 ## ${NEXT_VERSION}${HEADER_SUFFIX} - ${CHANGELOG_DATE}
 
 ${ENTRY}
 
 " >> "$FOLDER_CHANGELOG"
+            fi
         fi
-    fi
 
-    # Track for git add
-    echo "$FOLDER_CHANGELOG" >> /tmp/per_folder_changelogs.txt
+        # Track for git add
+        echo "$FOLDER_CHANGELOG" >> /tmp/per_folder_changelogs.txt
+    done
 
 done
 

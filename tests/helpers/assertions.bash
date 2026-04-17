@@ -51,3 +51,34 @@ assert_empty() {
         return 1
     fi
 }
+
+# Assert $output contains a specific line
+# Usage: run some_function; assert_line "expected line"
+assert_line() {
+    local expected="$1"
+    local message="${2:-"Output should contain line: $expected"}"
+
+    if ! echo "$output" | grep -qxF "$expected"; then
+        echo "FAIL: $message" >&2
+        echo "  expected line: '$expected'" >&2
+        echo "  output: '$output'" >&2
+        return 1
+    fi
+}
+
+# Assert $output has exactly N lines
+# Usage: run some_function; assert_line_count 3
+assert_line_count() {
+    local expected="$1"
+    local message="${2:-"Output should have $expected line(s)"}"
+    local actual
+    actual=$(echo "$output" | wc -l | tr -d ' ')
+
+    if [ "$actual" != "$expected" ]; then
+        echo "FAIL: $message" >&2
+        echo "  expected: $expected line(s)" >&2
+        echo "  actual:   $actual line(s)" >&2
+        echo "  output: '$output'" >&2
+        return 1
+    fi
+}

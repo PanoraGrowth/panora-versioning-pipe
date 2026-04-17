@@ -1,0 +1,11 @@
+# Monorepo config with glob patterns in folders[]
+commits:
+  format: "conventional"
+
+changelog:
+  per_folder:
+    enabled: true
+    folders:
+      - shared/*
+    scope_matching: "suffix"
+    fallback: "root"
