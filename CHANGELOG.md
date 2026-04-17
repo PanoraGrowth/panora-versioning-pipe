@@ -335,3 +335,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: 745146e](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/745146e0b10288755ee3e1d41111e4d2019ef6a7)
 
 
+## v0.11.11 - 2026-04-17
+
+- 🐛 fix(lint): exempt Dependabot and Renovate PRs from commit hygiene lint (#87)
+  - _Agustín Manessi_
+  - [Commit: ebc18d4](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/ebc18d4de4cea951f5ac2a793089d9f5d695abac)
+
+
