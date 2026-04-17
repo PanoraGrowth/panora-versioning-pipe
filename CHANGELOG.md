@@ -342,3 +342,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: ebc18d4](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/ebc18d4de4cea951f5ac2a793089d9f5d695abac)
 
 
+## v0.11.12 - 2026-04-17
+
+- 🐛 fix(ci): pin unpinned build-push-action and bump trivy-action to v0.35.0 (#88)
+  - _Agustín Manessi_
+  - [Commit: c98d92d](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/c98d92d8bfbcf505be845f71fe4d4c41b63cb0bb)
+
+
