@@ -157,15 +157,23 @@ Also remember: per-folder routing **requires `commits.format: "conventional"`**.
 
 ## Multi-commit PR produced an unexpected bump level
 
-**Cause.** The pipe uses **last-commit-wins** bump semantics, not highest-wins. If your merged PR has three commits — `feat: A`, `feat: B`, `fix: C` — the bump is **patch** because the last commit is a `fix:`. The earlier `feat:` commits are ignored for bump resolution (they may still appear in the CHANGELOG if `changelog.mode: "full"`, but they do not influence the version bump).
+**Cause.** The bump strategy depends on `changelog.mode`:
 
-This is documented in [`docs/architecture/README.md`](architecture/README.md#version-system) under "Version system" and in the `README.md` "Bump rules" table.
+- `changelog.mode: "last_commit"` (default) — only the last commit in the PR drives the bump. If your PR has three commits `feat: A`, `feat: B`, `fix: C`, the bump is **patch** because the last commit is `fix:`. Earlier commits are invisible to the bump calculator.
+- `changelog.mode: "full"` — all commits are scanned and the highest-ranked bump wins. The same PR (`feat: A`, `feat: B`, `fix: C`) produces a **minor** bump because `feat:` outranks `fix:`.
 
-**Fix 1 — use squash merge (recommended).** With a squash merge, the squash commit is the only commit that lands on `main`. Its subject is what you wrote in the PR title / merge dialog, and it determines the bump unambiguously. This is the simplest fix and aligns with the pipe's design assumptions.
+**Fix 1 — switch to `changelog.mode: "full"` (recommended for merge-commit workflows).**
 
-**Fix 2 — reorder commits before merging.** If you must preserve the commit history, rebase the feature branch so the highest-bump commit is last. This is brittle — anyone who force-pushes or adds a "lint fix" commit later will break the assumption.
+```yaml
+changelog:
+  mode: "full"
+```
 
-**Fix 3 — wait for highest-wins mode.** A `highest-wins` bump mode is tracked in the internal backlog (ticket 023). It is not implemented yet and there is no timeline.
+With `mode: full`, the pipe scans all commits and picks the strongest bump. `feat: A` wins over `fix: C` regardless of order. This also makes all commits appear in the CHANGELOG, which is usually what you want when preserving individual commit history.
+
+**Fix 2 — use squash merge.** With a squash merge, there is only one commit in the range (the squash commit). Its subject determines the bump unambiguously, and `last_commit` vs `full` produce identical results. This is the simplest fix if you don't need multi-commit changelogs.
+
+**Fix 3 — reorder commits before merging.** If you keep `mode: last_commit` and must preserve history, rebase so the highest-bump commit is last. This is brittle — a "lint fix" commit added after the rebase silently undoes it.
 
 ---
 
