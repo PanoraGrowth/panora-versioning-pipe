@@ -447,3 +447,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: 355e2d0](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/355e2d066c72643663edefd41b18cf572523707c)
 
 
+## v0.11.16 - 2026-04-18
+
+- 🐛 fix(versioning): initial=0 no longer resets version silently (#059) (#115)
+  - _Agustín Manessi_
+  - [Commit: 4382308](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/4382308047cb26b3c1a0505bfad679a6efab2334)
+
+
