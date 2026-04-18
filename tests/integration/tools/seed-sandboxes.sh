@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# seed-sandboxes.sh — idempotent creation/update of sandbox-01..sandbox-20 branches
+# seed-sandboxes.sh — idempotent creation/update of sandbox-01..sandbox-28 branches
 #                     in PanoraGrowth/panora-versioning-pipe-test
 #
 # Usage:
-#   ./seed-sandboxes.sh              # create/update all 20 sandboxes
+#   ./seed-sandboxes.sh              # create/update all sandboxes
 #   ./seed-sandboxes.sh 3            # create/update only sandbox-03
 #   ./seed-sandboxes.sh --dry-run    # print what would be done, no API calls
 #
@@ -114,7 +114,7 @@ commit_file() {
 # hotfix sandboxes (09-13) also get hotfix-compatible branches config.
 # ---------------------------------------------------------------------------
 build_versioning_yml() {
-    sandbox_num="$1"  # 1..20 (no leading zero)
+    sandbox_num="$1"  # 1..28 (no leading zero)
     n="$sandbox_num"
 
     cat <<YAML
@@ -398,11 +398,134 @@ version_file:
 YAML
 }
 
+build_versioning_yml_26() {
+    cat <<YAML
+commits:
+  format: conventional
+version:
+  tag_prefix_v: true
+  components:
+    epoch:
+      enabled: false
+      initial: 0
+    major:
+      enabled: true
+      initial: 26
+    patch:
+      enabled: true
+      initial: 0
+    hotfix_counter:
+      enabled: true
+      initial: 0
+branches:
+  development: sandbox-26
+  production: sandbox-26
+  tag_on: sandbox-26
+  hotfix_targets:
+  - sandbox-26
+hotfix:
+  keyword:
+  - hotfix:*
+  - hotfix(*
+  - '[Hh]otfix/*'
+changelog:
+  mode: full
+  commit_url: https://github.com/PanoraGrowth/panora-versioning-pipe-test/commit
+  include_author: true
+  include_commit_link: true
+  include_ticket_link: false
+  per_folder:
+    enabled: false
+YAML
+}
+
+build_versioning_yml_27() {
+    cat <<YAML
+commits:
+  format: conventional
+version:
+  tag_prefix_v: true
+  components:
+    epoch:
+      enabled: true
+      initial: 1
+    major:
+      enabled: true
+      initial: 27
+    patch:
+      enabled: true
+      initial: 0
+    hotfix_counter:
+      enabled: true
+      initial: 0
+branches:
+  development: sandbox-27
+  production: sandbox-27
+  tag_on: sandbox-27
+  hotfix_targets:
+  - sandbox-27
+hotfix:
+  keyword:
+  - hotfix:*
+  - hotfix(*
+  - '[Hh]otfix/*'
+changelog:
+  mode: full
+  commit_url: https://github.com/PanoraGrowth/panora-versioning-pipe-test/commit
+  include_author: true
+  include_commit_link: true
+  include_ticket_link: false
+  per_folder:
+    enabled: false
+YAML
+}
+
+build_versioning_yml_28() {
+    cat <<YAML
+commits:
+  format: conventional
+version:
+  tag_prefix_v: true
+  components:
+    epoch:
+      enabled: false
+      initial: 0
+    major:
+      enabled: true
+      initial: 28
+    patch:
+      enabled: true
+      initial: 0
+    hotfix_counter:
+      enabled: true
+      initial: 0
+branches:
+  development: sandbox-28
+  production: sandbox-28
+  tag_on: sandbox-28
+  hotfix_targets:
+  - sandbox-28
+hotfix:
+  keyword:
+  - hotfix:*
+  - hotfix(*
+  - '[Hh]otfix/*'
+changelog:
+  mode: full
+  commit_url: https://github.com/PanoraGrowth/panora-versioning-pipe-test/commit
+  include_author: true
+  include_commit_link: true
+  include_ticket_link: false
+  per_folder:
+    enabled: false
+YAML
+}
+
 # ---------------------------------------------------------------------------
 # Seed a single sandbox
 # ---------------------------------------------------------------------------
 seed_sandbox() {
-    n="$1"  # 1..20 (numeric, no leading zero)
+    n="$1"  # 1..28 (numeric, no leading zero)
     branch="sandbox-$(printf '%02d' "$n")"
     log "Processing ${branch}..."
 
@@ -427,6 +550,9 @@ seed_sandbox() {
         18) yml_content=$(build_versioning_yml_18) ;;
         19) yml_content=$(build_versioning_yml_19) ;;
         20) yml_content=$(build_versioning_yml_20) ;;
+        26) yml_content=$(build_versioning_yml_26) ;;
+        27) yml_content=$(build_versioning_yml_27) ;;
+        28) yml_content=$(build_versioning_yml_28) ;;
         *)  yml_content=$(build_versioning_yml "$n") ;;
     esac
 
@@ -443,6 +569,7 @@ seed_sandbox() {
         18) seed_sandbox_18 "$branch" ;;
         19) seed_sandbox_19 "$branch" ;;
         20) seed_sandbox_20 "$branch" ;;
+        26|27|28) ;; # no additional fixtures needed
     esac
 
     log "  ${branch} done."
@@ -570,13 +697,13 @@ Stub directory for sandbox-20 version-file-groups no-match tests.
 main() {
     if [ -n "$SINGLE_SANDBOX" ]; then
         n=$((10#$SINGLE_SANDBOX))   # strip leading zero
-        if [ "$n" -lt 1 ] || [ "$n" -gt 20 ]; then
-            die "Sandbox number must be between 1 and 20, got: ${SINGLE_SANDBOX}"
+        if [ "$n" -lt 1 ] || [ "$n" -gt 28 ]; then
+            die "Sandbox number must be between 1 and 28, got: ${SINGLE_SANDBOX}"
         fi
         seed_sandbox "$n"
     else
         i=1
-        while [ "$i" -le 20 ]; do
+        while [ "$i" -le 28 ]; do
             seed_sandbox "$i"
             i=$((i + 1))
         done

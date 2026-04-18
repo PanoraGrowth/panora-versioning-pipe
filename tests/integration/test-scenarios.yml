@@ -23,6 +23,8 @@
 #   21 pr-title-valid-squash
 #   22 hotfix-squash-gap-blocked  23 hotfix-squash-gap-warn  24 hotfix-squash-gap-keyword-passes
 #   25 multi-commit-highest-wins
+#   26 initial-major-isolation-preserved  27 initial-epoch-isolation-preserved
+#   28 initial-hotfix-counter-isolation-preserved
 
 scenarios:
 
@@ -709,3 +711,56 @@ scenarios:
       tag_pattern: '^v24\.\d+\.1$'
       changelog_contains: "fix critical auth bypass"
       changelog_section_marker: "(Hotfix)"
+
+  # =================================================================
+  # Ticket 059 — initial=0 semantics + sandbox isolation preserved
+  # =================================================================
+
+  - name: initial-major-isolation-preserved
+    description: "major.initial=26 (>0) → namespace ^v26\\. still filters correctly after ticket 059 fix. Cold start produces v26.1."
+    base: sandbox-26
+    config_override:
+      branches:
+        tag_on: sandbox-26
+    commits:
+      - message: "feat: sandbox 26 isolation check"
+        files:
+          test-artifact.txt: "sandbox 26 isolation"
+    expected:
+      pr_check: pass
+      tag_created: true
+      tag_pattern: '^v26\.\d+$'
+      changelog_contains: "feat: sandbox 26 isolation check"
+
+  - name: initial-epoch-isolation-preserved
+    description: "epoch.initial=1 (>0) → namespace ^v1\\.27\\. still filters correctly after ticket 059 fix. Cold start produces v1.27.1."
+    base: sandbox-27
+    tag_prefix_override: "v1.27."
+    config_override:
+      branches:
+        tag_on: sandbox-27
+    commits:
+      - message: "feat: sandbox 27 epoch isolation"
+        files:
+          test-artifact.txt: "sandbox 27 epoch"
+    expected:
+      pr_check: pass
+      tag_created: true
+      tag_pattern: '^v1\.27\.\d+$'
+      changelog_contains: "feat: sandbox 27 epoch isolation"
+
+  - name: initial-hotfix-counter-isolation-preserved
+    description: "major.initial=28 + hotfix → hotfix_counter increments on top of namespace tag. Verifies ticket 059 fix does not break hotfix progression."
+    base: sandbox-28
+    merge_method: squash
+    branch_prefix: "hotfix/auto"
+    pr_title: "hotfix: sandbox 28 isolation check"
+    commits:
+      - message: "hotfix: sandbox 28 isolation check"
+        files:
+          test-artifact.txt: "sandbox 28 hotfix"
+    expected:
+      pr_check: pass
+      tag_created: true
+      tag_pattern: '^v28\.\d+\.1$'
+      changelog_contains: "sandbox 28 isolation check"
