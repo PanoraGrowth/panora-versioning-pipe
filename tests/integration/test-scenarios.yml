@@ -21,7 +21,7 @@
 #   18 per-folder-multi-folder-write  19 version-file-groups-trigger-match
 #   20 version-file-groups-trigger-no-match
 #   21 pr-title-valid-squash
-#   22 hotfix-squash-gap-keyword-passes
+#   22 hotfix-squash-gap-blocked  23 hotfix-squash-gap-warn  24 hotfix-squash-gap-keyword-passes
 
 scenarios:
 
@@ -640,18 +640,10 @@ scenarios:
   # --- Squash-merge hotfix gap guard (feature 051) ---
 
   - name: hotfix-squash-gap-blocked
-    description: "hotfix/ branch + PR title without hotfix keyword → PR pipeline blocks (default hotfix_title_required: error). Without this guard, a squash merge would produce a commit subject like 'fix: resolve auth' and detect-scenario.sh would classify it as development_release — silent failure."
+    description: "hotfix/ branch + PR title without hotfix keyword → PR pipeline blocks (default hotfix_title_required: error). Without this guard, a squash merge would silently produce a development_release instead of a hotfix."
+    base: sandbox-22
     branch_prefix: "hotfix/auto"
     pr_title: "fix: resolve auth bypass"
-    config_override:
-      branches:
-        tag_on: "main"
-        hotfix_targets:
-          - "main"
-      version:
-        components:
-          hotfix_counter:
-            enabled: true
     commits:
       - message: "fix: resolve auth bypass"
         files:
@@ -661,20 +653,13 @@ scenarios:
       tag_created: false
 
   - name: hotfix-squash-gap-warn
-    description: "hotfix/ branch + PR title without hotfix keyword + hotfix_title_required: warn → PR pipeline passes with warning (advisory only). The developer is informed but the merge is not blocked."
+    description: "hotfix/ branch + PR title without hotfix keyword + hotfix_title_required: warn → PR pipeline passes with advisory warning, merge not blocked."
+    base: sandbox-23
     branch_prefix: "hotfix/auto"
     pr_title: "fix: resolve auth bypass"
     config_override:
-      branches:
-        tag_on: "main"
-        hotfix_targets:
-          - "main"
       validation:
         hotfix_title_required: "warn"
-      version:
-        components:
-          hotfix_counter:
-            enabled: true
     commits:
       - message: "fix: resolve auth bypass"
         files:
@@ -684,20 +669,11 @@ scenarios:
       tag_created: false
 
   - name: hotfix-squash-gap-keyword-passes
-    description: "hotfix/ branch + PR title with hotfix keyword → guard passes, squash merge produces tag with hotfix_counter bump. End-to-end smoke test: confirms the guardrail does not block valid hotfix PRs and the full post-merge detection still works."
-    base: sandbox-22
+    description: "hotfix/ branch + PR title with hotfix keyword → guard passes, squash merge produces tag with hotfix_counter bump. Confirms the guardrail does not block valid hotfix PRs."
+    base: sandbox-24
     merge_method: squash
     branch_prefix: "hotfix/auto"
     pr_title: "hotfix: fix critical auth bypass"
-    config_override:
-      branches:
-        tag_on: sandbox-22
-        hotfix_targets:
-          - "sandbox-22"
-      version:
-        components:
-          hotfix_counter:
-            enabled: true
     commits:
       - message: "hotfix: fix critical auth bypass"
         files:
@@ -705,6 +681,6 @@ scenarios:
     expected:
       pr_check: pass
       tag_created: true
-      tag_pattern: '^v22\.\d+\.1$'
+      tag_pattern: '^v24\.\d+\.1$'
       changelog_contains: "fix critical auth bypass"
       changelog_section_marker: "(Hotfix)"
