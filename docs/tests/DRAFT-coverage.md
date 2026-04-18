@@ -51,6 +51,10 @@ Controla qué commits son aceptados y cuáles se ignoran durante el cálculo de 
 | [`validation.ignore_patterns`](../../scripts/defaults.yml#L20) | ver defaults | Commits que matchean los patrones son ignorados en la validación y el cálculo de versión | ✅ |
 | | | Merge commits (`^Merge`), reverts (`^Revert`), `fixup!`, `squash!` ignorados | ✅ |
 | | | `chore(release)` y `chore(hotfix)` ignorados | ✅ |
+| [`validation.hotfix_title_required`](../../scripts/defaults.yml#L20) | `"error"` | `"error"` (default) — bloquea el merge si el branch es hotfix pero el PR title no tiene el hotfix keyword | ✅ unit `pr-title.bats` |
+| | | `"warn"` — emite warning pero no bloquea el merge | ✅ unit `pr-title.bats` |
+| | | Sin `VERSIONING_BRANCH` — chequeo se saltea silenciosamente | ✅ unit `pr-title.bats` |
+| | | SCENARIO distinto de `hotfix` — chequeo no aplica | ✅ unit `pr-title.bats` |
 
 **PR title validation** (`VERSIONING_PR_TITLE`) — feature 046
 
@@ -69,6 +73,22 @@ En squash merge, el PR title se convierte en el commit subject que determina el 
 | PR title con hotfix keyword glob (`Hotfix/urgent security patch` matchea `[Hh]otfix/*`) — pasa | ✅ unit `pr-title.bats` (eval-based glob) + integration `hotfix-uppercase-branch-prefix` |
 | PR title no-conventional + merge commit style — PR pipeline falla igual | ✅ integration `pr-title-invalid-merge-commit` |
 | PR title conventional + squash merge — PR pipeline pasa, tag creado | ✅ integration `pr-title-valid-squash` (sandbox-21) |
+
+**Squash-merge hotfix gap guard** (`VERSIONING_BRANCH` + `SCENARIO=hotfix`) — feature 051
+
+En squash merge, si el branch es `hotfix/fix-auth` pero el PR title es `fix: resolve auth`, post-merge el pipe ve solo `fix: resolve auth` y clasifica como `development_release` — falla silenciosa. Este guardrail actúa en PR context para prevenir el problema antes del merge.
+
+| Escenario | Cobertura |
+|-----------|-----------|
+| Branch `hotfix/*`, PR title con hotfix keyword (`hotfix: fix auth`) — sin error ni warning | ✅ unit `pr-title.bats` |
+| Branch `hotfix/*`, PR title sin hotfix keyword (`fix: resolve auth`) — error (default) | ✅ unit `pr-title.bats` |
+| Branch `hotfix/*`, PR title sin hotfix keyword (`fix: resolve auth`) — error (default) | ✅ unit `pr-title.bats` · ✅ integration `hotfix-squash-gap-blocked` |
+| Branch `hotfix/*`, PR title sin hotfix keyword + `hotfix_title_required: warn` — warning, no bloquea | ✅ unit `pr-title.bats` · ✅ integration `hotfix-squash-gap-warn` |
+| Branch `hotfix/*`, PR title con hotfix keyword + squash merge → tag con hotfix_counter | ✅ unit `pr-title.bats` · ✅ integration `hotfix-squash-gap-keyword-passes` (sandbox-22) |
+| Branch `hotfix/*`, PR title con glob keyword (`Hotfix/urgent-fix` matchea `[Hh]otfix/*`) — pasa | ✅ unit `pr-title.bats` |
+| Branch `hotfix/*`, PR title convencional con scope (`fix(auth): ...`) — error (no tiene keyword) | ✅ unit `pr-title.bats` |
+| `VERSIONING_BRANCH` vacío — chequeo se saltea (Bitbucket, generic CI sin branch var) | ✅ unit `pr-title.bats` |
+| SCENARIO=`development_release` — chequeo no aplica, aunque branch sea hotfix | ✅ unit `pr-title.bats` |
 
 **Nota de implementación:** los hotfix keyword patterns como `[Hh]otfix/*` son globs con bracket expressions. Cuando el pattern viene de una variable shell, el `case` nativo no expande los brackets correctamente — se usa `eval` para forzar la expansión (mismo comportamiento que `detect-scenario.sh`).
 
@@ -354,7 +374,7 @@ Patrones glob evaluados contra el subject del commit (o el segundo padre en merg
 | Multi-keyword — todos los patrones se evalúan | ✅ |
 | Merge commit — detección via subject del segundo padre | ✅ |
 
-> ⚠️ **Comportamiento conocido**: en contexto de PR, la detección de hotfix usa el **nombre de rama** (`hotfix/fix-auth`). Post-merge, usa el **subject del commit**. Si el commit dice `fix: resolve bug` en lugar de `hotfix: fix auth`, el hotfix no se detecta post-merge aunque la rama se llamara `hotfix/fix-auth`. Ver [ticket 048](../../temp/features/DONE-048-hotfix-detection-source-of-truth.md).
+> **Squash merge y detección de hotfix**: en squash merge, el branch name se pierde post-merge. Si el PR title no lleva el hotfix keyword, `detect-scenario.sh` clasifica el commit como `development_release`. El guardrail `validation.hotfix_title_required` (default `"error"`) previene esto bloqueando el merge en PR context cuando el branch es hotfix pero el título no tiene el keyword. Ver [ticket 051](../../temp/features/051-hotfix-squash-merge-gap.md).
 
 ---
 

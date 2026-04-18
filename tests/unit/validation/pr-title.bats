@@ -7,7 +7,7 @@
 load '../../helpers/setup'
 load '../../helpers/assertions'
 
-VALIDATE_SCRIPT="/pipe/scripts/validation/validate-commits.sh"
+VALIDATE_SCRIPT="/pipe/validation/validate-commits.sh"
 
 setup() {
     common_setup
@@ -227,4 +227,125 @@ run_validate() {
     # invalid title must not match
     run sh -c "echo 'Development (#17)' | grep -Eq '$pattern'"
     [ "$status" -ne 0 ]
+}
+
+# =============================================================================
+# Validation 4: squash-merge hotfix gap guard
+# =============================================================================
+
+# Helper: run validate-commits.sh in hotfix scenario with given PR title and branch
+run_validate_hotfix() {
+    local fixture="$1"
+    local pr_title="$2"
+    local source_branch="$3"
+
+    source_config_parser "$fixture"
+
+    local mock_git="${BATS_TEST_TMPDIR}/bin/git"
+    mkdir -p "${BATS_TEST_TMPDIR}/bin"
+    {
+        echo "#!/bin/sh"
+        echo 'case "$*" in'
+        echo '  "log origin/main..HEAD --no-merges --pretty=format:%s")'
+        echo "    echo 'hotfix: fix auth'"
+        echo "    ;;"
+        echo '  *) exec /usr/bin/git "$@" ;;'
+        echo 'esac'
+    } > "$mock_git"
+    chmod +x "$mock_git"
+
+    echo "SCENARIO=hotfix" > /tmp/scenario.env
+
+    run env \
+        PATH="${BATS_TEST_TMPDIR}/bin:$PATH" \
+        MERGED_CONFIG="$MERGED_CONFIG" \
+        VERSIONING_TARGET_BRANCH="main" \
+        VERSIONING_BRANCH="$source_branch" \
+        VERSIONING_PR_TITLE="$pr_title" \
+        sh "$VALIDATE_SCRIPT"
+}
+
+@test "hotfix-gap: PR title with hotfix keyword passes (no warning, no error)" {
+    run_validate_hotfix "with-hotfix-counter" "hotfix: fix auth token expiry" "hotfix/fix-auth"
+    [ "$status" -eq 0 ]
+    echo "$output" | grep -qv "HOTFIX KEYWORD"
+}
+
+@test "hotfix-gap: PR title without hotfix keyword errors by default (hotfix_title_required: error)" {
+    run_validate_hotfix "with-hotfix-counter" "fix: resolve auth bypass" "hotfix/fix-auth"
+    [ "$status" -ne 0 ]
+    echo "$output" | grep -q "HOTFIX KEYWORD"
+}
+
+@test "hotfix-gap: PR title without hotfix keyword warns when hotfix_title_required: warn" {
+    run_validate_hotfix "hotfix-title-warn" "fix: resolve auth bypass" "hotfix/fix-auth"
+    [ "$status" -eq 0 ]
+    echo "$output" | grep -q "hotfix keyword"
+}
+
+@test "hotfix-gap: no check when VERSIONING_BRANCH is empty" {
+    source_config_parser "with-hotfix-counter"
+
+    local mock_git="${BATS_TEST_TMPDIR}/bin/git"
+    mkdir -p "${BATS_TEST_TMPDIR}/bin"
+    {
+        echo "#!/bin/sh"
+        echo 'case "$*" in'
+        echo '  "log origin/main..HEAD --no-merges --pretty=format:%s")'
+        echo "    echo 'hotfix: fix auth'"
+        echo "    ;;"
+        echo '  *) exec /usr/bin/git "$@" ;;'
+        echo 'esac'
+    } > "$mock_git"
+    chmod +x "$mock_git"
+
+    echo "SCENARIO=hotfix" > /tmp/scenario.env
+
+    run env \
+        PATH="${BATS_TEST_TMPDIR}/bin:$PATH" \
+        MERGED_CONFIG="$MERGED_CONFIG" \
+        VERSIONING_TARGET_BRANCH="main" \
+        VERSIONING_BRANCH="" \
+        VERSIONING_PR_TITLE="fix: resolve auth bypass" \
+        sh "$VALIDATE_SCRIPT"
+    [ "$status" -eq 0 ]
+}
+
+@test "hotfix-gap: no check when SCENARIO is development_release" {
+    source_config_parser "with-hotfix-counter"
+
+    local mock_git="${BATS_TEST_TMPDIR}/bin/git"
+    mkdir -p "${BATS_TEST_TMPDIR}/bin"
+    {
+        echo "#!/bin/sh"
+        echo 'case "$*" in'
+        echo '  "log origin/main..HEAD --no-merges --pretty=format:%s")'
+        echo "    echo 'feat: add feature'"
+        echo "    ;;"
+        echo '  *) exec /usr/bin/git "$@" ;;'
+        echo 'esac'
+    } > "$mock_git"
+    chmod +x "$mock_git"
+
+    echo "SCENARIO=development_release" > /tmp/scenario.env
+
+    run env \
+        PATH="${BATS_TEST_TMPDIR}/bin:$PATH" \
+        MERGED_CONFIG="$MERGED_CONFIG" \
+        VERSIONING_TARGET_BRANCH="main" \
+        VERSIONING_BRANCH="hotfix/fix-auth" \
+        VERSIONING_PR_TITLE="fix: resolve auth bypass" \
+        sh "$VALIDATE_SCRIPT"
+    [ "$status" -eq 0 ]
+}
+
+@test "hotfix-gap: PR title with glob keyword '[Hh]otfix/*' passes" {
+    run_validate_hotfix "with-hotfix-counter" "Hotfix/urgent-fix" "hotfix/urgent-fix"
+    [ "$status" -eq 0 ]
+}
+
+@test "hotfix-gap: PR title without hotfix keyword fails with conventional scoped title (fix(auth): ...)" {
+    run_validate_hotfix "with-hotfix-counter" "fix(auth): resolve token expiry" "hotfix/fix-auth"
+    [ "$status" -ne 0 ]
+    echo "$output" | grep -q "HOTFIX KEYWORD"
 }

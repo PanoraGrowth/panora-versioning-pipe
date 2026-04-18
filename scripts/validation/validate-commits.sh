@@ -274,6 +274,55 @@ EOF
     log_success "+ PR title is well-formed"
 fi
 
+# =============================================================================
+# VALIDATION 4: Squash-merge hotfix gap guard
+# In PR context, if the source branch matches the hotfix branch prefix
+# (e.g. "hotfix/fix-auth") but the PR title does NOT carry any hotfix keyword
+# pattern, the squash commit subject will lose the hotfix signal post-merge —
+# detect-scenario.sh will classify it as development_release silently.
+# This check fires only when VERSIONING_PR_TITLE and VERSIONING_BRANCH are set
+# AND SCENARIO=hotfix (branch name confirmed as hotfix by detect-scenario.sh).
+# Enforcement: "error" (default, blocks merge) or "warn" (advisory only).
+# =============================================================================
+if [ "${SCENARIO:-}" = "hotfix" ] && [ -n "${VERSIONING_PR_TITLE:-}" ] && [ -n "${VERSIONING_BRANCH:-}" ]; then
+    _HOTFIX_TITLE_LEVEL=$(get_hotfix_title_required)
+    _HOTFIX_KEYWORDS=$(get_hotfix_keywords)
+    _PR_TITLE_HAS_HOTFIX=0
+    while IFS= read -r _kw; do
+        [ -z "$_kw" ] && continue
+        _kw_safe=$(printf "%s" "$_kw" | sed 's/(/\\(/g')
+        # shellcheck disable=SC2254
+        eval "case \"\$VERSIONING_PR_TITLE\" in $_kw_safe) _PR_TITLE_HAS_HOTFIX=1 ;; esac" 2>/dev/null || true
+        [ "$_PR_TITLE_HAS_HOTFIX" -eq 1 ] && break
+    done <<EOF
+$_HOTFIX_KEYWORDS
+EOF
+    if [ "$_PR_TITLE_HAS_HOTFIX" -eq 0 ]; then
+        echo ""
+        if [ "$_HOTFIX_TITLE_LEVEL" = "warn" ]; then
+            log_warn "WARNING: PR title does not contain the hotfix keyword"
+        else
+            log_section "ERROR: PR TITLE MISSING HOTFIX KEYWORD"
+        fi
+        echo ""
+        log_info "Branch '${VERSIONING_BRANCH}' is a hotfix branch."
+        log_info "In squash merge, the PR title becomes the commit subject."
+        log_info "Without the hotfix keyword in the title, the pipe will not"
+        log_info "detect this as a hotfix after merge — hotfix counter will NOT bump."
+        echo ""
+        log_info "Fix: update the PR title to include the hotfix keyword."
+        log_info "Example:"
+        log_info "  hotfix: fix auth token expiry"
+        log_info "  hotfix(security): resolve bypass vulnerability"
+        echo ""
+        log_info "To downgrade to a warning: set validation.hotfix_title_required: \"warn\""
+        echo ""
+        if [ "$_HOTFIX_TITLE_LEVEL" != "warn" ]; then
+            exit 1
+        fi
+    fi
+fi
+
 echo ""
 if require_ticket_prefix; then
     log_success "+ All commits have valid ticket prefix"

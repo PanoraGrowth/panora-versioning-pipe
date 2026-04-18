@@ -184,7 +184,7 @@ Hotfixes are a dedicated release lane for urgent production fixes. They bump the
    git push origin hotfix/patch-auth-bypass
    ```
 
-3. **Open a PR to `main`**. **The PR title MUST start with `hotfix:`** — e.g. `hotfix: patch auth token leak`. This is because squash merge (recommended) uses the PR title as the squash commit subject, and the pipe's detection reads the merge commit subject post-merge.
+3. **Open a PR to `main`**. **The PR title MUST start with `hotfix:`** — e.g. `hotfix: patch auth token leak`. This is because squash merge (recommended) uses the PR title as the squash commit subject, and the pipe's detection reads the merge commit subject post-merge. The pipe enforces this automatically: if your branch starts with `hotfix/` but the PR title lacks the hotfix keyword, the PR pipeline will block with an error before merge. To downgrade to an advisory warning, set `validation.hotfix_title_required: "warn"` in `.versioning.yml`.
 
 4. **Squash-merge** the PR. GitHub creates a commit on `main` with subject `hotfix: patch auth token leak (#NN)`. The `(#NN)` suffix does not break the prefix match.
 
