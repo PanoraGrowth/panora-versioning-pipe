@@ -449,6 +449,164 @@ version:
 # Cold start path still behaves correctly (no tags → initial values applied)
 # =============================================================================
 
+# =============================================================================
+# Ticket 059 — initial=0 defaults do NOT reset version when tags exist
+# =============================================================================
+# Before ticket 059 fix, a repo with default config (major.initial=0) and
+# tags at v0.2.0 would be silently reset to v0.0.1 because the namespace filter
+# `^v0\.0\.` excluded all existing tags.
+
+@test "Ticket 059 Case I: tags v0.2 + major.initial=0 + fix → v0.3 (no silent reset)" {
+    # major+patch (2 components, hotfix_counter off) — real-consumer default.
+    # Before fix: ^v0\.0\. excluded v0.1 and v0.2 → cold start → v0.1 (reset).
+    # After fix: no filter when initial=0 → latest=v0.2 → patch bump → v0.3.
+    local inline="commits:
+  format: conventional
+version:
+  tag_prefix_v: true
+  components:
+    epoch:
+      enabled: false
+    major:
+      enabled: true
+      initial: 0
+    patch:
+      enabled: true
+      initial: 0
+    hotfix_counter:
+      enabled: false
+    timestamp:
+      enabled: false"
+
+    run_calculate_inline "$inline" "development_release" "v0.1 v0.2" "fix: something"
+    [ "$status" -eq 0 ]
+    echo "$output" | grep -qE '^LATEST_TAG=v0\.2$'
+    echo "$output" | grep -qE '^BUMP_TYPE=patch$'
+    echo "$output" | grep -qE '^NEXT_VERSION=v0\.3$'
+}
+
+@test "Ticket 059 Case J: tags v0.11 v0.11.15-like + major.initial=0 + feat → post-rename survivor" {
+    # Real case from pipe repo: tags from pre-rename era with 2-component format.
+    # Before fix: ^v0\.0\. excluded them, cold start from v0.1.
+    # After fix: no filter when initial=0 → sort picks v0.11, feat bumps → v0.12.
+    local inline="commits:
+  format: conventional
+version:
+  tag_prefix_v: true
+  components:
+    epoch:
+      enabled: false
+    major:
+      enabled: true
+      initial: 0
+    patch:
+      enabled: true
+      initial: 0
+    hotfix_counter:
+      enabled: false
+    timestamp:
+      enabled: false"
+
+    run_calculate_inline "$inline" "development_release" "v0.10 v0.11 v0.9" "feat: new capability"
+    [ "$status" -eq 0 ]
+    echo "$output" | grep -qE '^LATEST_TAG=v0\.11$'
+    echo "$output" | grep -qE '^BUMP_TYPE=minor$'
+    echo "$output" | grep -qE '^NEXT_VERSION=v0\.12$'
+}
+
+@test "Ticket 059 Case K: hotfix_counter enabled + major.initial=0 + tags v0.2.0 → latest tag preserved" {
+    # With hotfix_counter enabled the fixture has 3 components + optional counter
+    # (e.g. v0.2.0 or v0.2.0.1). Before ticket 059: ^v0\.0\. excluded v0.2.0 →
+    # cold start → v0.0.1 (reset). After fix: no filter on defaults → latest tag
+    # v0.2.0 is picked up and progression proceeds from there.
+    #
+    # NOTE: hotfix keyword detection requires a hotfix branch/PR context that
+    # this unit test doesn't emulate, so the commit behaves as a regular patch.
+    # The guarantee this test enforces is: the pipe SEES v0.2.0 as LATEST_TAG
+    # (no silent reset), which is the core bug 059 behavior.
+    local inline="commits:
+  format: conventional
+version:
+  tag_prefix_v: true
+  components:
+    epoch:
+      enabled: false
+    major:
+      enabled: true
+      initial: 0
+    patch:
+      enabled: true
+      initial: 0
+    hotfix_counter:
+      enabled: true
+      initial: 0
+    timestamp:
+      enabled: false"
+
+    run_calculate_inline "$inline" "development_release" "v0.1.0 v0.2.0" "fix: regression"
+    [ "$status" -eq 0 ]
+    # The core 059 guarantee: the pipe SEES v0.2.0 as LATEST_TAG (no silent reset).
+    echo "$output" | grep -qE '^LATEST_TAG=v0\.2\.0$'
+    echo "$output" | grep -qE '^BUMP_TYPE=patch$'
+    # NEXT_VERSION rendering depends on component semantics (hotfix_counter=0 omitted),
+    # so don't over-constrain — assert no reset to v0.0.1.
+    ! echo "$output" | grep -qE '^NEXT_VERSION=v0\.0\.1$'
+}
+
+@test "Ticket 059 Case L: cold start preserved with major.initial=0 + no tags + fix → v0.1" {
+    # Without tags the cold-start path still produces the canonical v0.1 (patch=0→1).
+    local inline="commits:
+  format: conventional
+version:
+  tag_prefix_v: true
+  components:
+    epoch:
+      enabled: false
+    major:
+      enabled: true
+      initial: 0
+    patch:
+      enabled: true
+      initial: 0
+    hotfix_counter:
+      enabled: false
+    timestamp:
+      enabled: false"
+
+    run_calculate_inline "$inline" "development_release" "" "fix: initial commit"
+    [ "$status" -eq 0 ]
+    echo "$output" | grep -qE '^LATEST_TAG=$'
+    echo "$output" | grep -qE '^NEXT_VERSION=v0\.1$'
+}
+
+@test "Ticket 059 Case M: epoch enabled + epoch.initial=0 + major.initial=0 + fix → tag progression" {
+    # Both namespace components at 0 → no filter, progression works through epoch-on fixture.
+    local inline="commits:
+  format: conventional
+version:
+  tag_prefix_v: true
+  components:
+    epoch:
+      enabled: true
+      initial: 0
+    major:
+      enabled: true
+      initial: 0
+    patch:
+      enabled: true
+      initial: 0
+    hotfix_counter:
+      enabled: false
+    timestamp:
+      enabled: false"
+
+    run_calculate_inline "$inline" "development_release" "v0.0.1 v0.2.0" "fix: regression"
+    [ "$status" -eq 0 ]
+    echo "$output" | grep -qE '^LATEST_TAG=v0\.2\.0$'
+    echo "$output" | grep -qE '^BUMP_TYPE=patch$'
+    echo "$output" | grep -qE '^NEXT_VERSION=v0\.2\.1$'
+}
+
 @test "Cold start: no tags in repo + major.initial=3 + feat → v3.1" {
     local inline="commits:
   format: conventional

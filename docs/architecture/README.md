@@ -1,6 +1,6 @@
 # Architecture
 
-**Last updated:** 2026-04-17 (initial values semantics, ticket 055)
+**Last updated:** 2026-04-18 (initial values semantics update, ticket 059)
 
 ---
 
@@ -375,13 +375,34 @@ commit_type_overrides:
 
 | Component | Semantics | When `initial` takes effect |
 |-----------|-----------|------------------------------|
-| `epoch` | **Declarative authority** — defines the tag namespace | Always — the pipe restricts tag lookup to `^{epoch.initial}.{major.initial}.*` |
-| `major` | **Declarative authority** — defines the tag namespace | Always — same namespace filter as above |
+| `epoch` | **Declarative authority** — defines the tag namespace | When `initial > 0` — restricts tag lookup to `^v{epoch}.{major}.*` |
+| `major` | **Declarative authority** — defines the tag namespace | When `initial > 0` (or epoch > 0) — restricts tag lookup to the declared namespace |
 | `patch` | **Cold-start only** — progression, not authority | Only when no tag exists in the configured namespace |
 | `hotfix_counter` | **Cold-start only** — progression, not authority | Only when no tag exists in the configured namespace |
 
+### Namespace filter threshold — `initial > 0` (ticket 059)
+
+The namespace filter only activates when at least one of `epoch.initial` or `major.initial` is greater than zero. When both are `0` (the default), no namespace filter is applied and the pipe picks up the most recent matching tag regardless of its `vMAJOR` component. This prevents the silent reset bug that would occur for consumers using default config (`initial: 0`) who already have tags like `v0.2.0` or `v0.11.15`.
+
+| `epoch.initial` | `major.initial` | Filter applied | Behavior |
+|-----------------|-----------------|----------------|----------|
+| `0` (default) | `0` (default) | None — prefix-only | Picks up most recent tag in the repo (e.g. `v0.11.15`), progresses from there |
+| `0` (default) | `5` | `^v5\.` | Locks to `v5.*` namespace; cold-starts at `v5.0.1` if no `v5.*` tags exist |
+| `1` | `0` | `^v1\.0\.` | Locks to `v1.0.*` namespace (epoch+major 2-component anchor) |
+| `1` | `3` | `^v1\.3\.` | Locks to `v1.3.*` namespace |
+
+### What `initial` means for progression components
+
+| `initial` value | Existing tags in namespace | Behavior |
+|-----------------|---------------------------|----------|
+| `initial: 0` (default) | None | Cold start from 0 |
+| `initial: 0` (default) | `v0.2.0`, `v0.11.15` | **Picks up most recent tag, progresses from there (no reset)** |
+| `initial: 5` | `v0.2.0`, `v0.3.0` | Namespace isolation — cold start in `v0.5.*` ignoring existing tags |
+| `initial: 5` | `v0.5.3`, `v0.5.4` | Progresses from `v0.5.4` within the declared namespace |
+
 ### What this means in practice
 
+- **Default config consumers** — repo has `v0.2.0, v0.11.15` from prior releases with `initial: 0` (default). The pipe picks up `v0.11.15` and progresses normally. No reset, no silent data loss.
 - **Migration from another tool** — repo has `v1.0.0, v1.5.2, v1.8.0` from a prior pipeline. You set `version.components.major.initial: 2` in `.versioning.yml`. The next tag is in the `v2.*` namespace (e.g. `v2.1.0` on a feat commit). The existing `v1.*` tags are not considered for progression.
 - **Epoch rotation** — declare a new era of versioning by setting `version.components.epoch.initial: 1` and `version.components.major.initial: 0`. The next tag lands in the `v1.0.*` namespace regardless of any `v0.*` history.
 - **Namespace isolation** — short-lived branches (sandboxes, preview environments, integration-test matrices) can each set a unique `major.initial` to isolate their tag namespaces from the main branch's history without manipulating tags.

@@ -98,7 +98,7 @@ class TestMergeAndTag:
         # Derive sandbox routing — every merge scenario has a base sandbox
         base = scenario.get("base", "main")
         major = sandbox_major(base)
-        tag_prefix = f"v{major}." if major else None
+        tag_prefix = scenario.get("tag_prefix_override") or (f"v{major}." if major else None)
 
         pr_number = None
         created_tag = None

@@ -642,6 +642,12 @@ get_tag_pattern() {
 # them in this regex or a repo at v1.0.8 with default patch.initial=0 would never find
 # its latest tag and collide via the -2 handler on every run.
 #
+# Initial=0 semantics (ticket 059): when both epoch.initial and major.initial are 0
+# (the default config), the regex is a prefix-only pass-through — matches any tag
+# that already satisfies TAG_PATTERN. Filtering by `^v0\.0\.` would exclude tags
+# that grew past `v0.0.*` (e.g. v0.2.0), producing silent version reset in prod.
+# Namespace isolation activates only when the consumer explicitly sets initial > 0.
+#
 # Trailing `\.` anchor prevents `v1.` matching `v10.*` / `v100.*` (POSIX-safe, no
 # lookahead needed). Do not drop it under any "simplification".
 build_initial_prefix_regex() {
@@ -651,9 +657,20 @@ build_initial_prefix_regex() {
     use_tag_prefix_v && prefix="v"
 
     if is_component_enabled "epoch"; then
-        echo "^${prefix}${epoch_initial}\\.${major_initial}\\."
+        # Epoch enabled: filter anchors on both namespace components only when at
+        # least one is > 0. All-zero defaults degrade to prefix-only (ticket 059).
+        if [ "$epoch_initial" -gt 0 ] 2>/dev/null || [ "$major_initial" -gt 0 ] 2>/dev/null; then
+            echo "^${prefix}${epoch_initial}\\.${major_initial}\\."
+        else
+            echo "^${prefix}"
+        fi
     else
-        echo "^${prefix}${major_initial}\\."
+        # Epoch disabled: only major.initial can anchor the namespace (ticket 059).
+        if [ "$major_initial" -gt 0 ] 2>/dev/null; then
+            echo "^${prefix}${major_initial}\\."
+        else
+            echo "^${prefix}"
+        fi
     fi
 }
 
