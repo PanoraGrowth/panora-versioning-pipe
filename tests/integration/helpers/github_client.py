@@ -231,48 +231,54 @@ class GitHubClient:
         runs = json.loads(result.stdout)
         return runs[0]["databaseId"] if runs else None
 
-    def wait_for_tag_workflow(self, previous_run_id: int | None = None,
-                              timeout: int = MAX_WAIT,
-                              branch: str | None = None) -> bool:
-        """Wait for a NEW tag-on-merge workflow run to complete.
+    def wait_for_new_workflow_run(self, previous_run_id: int | None = None,
+                                  timeout: int = 45,
+                                  branch: str | None = None) -> int | None:
+        """Poll until a NEW workflow run appears (any status). Returns its ID or None on timeout.
 
-        If previous_run_id is provided, waits until a run with a DIFFERENT ID
-        appears and completes. This prevents returning early when seeing a
-        previously completed run.
-        branch: if set, filters polling to runs on that branch only — critical
-        for parallel execution where multiple sandboxes run simultaneously.
+        Separates detection from completion — allows the caller to decide whether
+        to dispatch manually or wait for the detected run to complete.
         """
         deadline = time.time() + timeout
         while time.time() < deadline:
             args = ["gh", "run", "list", "-R", self.repo, "--workflow",
                     "versioning.yml", "--limit", "1", "--json",
-                    "databaseId,status,conclusion"]
+                    "databaseId,status"]
             if branch:
                 args += ["--branch", branch]
             result = subprocess.run(args, capture_output=True, text=True, timeout=60)
             if result.returncode != 0:
                 time.sleep(POLL_INTERVAL)
                 continue
-
             runs = json.loads(result.stdout)
             if not runs:
                 time.sleep(POLL_INTERVAL)
                 continue
-
             run = runs[0]
-
-            # If we're waiting for a NEW run, skip if it's the same old one
             if previous_run_id and run["databaseId"] == previous_run_id:
                 time.sleep(POLL_INTERVAL)
                 continue
+            return run["databaseId"]
+        return None
 
-            # We found a new (or any) run — wait for it to complete
-            if run["status"] == "completed":
-                return run["conclusion"] == "success"
-
+    def wait_for_workflow_run_completion(self, run_id: int,
+                                         timeout: int = MAX_WAIT) -> bool:
+        """Poll a specific run by ID until it reaches a completed state."""
+        deadline = time.time() + timeout
+        while time.time() < deadline:
+            result = subprocess.run(
+                ["gh", "run", "view", str(run_id), "-R", self.repo,
+                 "--json", "status,conclusion"],
+                capture_output=True, text=True, timeout=60,
+            )
+            if result.returncode != 0:
+                time.sleep(POLL_INTERVAL)
+                continue
+            data = json.loads(result.stdout)
+            if data.get("status") == "completed":
+                return data.get("conclusion") == "success"
             time.sleep(POLL_INTERVAL)
-
-        raise TimeoutError("Tag workflow did not complete")
+        raise TimeoutError(f"Workflow run {run_id} did not complete within {timeout}s")
 
     # --- Tag operations ---
 
