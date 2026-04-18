@@ -412,3 +412,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: 861de46](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/861de46db73465215c18cfadd9f9b305fd8fdc6a)
 
 
+## v0.1.9 - 2026-04-18
+
+- 🐛 fix(detection): detect hotfix when tag_on and hotfix_target are the same branch (#107)
+  - _Agustín Manessi_
+  - [Commit: 8aefd78](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/8aefd78fcce29d99da0115b063428994c9395c8e)
+
+
