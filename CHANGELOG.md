@@ -433,3 +433,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: b98ed8d](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/b98ed8d387cbaff5d87339ad7a71507c49e95daf)
 
 
+## v0.1.12 - 2026-04-18
+
+- 🐛 fix: update publish workflow trigger to use unified Versioning workflow (#113)
+  - _Agustín Manessi_
+  - [Commit: f100e9b](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/f100e9bb5e22884d74e1c988beb76d4a9f3fb4ac)
+
+
