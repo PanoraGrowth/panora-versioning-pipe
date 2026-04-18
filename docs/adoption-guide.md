@@ -141,7 +141,11 @@ After the first merge to `main` completes, verify:
 
 4. **No infinite loop** — `tag-on-merge` ran once, not twice. If it ran twice, the CI-skip marker is missing from the CHANGELOG commit (the pipe adds it automatically; absence is a bug). Open an issue.
 
-5. **Squash-merge the PR** if you're not already doing so. The pipe uses "last commit wins" for bump resolution (see [`architecture/README.md`](architecture/README.md#version-system)). With a squash merge, the only commit is the squash commit, and its subject determines the bump — which is exactly what you want. Merge commits leak intermediate commit types and produce surprising bumps (see [`troubleshooting.md`](troubleshooting.md#multi-commit-pr-produced-a-minor-bump-but-i-expected-major)).
+5. **Choose your merge strategy.** The bump behavior depends on `changelog.mode`:
+   - `last_commit` (default) — only the last commit drives the bump. **Use squash merge** to keep this predictable: the squash commit is the only commit, so order never matters.
+   - `full` — all commits are scanned and the highest-ranked bump wins. Merge commits are fine here — `feat:` anywhere in the PR produces a minor bump even if `fix:` is last. Also makes all commits appear in the CHANGELOG.
+
+   See [`troubleshooting.md`](troubleshooting.md#multi-commit-pr-produced-a-minor-bump-but-i-expected-major) if you hit an unexpected bump level.
 
 ---
 
@@ -150,7 +154,7 @@ After the first merge to `main` completes, verify:
 1. **`tag-on-merge` did not fire after merging to `main`.** Almost always caused by the CI skip marker substring appearing as descriptive text in the squash commit body. GitHub does a plain substring match on the whole commit message and skips all workflows. Fix: keep the marker out of PR titles and bodies. See [`troubleshooting.md`](troubleshooting.md#tag-on-merge-workflow-did-not-run-after-merging-to-main).
 2. **"Unable to push to main" from `tag-on-merge`.** Branch protection doesn't allow the GitHub App to bypass PR requirements. See [`troubleshooting.md`](troubleshooting.md#tag-on-merge-failed-with-unable-to-push-to-main).
 3. **Docker image pull fails with "manifest unknown".** The ECR Public alias (`k5n8p2t3`) is AWS auto-generated and will eventually transition to `panoragrowth`. Pin to a version tag (e.g. `:v0.5.5`) in production. See [`troubleshooting.md`](troubleshooting.md#docker-image-pull-failed-manifest-unknown).
-4. **Multi-commit PR produces an unexpected bump.** The pipe uses last-commit-wins, not highest-wins. Use squash merges. See [`troubleshooting.md`](troubleshooting.md#multi-commit-pr-produced-a-minor-bump-but-i-expected-major).
+4. **Multi-commit PR produces an unexpected bump.** With `changelog.mode: "last_commit"` (default) the last commit wins — use squash merge or switch to `mode: "full"` for highest-wins semantics. See [`troubleshooting.md`](troubleshooting.md#multi-commit-pr-produced-a-minor-bump-but-i-expected-major).
 5. **`commit_type_overrides` is ignored.** Usually a typo in the key name or a type not present in `scripts/defaults.yml`. See [`troubleshooting.md`](troubleshooting.md#my-config-has-commit_type_overrides-but-the-override-is-ignored).
 
 ---
