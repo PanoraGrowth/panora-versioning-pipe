@@ -112,16 +112,24 @@ Versions are built from toggleable components:
 | None | Commit types that produce no version bump (defaults: `refactor`, `docs`, `test`, `chore`, `build`, `ci`, `style`) | — |
 | Timestamp | Auto-generated when no bump match | on |
 
-Only the LAST commit in a PR determines the version bump. Commit types with `bump: "none"` skip tag creation entirely. Use `commit_type_overrides` to retune individual types without redefining the whole list (the pipe itself sets `docs: { bump: none }` in `.versioning.yml`).
+The commit that drives the bump is determined by `changelog.mode`. Commit types with `bump: "none"` skip tag creation entirely. Use `commit_type_overrides` to retune individual types without redefining the whole list (the pipe itself sets `docs: { bump: none }` in `.versioning.yml`).
 
 ### Bump calculation semantics
 
-The pipe uses **last-commit-wins** semantics: only the most recent commit in the range drives the bump. Older commits in the range are invisible to the bump calculator. This is **intentional** and differs from semantic-release, release-please, and standard-version, which use **highest-bump-wins**.
+The bump strategy is coupled to `changelog.mode`:
 
-- **Squash merge** (recommended): there is only one commit in the range, so last-wins and highest-wins are identical. No surprise.
-- **Merge commit / rebase-and-merge**: commits `[feat: big, fix: small]` in that chronological order produce a **patch** bump from `fix:`, silently losing the `feat:`. Consumers using merge commits must either keep the highest-impact commit last, or switch to squash merge.
+| `changelog.mode` | Bump strategy | Behavior |
+|---|---|---|
+| `last_commit` (default) | last-commit-wins | Only the most recent commit in the range drives the bump. Backward-compatible. |
+| `full` | highest-wins | All commits in the range are scanned. The highest-ranked bump wins: `major > minor > patch > timestamp_only`. |
 
-**Recommendation for consumers:** configure the watched branch to use **squash merge**. The rule lives at `scripts/versioning/calculate-version.sh:100-107` and is locked by the integration scenario `multi-commit-last-wins` in `tests/integration/test-scenarios.yml` (introduced in PR #38).
+The coupling is intentional: if you want all commits visible in the CHANGELOG (`mode: full`), you also want the strongest version signal from those same commits. There is no configuration to mix `last_commit` mode with highest-wins bump, nor the reverse — the two concepts are coherent by design.
+
+**Squash merge** (recommended for `last_commit` mode): there is only one commit in the range, so last-wins and highest-wins produce identical results.
+
+**Merge commit / rebase-and-merge with `last_commit` mode**: commits `[feat: big, fix: small]` in that chronological order produce a **patch** bump, silently losing the `feat:`. Use `mode: full` or squash merge to avoid this.
+
+The implementation lives in `scripts/versioning/calculate-version.sh` and is locked by integration scenarios `multi-commit-last-wins` (sandbox-06) and `multi-commit-highest-wins` (sandbox-25) in `tests/integration/test-scenarios.yml`.
 
 ---
 
@@ -142,7 +150,7 @@ The pipe supports hotfixes via a single unified scenario and a default-on PATCH 
 
 | Scenario | `hotfix_counter.enabled` | Bump | Tag | CHANGELOG | `(Hotfix)` marker |
 |---|---|---|---|---|---|
-| `development_release` | any | last-commit-wins (major/patch/none) | yes | yes | no |
+| `development_release` | any | last-commit-wins or highest-wins (per `changelog.mode`) | yes | yes | no |
 | `hotfix` | `true` (default) | hotfix_counter (increments by 1) | yes | yes | yes |
 | `hotfix` | `false` (opt-out) | **no bump** | **no tag** | **no changelog** | n/a |
 
@@ -388,7 +396,7 @@ The declarative behavior of namespace `initial` has no config flag to revert. If
 
 ## Known limitations
 
-1. **Last commit only for bumps**: only the last commit determines the version bump type. `changelog.mode: "full"` shows all commits in the CHANGELOG, but the bump is still from the last commit only. See "Bump calculation semantics" above for the rationale and the squash-merge recommendation.
+1. **Bump strategy coupled to changelog.mode**: `mode: "last_commit"` uses last-commit-wins; `mode: "full"` uses highest-wins across all commits. There is no way to mix the two (intentional — they are semantically coherent). See "Bump calculation semantics" above.
 
 2. **config_get_array and spaces**: array values with spaces in config (like regex patterns) will be split incorrectly. Avoid spaces in `ignore_patterns`.
 

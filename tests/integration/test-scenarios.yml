@@ -22,6 +22,7 @@
 #   20 version-file-groups-trigger-no-match
 #   21 pr-title-valid-squash
 #   22 hotfix-squash-gap-blocked  23 hotfix-squash-gap-warn  24 hotfix-squash-gap-keyword-passes
+#   25 multi-commit-highest-wins
 
 scenarios:
 
@@ -146,6 +147,30 @@ scenarios:
       tag_created: true
       tag_pattern: "^v6\\.\\d+$"
       changelog_contains: "feature as the last commit in multi-commit"
+
+  - name: multi-commit-highest-wins
+    description: "multi-commit merge PR with changelog.mode=full — highest-ranked commit wins regardless of order. fix+feat+fix → minor bump because feat outranks fix."
+    base: sandbox-25
+    merge_method: merge  # must use merge (not squash) to preserve individual commits
+    config_override:
+      branches:
+        tag_on: sandbox-25
+    commits:
+      # Order deliberately puts feat in the middle — highest-wins must find it regardless.
+      - message: "fix: first fix in multi-commit"
+        files:
+          test-artifact.txt: "highest 1"
+      - message: "feat: feature in the middle — must win"
+        files:
+          test-artifact2.txt: "highest 2"
+      - message: "fix: last fix in multi-commit"
+        files:
+          test-artifact.txt: "highest 3"
+    expected:
+      pr_check: pass
+      tag_created: true
+      tag_pattern: "^v25\\.\\d+$"
+      changelog_contains: "feature in the middle"
 
   # --- PR validation ---
 

@@ -131,9 +131,42 @@ if [ -z "$COMMITS" ]; then
     exit 0
 fi
 
-# Get LAST commit to determine bump
-LAST_COMMIT=$(echo "$COMMITS" | head -n 1)
-log_info "Last commit: $LAST_COMMIT"
+# Select the commit that drives the bump:
+#   changelog.mode=last_commit → last commit only (backward-compatible default)
+#   changelog.mode=full        → scan all commits, pick the highest-ranked bump
+#
+# Rank: major(3) > minor(2) > patch(1) > timestamp_only(0)
+# Coupling is intentional: if you care about all commits for the changelog,
+# you also want the strongest bump signal from those same commits.
+if is_full_changelog_mode; then
+    BUMP_RANK=0
+    WINNING_COMMIT=""
+    while IFS= read -r _commit; do
+        [ -z "$_commit" ] && continue
+        if [ -n "$MAJOR_PATTERN" ] && echo "$_commit" | grep -qE "$MAJOR_PATTERN"; then
+            _rank=3
+        elif [ -n "$MINOR_PATTERN" ] && echo "$_commit" | grep -qE "$MINOR_PATTERN"; then
+            _rank=2
+        elif [ -n "$PATCH_PATTERN" ] && echo "$_commit" | grep -qE "$PATCH_PATTERN"; then
+            _rank=1
+        else
+            _rank=0
+        fi
+        if [ "$_rank" -gt "$BUMP_RANK" ]; then
+            BUMP_RANK=$_rank
+            WINNING_COMMIT=$_commit
+        fi
+        [ "$BUMP_RANK" -eq 3 ] && break
+    done <<EOF
+$COMMITS
+EOF
+    [ -z "$WINNING_COMMIT" ] && WINNING_COMMIT=$(echo "$COMMITS" | head -n 1)
+    LAST_COMMIT=$WINNING_COMMIT
+    log_info "Strategy: highest-wins (changelog.mode=full) — winning commit: $LAST_COMMIT"
+else
+    LAST_COMMIT=$(echo "$COMMITS" | head -n 1)
+    log_info "Strategy: last-commit (changelog.mode=last_commit) — last commit: $LAST_COMMIT"
+fi
 echo ""
 
 # =============================================================================
@@ -143,7 +176,7 @@ echo ""
 # Hotfix scenario + hotfix_counter.enabled=false → NO-OP: skip tag creation entirely and
 #   emit a 3-line INFO log explaining why. The consumer opted out of the hotfix_counter
 #   component explicitly, so honoring that opt-out is the expected behavior.
-# Non-hotfix scenarios → fall through to standard last-commit-wins detection.
+# Non-hotfix scenarios → fall through to commit-driven detection (last or highest, per above).
 BUMP_TYPE="timestamp_only"
 
 if [ "$SCENARIO" = "hotfix" ]; then
