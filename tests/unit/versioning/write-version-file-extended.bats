@@ -225,6 +225,79 @@ version_file:
     [[ "$output" == *"trigger_paths did not match"* ]]
 }
 
+@test "trigger_paths: branch pipeline (no VERSIONING_TARGET_BRANCH) uses HEAD diff-tree and matches" {
+    write_inline_fixture '
+commits:
+  format: "conventional"
+version:
+  tag_prefix_v: false
+  components:
+    major: { enabled: true, initial: 0 }
+    patch: { enabled: true, initial: 0 }
+version_file:
+  enabled: true
+  groups:
+    - name: "services"
+      trigger_paths:
+        - "services/**"
+      files:
+        - path: "services/version.yaml"
+'
+    # Simulate branch pipeline post-merge: no origin remote, no
+    # VERSIONING_TARGET_BRANCH. HEAD is the merge commit and its changed
+    # files must be visible via git diff-tree -r HEAD.
+    mkdir -p "${BATS_TEST_TMPDIR}/repo/services"
+    echo "version: \"0.0.0\"" > "${BATS_TEST_TMPDIR}/repo/services/version.yaml"
+    git -C "${BATS_TEST_TMPDIR}/repo" add services/
+    git -C "${BATS_TEST_TMPDIR}/repo" commit -q -m "chore: base commit"
+
+    echo "# new services layer" > "${BATS_TEST_TMPDIR}/repo/services/main.tf"
+    git -C "${BATS_TEST_TMPDIR}/repo" add services/main.tf
+    git -C "${BATS_TEST_TMPDIR}/repo" commit -q -m "feat: deploy new services layer"
+
+    run_write_version_file "19.1.0"
+    [ "$status" -eq 0 ]
+
+    actual=$(read_yaml_key "${BATS_TEST_TMPDIR}/repo/services/version.yaml" "version")
+    assert_equals "19.1.0" "$actual"
+}
+
+@test "trigger_paths: branch pipeline (no VERSIONING_TARGET_BRANCH) uses HEAD diff-tree and skips on no-match" {
+    write_inline_fixture '
+commits:
+  format: "conventional"
+version:
+  tag_prefix_v: false
+  components:
+    major: { enabled: true, initial: 0 }
+    patch: { enabled: true, initial: 0 }
+version_file:
+  enabled: true
+  groups:
+    - name: "services"
+      trigger_paths:
+        - "services/**"
+      files:
+        - path: "services/version.yaml"
+'
+    mkdir -p "${BATS_TEST_TMPDIR}/repo/services"
+    mkdir -p "${BATS_TEST_TMPDIR}/repo/infrastructure"
+    echo "version: \"0.0.0\"" > "${BATS_TEST_TMPDIR}/repo/services/version.yaml"
+    git -C "${BATS_TEST_TMPDIR}/repo" add services/
+    git -C "${BATS_TEST_TMPDIR}/repo" commit -q -m "chore: base commit"
+
+    echo "# docs" > "${BATS_TEST_TMPDIR}/repo/infrastructure/README.md"
+    git -C "${BATS_TEST_TMPDIR}/repo" add infrastructure/README.md
+    git -C "${BATS_TEST_TMPDIR}/repo" commit -q -m "feat: update infrastructure docs"
+
+    run_write_version_file "20.1.0"
+    [ "$status" -eq 0 ]
+
+    actual=$(read_yaml_key "${BATS_TEST_TMPDIR}/repo/services/version.yaml" "version")
+    assert_equals "0.0.0" "$actual"
+    [[ "$output" == *"trigger_paths did not match"* ]]
+}
+
 @test "multiple groups: only matching trigger_paths group is updated" {
     write_inline_fixture '
 commits:
