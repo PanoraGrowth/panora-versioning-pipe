@@ -33,13 +33,22 @@ matches_glob() {
 }
 
 # =============================================================================
-# Helper: Get changed files in this PR
+# Helper: Get changed files for trigger_paths evaluation.
+# PR context: diffs HEAD against origin/$VERSIONING_TARGET_BRANCH.
+# Branch pipeline (push/dispatch): lists files modified by the HEAD commit
+# via diff-tree, so the merge commit's changed files are visible without
+# depending on a target branch ref existing in the local repo.
 # =============================================================================
 get_changed_files() {
-    local target_branch="${VERSIONING_TARGET_BRANCH:-development}"
-    git fetch origin "$target_branch" 2>/dev/null || true
-    git diff --name-only "origin/${target_branch}...HEAD" 2>/dev/null | \
-        grep -v "CHANGELOG.md" || true
+    local target_branch="${VERSIONING_TARGET_BRANCH:-}"
+    if [ -n "$target_branch" ]; then
+        git fetch origin "$target_branch" 2>/dev/null || true
+        git diff --name-only "origin/${target_branch}...HEAD" 2>/dev/null | \
+            grep -v "CHANGELOG.md" || true
+    else
+        git diff-tree --no-commit-id --name-only -r HEAD 2>/dev/null | \
+            grep -v "CHANGELOG.md" || true
+    fi
 }
 
 # =============================================================================
