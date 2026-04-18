@@ -165,17 +165,21 @@ class TestMergeAndTag:
             #    The ~10s sleep is for push-event propagation — kept per-sandbox.
             image_tag = scenario.get("image_tag")
             time.sleep(10)
-            try:
-                github.wait_for_tag_workflow(
-                    previous_run_id=run_before, timeout=45, branch=base,
-                )
-            except TimeoutError:
-                # Workflow didn't trigger — dispatch manually on the sandbox ref
+            run_id_after = github.wait_for_new_workflow_run(
+                previous_run_id=run_before, timeout=45, branch=base,
+            )
+            if run_id_after is None:
+                # Push event didn't trigger a new run — dispatch manually
                 github.dispatch_tag_workflow(image_tag=image_tag, ref=base)
                 time.sleep(5)
-                github.wait_for_tag_workflow(
-                    previous_run_id=run_before, timeout=180, branch=base,
+                run_id_after = github.wait_for_new_workflow_run(
+                    previous_run_id=run_before, timeout=60, branch=base,
                 )
+            # Wait for the detected run to complete (up to 180s regardless of
+            # how it was triggered — push or dispatch)
+            github.wait_for_workflow_run_completion(
+                run_id=run_id_after, timeout=180,
+            )
 
             # 6. Wait for new tag in this sandbox's namespace (raises TimeoutError if none)
             tag_after = github.wait_for_new_tag(tag_before, timeout=180,
@@ -259,6 +263,7 @@ class TestMergeAndTag:
                     )
                 else:
                     # File may not exist OR must not contain the new tag
+                    vf_content = github.get_file_content(vf_path, ref=base)
                     if vf_content is not None:
                         assert tag_after not in vf_content, (
                             f"Tag '{tag_after}' unexpectedly found in version file "
