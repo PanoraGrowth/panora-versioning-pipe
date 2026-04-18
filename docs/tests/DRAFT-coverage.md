@@ -471,6 +471,8 @@ No hay campo `type` explícito. El comportamiento se determina por la extensión
 | PR con `version_file.groups` → merge → archivo actualizado en el repo | ✅ sandbox-19 (`version-file-groups-trigger-match`) |
 | Monorepo: solo el grupo cuyo `trigger_paths` matchea se actualiza | ✅ sandbox-19 + sandbox-20 (`version-file-groups-trigger-no-match`) |
 
+> **Nota (2026-04-18)**: los escenarios sandbox-19 y sandbox-20 estaban marcados ✅ desde PR #97 pero la cobertura era ilusoria — pasaban por un branch `development` residual en el test repo (ver ticket 058). El bug fue corregido en PR #111 (`fix(version_file): drop development default in get_changed_files`). Ambos escenarios fueron re-validados end-to-end post-fix y confirmados genuinos. Ver `temp/audits/trigger-paths-audit-2026-04-18.md`.
+
 ---
 
 ## notifications
