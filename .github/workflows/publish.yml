@@ -2,7 +2,7 @@ name: Release
 
 on:
   workflow_run:
-    workflows: ["Main - Create Version Tag"]
+    workflows: ["Versioning"]
     types: [completed]
   workflow_dispatch:
 
