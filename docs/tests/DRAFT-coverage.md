@@ -108,6 +108,11 @@ Controla cómo se genera y escribe el archivo CHANGELOG.
 | [`changelog.title`](../../scripts/defaults.yml#L74) | `"Changelog"` | Título correcto en el header del archivo | ✅ |
 | [`changelog.mode`](../../scripts/defaults.yml#L75) | `"last_commit"` | `"last_commit"` — solo el último commit aparece en el entry | ✅ |
 | | | `"full"` — todos los commits desde el último tag aparecen | ✅ |
+| | | **Bump strategy acoplada al mode** | |
+| | | `"last_commit"` — el último commit del rango determina el bump (ej: `[fix, feat, fix]` → patch porque el último es `fix:`) | ✅ unit `bump-strategy.bats` |
+| | | `"full"` — el commit de mayor jerarquía gana (`[fix, feat, fix]` → minor porque `feat:` > `fix:`) | ✅ unit `bump-strategy.bats` · ✅ integration `multi-commit-highest-wins` (sandbox-25) |
+| | | `"full"` con un solo commit — resultado idéntico a `"last_commit"` | ✅ unit `bump-strategy.bats` |
+| | | `"full"` con commits solo `bump: none` — sin versión producida | ✅ unit `bump-strategy.bats` |
 | [`changelog.use_emojis`](../../scripts/defaults.yml#L76) | `false` | `false` — output sin emojis | ✅ |
 | | | `true` — output incluye emoji por tipo | ✅ |
 | [`changelog.include_commit_link`](../../scripts/defaults.yml#L77) | `true` | Valor leído correctamente | ✅ |
