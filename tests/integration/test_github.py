@@ -102,6 +102,7 @@ class TestMergeAndTag:
 
         pr_number = None
         created_tag = None
+        tag_before = None
 
         try:
             # 1. Create branch forked from the scenario's sandbox (not main)
@@ -237,14 +238,21 @@ class TestMergeAndTag:
             if "version_file_path" in scenario["expected"]:
                 vf_path = scenario["expected"]["version_file_path"]
                 vf_updated = scenario["expected"].get("version_file_updated", False)
-                vf_content = github.get_file_content(vf_path, ref=base)
                 if vf_updated:
+                    # Poll until the version file reflects the new version —
+                    # the CHANGELOG commit (which includes the version file) may
+                    # take a few seconds to land on the remote after the tag appears.
+                    version_plain = tag_after.lstrip("v")
+                    deadline = time.time() + 30
+                    vf_content = None
+                    while time.time() < deadline:
+                        vf_content = github.get_file_content(vf_path, ref=base)
+                        if vf_content and version_plain in vf_content:
+                            break
+                        time.sleep(3)
                     assert vf_content is not None, (
                         f"version file {vf_path} not found on {base} — expected update"
                     )
-                    # The pipe strips the tag prefix (e.g. "v") before writing
-                    # the version file, so compare against the plain version.
-                    version_plain = tag_after.lstrip("v")
                     assert version_plain in vf_content, (
                         f"Expected version '{version_plain}' not found in version file "
                         f"{vf_path} on {base}"
@@ -263,3 +271,9 @@ class TestMergeAndTag:
             github.delete_branch(branch)
             if created_tag:
                 github.delete_tag(created_tag)
+            else:
+                # Test may have failed before created_tag was set, but the pipe
+                # might have already pushed a tag to the sandbox. Clean it up.
+                latest = github.get_latest_tag(prefix=tag_prefix)
+                if latest and latest != tag_before:
+                    github.delete_tag(latest)

@@ -210,7 +210,7 @@ class GitHubClient:
         runs a preview image instead of the default VERSIONING_PIPE_TAG.
         ref: branch ref to run the workflow on (default: main).
         """
-        cmd = ["gh", "workflow", "run", "tag-on-merge.yml", "-R", self.repo,
+        cmd = ["gh", "workflow", "run", "versioning.yml", "-R", self.repo,
                "--ref", ref]
         if image_tag:
             cmd += ["-f", f"image_tag={image_tag}"]
@@ -222,7 +222,7 @@ class GitHubClient:
         branch: if set, filters results to runs triggered on that branch.
         """
         args = ["gh", "run", "list", "-R", self.repo, "--workflow",
-                "tag-on-merge.yml", "--limit", "1", "--json", "databaseId"]
+                "versioning.yml", "--limit", "1", "--json", "databaseId"]
         if branch:
             args += ["--branch", branch]
         result = subprocess.run(args, capture_output=True, text=True, timeout=30)
@@ -245,7 +245,7 @@ class GitHubClient:
         deadline = time.time() + timeout
         while time.time() < deadline:
             args = ["gh", "run", "list", "-R", self.repo, "--workflow",
-                    "tag-on-merge.yml", "--limit", "1", "--json",
+                    "versioning.yml", "--limit", "1", "--json",
                     "databaseId,status,conclusion"]
             if branch:
                 args += ["--branch", branch]
