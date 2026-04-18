@@ -426,3 +426,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: ffc698a](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/ffc698a090127be0ca2df8cf169828e9efc0b6cb)
 
 
+## v0.1.11 - 2026-04-18
+
+- 🐛 fix(version_file): repair trigger_paths in branch pipeline + cover bump strategy docs (#111)
+  - _Agustín Manessi_
+  - [Commit: b98ed8d](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/b98ed8d387cbaff5d87339ad7a71507c49e95daf)
+
+
