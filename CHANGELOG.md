@@ -419,3 +419,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: 8aefd78](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/8aefd78fcce29d99da0115b063428994c9395c8e)
 
 
+## v0.1.10 - 2026-04-18
+
+- 🚀 feat(versioning): couple bump strategy to changelog.mode (#108)
+  - _Agustín Manessi_
+  - [Commit: ffc698a](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/ffc698a090127be0ca2df8cf169828e9efc0b6cb)
+
+
