@@ -440,3 +440,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: f100e9b](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/f100e9bb5e22884d74e1c988beb76d4a9f3fb4ac)
 
 
+## v0.1.13 - 2026-04-18
+
+- 🐛 fix(integration): eliminate spurious workflow_dispatch + harness cleanup (#114)
+  - _Agustín Manessi_
+  - [Commit: 355e2d0](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/355e2d066c72643663edefd41b18cf572523707c)
+
+
