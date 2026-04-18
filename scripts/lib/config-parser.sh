@@ -519,6 +519,13 @@ require_commit_types() {
     [ "$required" = "true" ]
 }
 
+# Return the hotfix title enforcement level: "error" (default) or "warn".
+# Controls what happens in PR context when the source branch is a hotfix branch
+# but the PR title does not carry the hotfix keyword — required for squash-merge detection.
+get_hotfix_title_required() {
+    config_get "validation.hotfix_title_required" "error"
+}
+
 # True when type validation is active AND changelog.mode is full (all commits must be typed)
 require_commit_types_for_all() {
     require_commit_types && is_full_changelog_mode

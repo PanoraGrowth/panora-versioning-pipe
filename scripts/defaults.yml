@@ -17,6 +17,7 @@ tickets:
 validation:
   require_ticket_prefix: false
   require_commit_types: true    # scope driven by changelog.mode: "last_commit" validates only last, "full" validates all
+  hotfix_title_required: "error"  # "error" (block merge) or "warn" (advisory only). Guards squash-merge hotfix detection.
   ignore_patterns:
     - "^Merge"
     - "^Revert"

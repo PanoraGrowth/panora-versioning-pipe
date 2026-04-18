@@ -1,0 +1,11 @@
+# Hotfix config with hotfix_title_required: warn — advisory only, does not block merge
+commits:
+  format: "conventional"
+
+validation:
+  require_commit_types: true
+  hotfix_title_required: "warn"
+
+branches:
+  hotfix_targets:
+    - "main"

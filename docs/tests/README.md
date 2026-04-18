@@ -2,7 +2,7 @@
 
 Unit tests and integration tests validated before every release.
 
-**As of ticket 050 (branches redesign)**: 363 unit tests (bats-core) and 15 end-to-end integration scenarios. Integration scenarios run against both GitHub and Bitbucket using a shared `test-scenarios.yml`. The `config_override` mechanism deep-merges deltas on top of the test repo's `.versioning.yml` (not a full replacement), so scenarios only specify keys they actually change.
+**As of ticket 051 (hotfix squash merge gap)**: 461 unit tests (bats-core) and 18 end-to-end integration scenarios. Integration scenarios run against both GitHub and Bitbucket using a shared `test-scenarios.yml`. The `config_override` mechanism deep-merges deltas on top of the test repo's `.versioning.yml` (not a full replacement), so scenarios only specify keys they actually change.
 
 ---
 
@@ -88,13 +88,16 @@ These tests run against real repositories, creating actual PRs, merging, and ver
 - **Hotfix custom hotfix_targets → PR check**: validates PR check passes for a `hotfix/` branch when `config_override` sets a custom `branches.hotfix_targets` list — confirms new branch model routes correctly (PR-only, no merge)
 - **tag_on=main + 3-entry hotfix_targets → development_release**: `feature/` branch merges to `main` with extended `hotfix_targets` config (`main`, `pre-production`, `uat`) — confirms `development_release` scenario fires and creates a regular tag (not hotfix)
 - **hotfix + 3-entry hotfix_targets → hotfix tag**: `hotfix/` branch merges to `main` with same extended config — confirms `hotfix` scenario fires and creates tag with hotfix_counter bump (`.1` suffix)
+- **Squash-merge hotfix gap — PR blocked**: `hotfix/` branch + PR title without hotfix keyword (`fix: resolve auth`) → PR pipeline blocks with error (default `hotfix_title_required: error`). Guards against the silent failure where a squash merge loses the hotfix signal post-merge
+- **Squash-merge hotfix gap — warn mode**: same case but `hotfix_title_required: warn` → PR pipeline passes with advisory warning, merge is not blocked
+- **Squash-merge hotfix gap — keyword passes, tag created**: `hotfix/` branch + PR title with hotfix keyword (`hotfix: fix auth`) → guard passes, squash merge creates tag with hotfix_counter bump (`.1` suffix) — confirms guardrail does not block valid hotfix PRs
 
 ---
 
 ## Platforms
 
-- **GitHub Actions** — unit tests + integration tests (15 scenarios)
-- **Bitbucket Pipelines** — unit tests + integration tests (15 scenarios, same `test-scenarios.yml`)
+- **GitHub Actions** — unit tests + integration tests (18 scenarios)
+- **Bitbucket Pipelines** — unit tests + integration tests (18 scenarios, same `test-scenarios.yml`)
 
 ### Bitbucket integration notes
 
