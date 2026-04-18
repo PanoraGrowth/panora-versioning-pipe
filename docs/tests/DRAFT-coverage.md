@@ -84,7 +84,7 @@ En squash merge, si el branch es `hotfix/fix-auth` pero el PR title es `fix: res
 | Branch `hotfix/*`, PR title sin hotfix keyword (`fix: resolve auth`) — error (default) | ✅ unit `pr-title.bats` |
 | Branch `hotfix/*`, PR title sin hotfix keyword (`fix: resolve auth`) — error (default) | ✅ unit `pr-title.bats` · ✅ integration `hotfix-squash-gap-blocked` |
 | Branch `hotfix/*`, PR title sin hotfix keyword + `hotfix_title_required: warn` — warning, no bloquea | ✅ unit `pr-title.bats` · ✅ integration `hotfix-squash-gap-warn` |
-| Branch `hotfix/*`, PR title con hotfix keyword + squash merge → tag con hotfix_counter | ✅ unit `pr-title.bats` · ✅ integration `hotfix-squash-gap-keyword-passes` (sandbox-22) |
+| Branch `hotfix/*`, PR title con hotfix keyword + squash merge → tag con hotfix_counter | ✅ unit `pr-title.bats` · ✅ integration `hotfix-squash-gap-keyword-passes` (sandbox-24) |
 | Branch `hotfix/*`, PR title con glob keyword (`Hotfix/urgent-fix` matchea `[Hh]otfix/*`) — pasa | ✅ unit `pr-title.bats` |
 | Branch `hotfix/*`, PR title convencional con scope (`fix(auth): ...`) — error (no tiene keyword) | ✅ unit `pr-title.bats` |
 | `VERSIONING_BRANCH` vacío — chequeo se saltea (Bitbucket, generic CI sin branch var) | ✅ unit `pr-title.bats` |
