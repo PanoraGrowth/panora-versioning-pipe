@@ -173,7 +173,19 @@ fi
 # - hotfix_targets target → hotfix (hotfix/ source) or promotion_to_main
 #   (source == tag_on) or unknown (anything else)
 # ----------------------------------------------------------------------------
-if [ "$TARGET_BRANCH" = "$TAG_BRANCH" ]; then
+if [ "$TARGET_BRANCH" = "$TAG_BRANCH" ] && is_hotfix_target "$TARGET_BRANCH"; then
+    # tag_on == hotfix_target (e.g. both pointing to main): hotfix branch takes priority.
+    case "$SOURCE_BRANCH" in
+        ${HOTFIX_BRANCH_PATTERN}*)
+            SCENARIO="hotfix"
+            echo "Scenario: Hotfix (Changelog + Tag)"
+            ;;
+        *)
+            SCENARIO="development_release"
+            echo "Scenario: Development Release (Changelog + Tag)"
+            ;;
+    esac
+elif [ "$TARGET_BRANCH" = "$TAG_BRANCH" ]; then
     SCENARIO="development_release"
     echo "Scenario: Development Release (Changelog + Tag)"
 elif is_hotfix_target "$TARGET_BRANCH"; then

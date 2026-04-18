@@ -136,3 +136,20 @@ assert_scenario() {
     assert_output_matches "Unknown"
     assert_scenario "unknown"
 }
+
+# --- tag_on == hotfix_target (same branch, e.g. main-only repo) ---
+
+@test "tag-on-equals-hotfix-target: hotfix/ source → hotfix scenario" {
+    run_detect "tag-on-equals-hotfix-target" "hotfix/fix-auth" "main"
+    [ "$status" -eq 0 ]
+    assert_output_matches "Hotfix"
+    assert_scenario "hotfix"
+}
+
+@test "tag-on-equals-hotfix-target: feature source → development_release" {
+    run_detect "tag-on-equals-hotfix-target" "feature/new-ui" "main"
+    [ "$status" -eq 0 ]
+    assert_output_matches "Development Release"
+    assert_scenario "development_release"
+}
+

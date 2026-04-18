@@ -1,0 +1,29 @@
+# Fixture: tag_on and hotfix_targets point to the same branch (e.g. main-only repos).
+# Exercises the detect-scenario.sh edge case where TARGET_BRANCH == TAG_BRANCH
+# but the source branch has the hotfix/ prefix → must detect as hotfix, not development_release.
+commits:
+  format: "conventional"
+
+version:
+  tag_prefix_v: true
+  components:
+    major:
+      enabled: true
+      initial: 0
+    patch:
+      enabled: true
+      initial: 0
+    hotfix_counter:
+      enabled: true
+      initial: 0
+
+branches:
+  tag_on: "main"
+  hotfix_targets:
+    - "main"
+
+hotfix:
+  keyword:
+    - "hotfix:*"
+    - "hotfix(*"
+    - "[Hh]otfix/*"
