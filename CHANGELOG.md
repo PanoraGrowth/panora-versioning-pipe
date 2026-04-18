@@ -405,3 +405,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: 56e8778](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/56e8778a27ab1cd22fe3e0c920ac23bfb6440090)
 
 
+## v0.1.8 - 2026-04-18
+
+- 🚀 feat(validation): block hotfix PR merge when title lacks hotfix keyword (#105)
+  - _Agustín Manessi_
+  - [Commit: 861de46](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/861de46db73465215c18cfadd9f9b305fd8fdc6a)
+
+
