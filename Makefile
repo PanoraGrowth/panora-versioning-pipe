@@ -10,7 +10,7 @@ GO_LDFLAGS    := -s -w \
   -X github.com/PanoraGrowth/panora-versioning-pipe/internal/util/version.Commit=$(GO_COMMIT) \
   -X github.com/PanoraGrowth/panora-versioning-pipe/internal/util/version.BuiltAt=$(GO_BUILT_AT)
 
-.PHONY: build run shell lint help build-test test test-unit test-unit-filter test-integration test-integration-bitbucket test-integration-all test-integration-filter test-integration-bitbucket-filter go-build go-test go-lint go-tidy
+.PHONY: build run shell lint help build-test test test-unit test-unit-filter test-integration test-integration-bitbucket test-integration-all test-integration-filter test-integration-bitbucket-filter test-integration-go go-build go-test go-lint go-tidy
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
@@ -58,6 +58,12 @@ test-integration-bitbucket: ## Run integration tests — Bitbucket (requires BB_
 
 test-integration-all: ## Run integration tests on both platforms
 	cd tests/integration && pip install -q -r requirements.txt && pytest -v test_github.py test_bitbucket.py -x
+
+test-integration-go: ## Run Go integration tests locally (requires docker + go)
+	@command -v docker >/dev/null 2>&1 || { echo "docker not found"; exit 1; }
+	go build -o bin/$(GO_BINARY) ./cmd/panora-versioning
+	cd tests/integration && pip install -q -r requirements.txt && \
+	  PANORA_GO_BINARY=$(CURDIR)/bin/$(GO_BINARY) pytest -v test_go_*.py
 
 test-integration-filter: ## Run specific integration scenario (sequential): make test-integration-filter S=feat-minor-bump
 	cd tests/integration && pip install -q -r requirements.txt && pytest -v test_github.py -k "$(S)"
