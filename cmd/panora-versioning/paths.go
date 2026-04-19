@@ -1,10 +1,8 @@
 package main
 
-// Canonical /tmp paths that all subcommands share.
+// Canonical /tmp output paths written by the calc-version subcommand.
 const (
-	scenarioEnvPath  = "/tmp/scenario.env"
-	mergedConfigPath = "/tmp/.versioning-merged.yml"
-	nextVersionPath  = "/tmp/next_version.txt"
-	bumpTypePath     = "/tmp/bump_type.txt"
-	latestTagPath    = "/tmp/latest_tag.txt"
+	nextVersionPath = "/tmp/next_version.txt"
+	bumpTypePath    = "/tmp/bump_type.txt"
+	latestTagPath   = "/tmp/latest_tag.txt"
 )
