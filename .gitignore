@@ -14,3 +14,7 @@ Thumbs.db
 temp/
 __pycache__/
 .pytest_cache/
+
+# Go build artifacts
+bin/
+dist/

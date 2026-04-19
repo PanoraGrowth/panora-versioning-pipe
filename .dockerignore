@@ -9,3 +9,9 @@ LICENSE
 Makefile
 README.md
 examples/
+docs/
+temp/
+.claude/
+.mcp.json
+.pytest_cache/
+__pycache__/

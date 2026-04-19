@@ -1,0 +1,28 @@
+version: 2
+
+project_name: panora-versioning
+
+builds:
+  - id: panora-versioning
+    main: ./cmd/panora-versioning
+    binary: panora-versioning
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X github.com/PanoraGrowth/panora-versioning-pipe/internal/util/version.Version={{ .Version }}
+      - -X github.com/PanoraGrowth/panora-versioning-pipe/internal/util/version.Commit={{ .ShortCommit }}
+      - -X github.com/PanoraGrowth/panora-versioning-pipe/internal/util/version.BuiltAt={{ .Date }}
+
+archives:
+  - formats: ["tar.gz"]
+    name_template: >-
+      {{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}
+
+changelog:
+  disable: true

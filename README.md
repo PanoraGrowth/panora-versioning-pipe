@@ -8,6 +8,8 @@ Automated versioning, changelog generation, and version file updates for CI/CD p
 
 Runs as a Docker container step in your pipeline. Supports Bitbucket Pipelines natively, and GitHub Actions with a simple environment variable mapping.
 
+> **Migration to Go in progress.** The pipe is being ported from Bash to a single Go binary incrementally. Both runtimes coexist inside the same Docker image while each subcommand is migrated. See `temp/migration/INDEX.md` for the ticket backlog and current status.
+
 ## Features
 
 - Semantic versioning with configurable version components (Major, Minor, Timestamp)
