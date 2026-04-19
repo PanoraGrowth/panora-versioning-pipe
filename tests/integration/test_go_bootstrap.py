@@ -4,15 +4,17 @@ Builds the multi-stage Docker image and asserts that:
 
 1. The Go binary is present at /usr/local/bin/panora-versioning.
 2. `panora-versioning --version` returns 0 and prints a recognizable version line.
-3. Every stubbed Wave 1/2 subcommand returns exit 42 with `not implemented yet`
-   on stderr.
-4. `/pipe/pipe.sh` still exists inside the image (bash legacy must coexist
+3. `/pipe/pipe.sh` still exists inside the image (bash legacy must coexist
    during the migration — Wave N will remove it).
-5. `panora-versioning configure-git`, run inside a temporary git repo, replays
+4. `panora-versioning configure-git`, run inside a temporary git repo, replays
    the banner lines emitted by `scripts/setup/configure-git.sh`.
 
 This is a Go-side smoke test — it does NOT talk to GitHub/Bitbucket and does
 NOT depend on the sandbox fixtures used by `test_github.py`.
+
+Each subcommand has its own `test_go_<subcommand>.py` that validates its real
+behavior. This bootstrap file intentionally stays narrow so it doesn't go
+stale when subcommands get ported — see ticket 063.
 """
 
 from __future__ import annotations
@@ -30,23 +32,6 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 IMAGE_TAG = os.environ.get("GO_BOOTSTRAP_IMAGE", "panora-versioning-pipe:go-bootstrap-test")
 BINARY_PATH = "/usr/local/bin/panora-versioning"
 PIPE_SH_PATH = "/pipe/pipe.sh"
-
-STUB_SUBCOMMANDS = [
-    "calc-version",
-    "detect-scenario",
-    "validate-commits",
-    "check-commit-hygiene",
-    "notify-teams",
-    "bitbucket-build-status",
-    "write-version-file",
-    "generate-changelog-per-folder",
-    "generate-changelog-last-commit",
-    "update-changelog",
-    "check-release-readiness",
-    "config-parse",
-    "pr-pipeline",
-    "branch-pipeline",
-]
 
 
 def _docker_available() -> bool:
@@ -118,19 +103,6 @@ def test_version_flag(go_image: str) -> None:
     # or "... version X.Y.Z" — cobra's default format.
     combined = (result.stdout + result.stderr).lower()
     assert "panora-versioning" in combined, f"unexpected output: {result.stdout!r}"
-
-
-@pytest.mark.parametrize("subcmd", STUB_SUBCOMMANDS)
-def test_stub_subcommand_exits_42(go_image: str, subcmd: str) -> None:
-    """Every stubbed subcommand must exit 42 with `not implemented yet` on stderr."""
-    result = _run_in_image(go_image, BINARY_PATH, subcmd)
-    assert result.returncode == 42, (
-        f"{subcmd}: expected exit 42, got {result.returncode}\n"
-        f"stdout: {result.stdout}\nstderr: {result.stderr}"
-    )
-    assert "not implemented yet" in result.stderr.lower(), (
-        f"{subcmd}: stderr missing 'not implemented yet'\nstderr: {result.stderr}"
-    )
 
 
 def test_configure_git_replays_bash_banners(go_image: str, tmp_path: Path) -> None:
