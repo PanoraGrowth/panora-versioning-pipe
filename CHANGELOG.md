@@ -468,3 +468,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: c15d617](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/c15d61742dc2ae43a5a82c09d1b429a8de3ff391)
 
 
+## v0.11.19 - 2026-04-19
+
+- 🐛 fix(ci): prevent Release from firing on unified Versioning PR runs (#119)
+  - _Agustín Manessi_
+  - [Commit: 4237f90](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/4237f908ea69461ee5457bbf2f816d9908ff81a3)
+
+
