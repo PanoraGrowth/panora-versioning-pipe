@@ -538,3 +538,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: da8a9a0](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/da8a9a0fe9b362c70b6700aa38902fb4591b7133)
 
 
+## v0.11.29 - 2026-04-19
+
+- 🚀 feat(go): port guardrails + run-guardrails to Go (GO-05) (#126)
+  - _Agustín Manessi_
+  - [Commit: 5867ea2](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/5867ea2e3ebbe0a1714842f3f9ac1eb42a528747)
+
+
