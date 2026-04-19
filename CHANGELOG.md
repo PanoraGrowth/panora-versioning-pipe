@@ -482,3 +482,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: 6f6c150](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/6f6c1505ac99e94785cb5d46ab3f05730a281999)
 
 
+## v0.11.21 - 2026-04-19
+
+- 🐛 fix(ci): switch Release trigger to tag push instead of workflow_run (#121)
+  - _Agustín Manessi_
+  - [Commit: f94fc2d](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/f94fc2dfaa63b58603bb51bd5b36ac0e31227294)
+
+
