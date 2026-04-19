@@ -489,3 +489,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: f94fc2d](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/f94fc2dfaa63b58603bb51bd5b36ac0e31227294)
 
 
+## v0.11.22 - 2026-04-19
+
+- ⏪ revert(ci): restore workflow_run trigger for Release (#121) (#122)
+  - _Agustín Manessi_
+  - [Commit: 5091ef0](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/5091ef0caa31b004e8a7be466cb7ff958b018f74)
+
+
