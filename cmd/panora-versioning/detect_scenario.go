@@ -9,6 +9,8 @@ import (
 	ulog "github.com/PanoraGrowth/panora-versioning-pipe/internal/util/log"
 )
 
+const scenarioEnvPath = "/tmp/scenario.env"
+
 func newDetectScenarioCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "detect-scenario",
