@@ -510,3 +510,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: b26f938](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/b26f9386124036ccf2562e2d7d3c1e8184a4b0b7)
 
 
+## v0.11.25 - 2026-04-19
+
+- 🐛 fix(deps): bump golang.org/x/crypto to v0.35.0 (CVE-2025-22869) (#125)
+  - _Agustín Manessi_
+  - [Commit: e332152](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/e332152edbfeda1c7dd6ef0a637adc4c52f4d5c9)
+
+
