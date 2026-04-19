@@ -552,3 +552,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: ef2221a](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/ef2221ab135e9efeb6e65e723b82e0b68f517b9e)
 
 
+## v0.11.31 - 2026-04-19
+
+- 🚀 feat(ci): run Go integration tests in go-ci.yml + drop stub safety net (#133)
+  - _Agustín Manessi_
+  - [Commit: 7eabc4a](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/7eabc4a3990f16fccc3cab9a7e08483370ad3025)
+
+
