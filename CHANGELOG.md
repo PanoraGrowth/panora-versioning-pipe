@@ -475,3 +475,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: 4237f90](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/4237f908ea69461ee5457bbf2f816d9908ff81a3)
 
 
+## v0.11.20 - 2026-04-19
+
+- 🐛 fix(ci): document the workflow_run if-gate in publish.yml (#120)
+  - _Agustín Manessi_
+  - [Commit: 6f6c150](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/6f6c1505ac99e94785cb5d46ab3f05730a281999)
+
+
