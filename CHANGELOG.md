@@ -531,3 +531,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: 181e270](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/181e270937a07424bbd27089f5b58f79b95ee1ec)
 
 
+## v0.11.28 - 2026-04-19
+
+- 🚀 feat(go): port calc-version to Go (GO-01) (#130)
+  - _Agustín Manessi_
+  - [Commit: da8a9a0](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/da8a9a0fe9b362c70b6700aa38902fb4591b7133)
+
+
