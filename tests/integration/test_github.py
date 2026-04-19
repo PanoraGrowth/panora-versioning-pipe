@@ -19,9 +19,14 @@ from conftest import deep_merge, load_scenarios, sandbox_major, scenario_ids
 
 SCENARIOS = load_scenarios()
 
-# Separate scenarios that merge (create tags) from those that don't
-MERGE_SCENARIOS = [s for s in SCENARIOS if s["expected"].get("tag_created", False)]
-NO_MERGE_SCENARIOS = [s for s in SCENARIOS if not s["expected"].get("tag_created", False)]
+# Separate scenarios that merge from those that don't.
+# A scenario merges when tag_created=true (normal) OR when merge=true is
+# declared explicitly (e.g. guardrail scenarios that merge but expect no tag).
+MERGE_SCENARIOS = [
+    s for s in SCENARIOS
+    if s["expected"].get("tag_created", False) or s.get("merge", False)
+]
+NO_MERGE_SCENARIOS = [s for s in SCENARIOS if s not in MERGE_SCENARIOS]
 
 
 class TestPRValidation:
@@ -114,8 +119,14 @@ class TestMergeAndTag:
         pr_number = None
         created_tag = None
         tag_before = None
+        seeded_tags: list[str] = []
 
         try:
+            # Seed tags declared by the scenario before creating the branch.
+            for tag_name in scenario.get("seed_tags", []):
+                github.create_tag(tag_name, ref=base)
+                seeded_tags.append(tag_name)
+
             # 1. Create branch forked from the scenario's sandbox (not main)
             github.create_branch(branch, from_ref=base)
 
@@ -192,13 +203,25 @@ class TestMergeAndTag:
                 run_id=run_id_after, timeout=180,
             )
 
-            # 6. Wait for new tag in this sandbox's namespace (raises TimeoutError if none)
-            tag_after = github.wait_for_new_tag(tag_before, timeout=180,
-                                                prefix=tag_prefix)
-            created_tag = tag_after
+            # 6. Verify tag outcome — scenarios that merge but expect no tag (e.g.
+            #    guardrail blocks emission) wait for the workflow to complete then
+            #    assert no new tag appeared. Normal merge scenarios wait for a tag.
+            tag_after = None
+            if scenario["expected"].get("tag_created", True):
+                tag_after = github.wait_for_new_tag(tag_before, timeout=180,
+                                                    prefix=tag_prefix)
+                created_tag = tag_after
+            else:
+                # Guardrail or other block: workflow ran but must not have pushed a tag.
+                time.sleep(15)
+                latest_now = github.get_latest_tag(prefix=tag_prefix)
+                assert latest_now == tag_before, (
+                    f"Expected no new tag (guardrail should block) but found "
+                    f"'{latest_now}' (was '{tag_before}')"
+                )
 
             # 7. Verify tag pattern
-            if "tag_pattern" in scenario["expected"]:
+            if tag_after and "tag_pattern" in scenario["expected"]:
                 pattern = scenario["expected"]["tag_pattern"]
                 assert re.match(pattern, tag_after), (
                     f"Tag '{tag_after}' doesn't match '{pattern}'"
@@ -285,6 +308,8 @@ class TestMergeAndTag:
             if pr_number is not None:
                 github.close_pr(pr_number)
             github.delete_branch(branch)
+            for tag_name in seeded_tags:
+                github.delete_tag(tag_name)
             if created_tag:
                 github.delete_tag(created_tag)
             else:
