@@ -158,10 +158,7 @@ func NextVersion(latestTag string, bump BumpType, cfg VersionConfig) (string, er
 		}
 		base = v
 	} else {
-		tagToParse := latestTag
-		if strings.HasPrefix(tagToParse, "v") {
-			tagToParse = tagToParse[1:]
-		}
+		tagToParse := strings.TrimPrefix(latestTag, "v")
 		v, err := semver.NewVersion(tagToParse)
 		if err != nil {
 			return "", fmt.Errorf("versioning.NextVersion parse %q: %w", latestTag, err)
