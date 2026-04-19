@@ -21,7 +21,12 @@ validation:
   # Runtime guardrail: block tag emission when the next computed tag is lower than
   # the latest tag in the repo. Protects against silent version resets caused by
   # misconfigured `version.components.*.initial` or future calculation bugs.
-  # Set to true only for intentional downgrades (requires explicit override).
+  #
+  # ESCAPE HATCH: set to `true` to degrade the guardrail from hard block (exit 1)
+  # to advisory warning (exit 0 with `result=warned` log). Use ONLY for intentional
+  # downgrades or to unblock a release when the guardrail itself has a bug.
+  # See docs/troubleshooting.md section "tag-on-merge failed with 'Version
+  # regression blocked'" for recovery steps and emergency override workflow.
   allow_version_regression: false
   ignore_patterns:
     - "^Merge"

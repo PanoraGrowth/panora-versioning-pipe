@@ -55,6 +55,8 @@ Controla qué commits son aceptados y cuáles se ignoran durante el cálculo de 
 | | | `"warn"` — emite warning pero no bloquea el merge | ✅ unit `pr-title.bats` |
 | | | Sin `VERSIONING_BRANCH` — chequeo se saltea silenciosamente | ✅ unit `pr-title.bats` |
 | | | SCENARIO distinto de `hotfix` — chequeo no aplica | ✅ unit `pr-title.bats` |
+| [`validation.allow_version_regression`](../../scripts/defaults.yml#L20) | `false` | `false` (default) — regresión detectada bloquea el pipeline (exit 1) antes de emitir tag | ✅ unit `guardrails.bats` |
+| | | `true` — regresión detectada degrada a warning (exit 2, `result=warned`), pipeline continúa | ✅ unit `guardrails.bats` |
 
 **PR title validation** (`VERSIONING_PR_TITLE`) — feature 046
 
@@ -93,6 +95,33 @@ En squash merge, si el branch es `hotfix/fix-auth` pero el PR title es `fix: res
 **Nota de implementación:** los hotfix keyword patterns como `[Hh]otfix/*` son globs con bracket expressions. Cuando el pattern viene de una variable shell, el `case` nativo no expande los brackets correctamente — se usa `eval` para forzar la expansión (mismo comportamiento que `detect-scenario.sh`).
 
 **Gap pendiente:** Bitbucket no expone el PR title como variable nativa (`BITBUCKET_PR_TITLE` no existe). La validación se saltea silenciosamente. Cuando Bitbucket lo agregue, solo hay que mapearlo en `pipe.sh`. Ver ticket 022.
+
+**Runtime guardrail: version regression** (`assert_no_version_regression`) — feature 060
+
+Capa de enforcement que corre en `branch-pipeline.sh` entre `calculate-version.sh` y la emisión del tag. Valida que el tag calculado sea consistente con el `bump_type` declarado relativo al `latest_tag` del namespace activo. Bloquea antes de cualquier side-effect (tag, CHANGELOG, push).
+
+| Escenario | Cobertura |
+|-----------|-----------|
+| Cold start (no latest tag) — pass con `reason=cold_start` | ✅ unit `guardrails.bats` |
+| `bump=major` y major incrementa (v5.2.0 → v6.1.0) — pass | ✅ unit `guardrails.bats` |
+| `bump=major` y major NO incrementa (v5.2.0 → v5.3.0) — block `violation=major_not_incremented` | ✅ unit `guardrails.bats` |
+| `bump=major` y epoch regressed — block `violation=epoch_regressed` | ✅ unit `guardrails.bats` |
+| `bump=patch` y patch incrementa (v5.2.0 → v5.3.0) — pass | ✅ unit `guardrails.bats` |
+| `bump=patch` y patch NO incrementa (v5.2.0 → v5.2.0) — block `violation=patch_not_incremented` | ✅ unit `guardrails.bats` |
+| `bump=patch` y major regressed — block `violation=major_regressed` | ✅ unit `guardrails.bats` |
+| `bump=hotfix` mismo base, counter incrementa (v0.5.9 → v0.5.9.1) — pass | ✅ unit `guardrails.bats` |
+| `bump=hotfix` mismo base, counter incrementa otra vez (v0.5.9.1 → v0.5.9.2) — pass | ✅ unit `guardrails.bats` |
+| `bump=hotfix` mismo base, counter NO incrementa — block `violation=hotfix_counter_not_incremented` | ✅ unit `guardrails.bats` |
+| `bump=hotfix` base cambió (major up, counter reset a 1, v0.5.9.3 → v0.6.0.1) — pass (tuple comparison) | ✅ unit `guardrails.bats` |
+| `bump=hotfix` base cambió pero major regressed (v0.6.0.2 → v0.5.9.1) — block `violation=major_regressed` | ✅ unit `guardrails.bats` |
+| `allow_version_regression: true` — regresión degradada a warning, exit 2, `result=warned` | ✅ unit `guardrails.bats` |
+| Log estructurado emitido siempre (pass) — `GUARDRAIL name=no_version_regression result=pass ...` | ✅ unit `guardrails.bats` |
+| Log estructurado emitido siempre (block) — `GUARDRAIL name=no_version_regression result=blocked next=v5.3.0 latest=v5.2.0 ...` | ✅ unit `guardrails.bats` |
+| End-to-end flujo normal (el guardrail no rompe ningún escenario existente) — 37/37 integration scenarios pass con el guardrail instalado | ✅ integration (smoke test implícito de los 37 scenarios) |
+
+**Gap pendiente (integration):** No hay un integration scenario que dispare intencionalmente un `result=blocked` end-to-end. Las violations son extremadamente difíciles de reproducir sin introducir un bug artificial en el pipe — después de los fixes de tickets 055, 058 y 059, el pipe no calcula versiones inconsistentes con configuración válida. El guardrail se validó en producción cuando el propio pipe se versionó a sí mismo (run `24618338339`, log visible `GUARDRAIL name=no_version_regression result=pass bump=patch next=v0.11.18 latest=v0.11.17`). El escape hatch (`allow_version_regression: true`) sí podría probarse end-to-end si se logra reproducir una regresión controlada — queda como trabajo futuro.
+
+**Diseño:** el guardrail corre SOLO en `branch-pipeline.sh` (post-merge). El PR pipeline no calcula versiones, así que no hay nada que validar. Ver `docs/architecture/README.md#safety-guardrails` y `docs/troubleshooting.md#tag-on-merge-failed-with-version-regression-blocked-guardrail` para el flujo de recovery.
 
 ---
 
