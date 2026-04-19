@@ -69,7 +69,7 @@ func stubCommands() []*cobra.Command {
 			Use:   name,
 			Short: s.short,
 			RunE: func(cmd *cobra.Command, _ []string) error {
-				fmt.Fprintf(cmd.ErrOrStderr(), "%s: not implemented yet\n", name)
+				_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "%s: not implemented yet\n", name)
 				os.Exit(stubExitCode)
 				return nil
 			},
