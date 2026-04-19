@@ -545,3 +545,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: 5867ea2](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/5867ea2e3ebbe0a1714842f3f9ac1eb42a528747)
 
 
+## v0.11.30 - 2026-04-19
+
+- 🐛 fix(go): wire Wave 1 subcommands lost in merge conflict (#131)
+  - _Agustín Manessi_
+  - [Commit: ef2221a](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/ef2221ab135e9efeb6e65e723b82e0b68f517b9e)
+
+
