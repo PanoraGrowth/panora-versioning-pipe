@@ -454,3 +454,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: 4382308](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/4382308047cb26b3c1a0505bfad679a6efab2334)
 
 
+## v0.11.17 - 2026-04-19
+
+- 🚀 feat(validation): runtime guardrail blocks version regression (#060) (#116)
+  - _Agustín Manessi_
+  - [Commit: 0a05b17](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/0a05b172303b7de0d2455ff6a8cc0b608a6c8275)
+
+
