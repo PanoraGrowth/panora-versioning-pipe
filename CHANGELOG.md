@@ -503,3 +503,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: c21ea5e](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/c21ea5e7cdc413224d49f2560c63f9cf7b8aa29d)
 
 
+## v0.11.24 - 2026-04-19
+
+- 🐛 fix(go): ignore Fprintf return in stub + document Go toolchain floor (#124)
+  - _Agustín Manessi_
+  - [Commit: b26f938](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/b26f9386124036ccf2562e2d7d3c1e8184a4b0b7)
+
+
