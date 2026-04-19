@@ -323,6 +323,21 @@ class GitHubClient:
             f"No new tag appeared after {timeout}s. Last tag: {previous_tag}"
         )
 
+    def create_tag(self, tag_name: str, ref: str = "main") -> None:
+        """Create a lightweight tag pointing to the tip of ref.
+
+        Used by scenarios that declare seed_tags: to pre-populate a sandbox
+        with an existing tag before the test runs (e.g. guardrail regression
+        tests that need a latest tag higher than what the pipe will compute).
+        The tag is cleaned up by the test's finally block via delete_tag.
+        """
+        sha = self.get_default_branch_sha(ref)
+        self._gh_api(
+            "git/refs",
+            method="POST",
+            fields={"ref": f"refs/tags/{tag_name}", "sha": sha},
+        )
+
     def delete_tag(self, tag_name: str) -> None:
         try:
             subprocess.run(

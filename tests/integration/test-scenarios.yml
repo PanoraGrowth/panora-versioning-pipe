@@ -25,6 +25,7 @@
 #   25 multi-commit-highest-wins
 #   26 initial-major-isolation-preserved  27 initial-epoch-isolation-preserved
 #   28 initial-hotfix-counter-isolation-preserved
+#   29 guardrail-blocks-version-regression (seed_tags: [v29.5.0], PR-only, tag_created: false)
 
 scenarios:
 
@@ -764,3 +765,33 @@ scenarios:
       tag_created: true
       tag_pattern: '^v28\.\d+\.1$'
       changelog_contains: "sandbox 28 isolation check"
+
+  # =================================================================
+  # Ticket 060 — runtime guardrail: version regression detection
+  # =================================================================
+
+  - name: guardrail-blocks-version-regression
+    description: >
+      Sandbox-29 has seed_tags: [v29.5.0] so the guardrail sees a pre-existing
+      latest tag. A config_override sets major.initial=0 which (with the
+      default namespace, no filter) would cause the pipe to start from v29.1.0
+      on a feat commit — producing v29.1.0 when latest is v29.5.0 (major
+      regressed 5→1 for bump=major). Guardrail must block with result=blocked,
+      violation=major_not_incremented. PR check expected to fail.
+    base: sandbox-29
+    seed_tags:
+      - v29.5.0
+    config_override:
+      version:
+        components:
+          major:
+            initial: 0
+      branches:
+        tag_on: sandbox-29
+    commits:
+      - message: "feat: guardrail regression test"
+        files:
+          test-artifact.txt: "guardrail block test"
+    expected:
+      pr_check: fail
+      tag_created: false

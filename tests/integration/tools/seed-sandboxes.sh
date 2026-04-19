@@ -480,6 +480,47 @@ changelog:
 YAML
 }
 
+build_versioning_yml_29() {
+    cat <<YAML
+commits:
+  format: conventional
+version:
+  tag_prefix_v: true
+  components:
+    epoch:
+      enabled: false
+      initial: 0
+    major:
+      enabled: true
+      initial: 29
+    patch:
+      enabled: true
+      initial: 0
+    hotfix_counter:
+      enabled: true
+      initial: 0
+branches:
+  development: sandbox-29
+  production: sandbox-29
+  tag_on: sandbox-29
+  hotfix_targets:
+  - sandbox-29
+hotfix:
+  keyword:
+  - hotfix:*
+  - hotfix(*
+  - '[Hh]otfix/*'
+changelog:
+  mode: full
+  commit_url: https://github.com/PanoraGrowth/panora-versioning-pipe-test/commit
+  include_author: true
+  include_commit_link: true
+  include_ticket_link: false
+  per_folder:
+    enabled: false
+YAML
+}
+
 build_versioning_yml_28() {
     cat <<YAML
 commits:
@@ -553,6 +594,7 @@ seed_sandbox() {
         26) yml_content=$(build_versioning_yml_26) ;;
         27) yml_content=$(build_versioning_yml_27) ;;
         28) yml_content=$(build_versioning_yml_28) ;;
+        29) yml_content=$(build_versioning_yml_29) ;;
         *)  yml_content=$(build_versioning_yml "$n") ;;
     esac
 
@@ -569,7 +611,7 @@ seed_sandbox() {
         18) seed_sandbox_18 "$branch" ;;
         19) seed_sandbox_19 "$branch" ;;
         20) seed_sandbox_20 "$branch" ;;
-        26|27|28) ;; # no additional fixtures needed
+        26|27|28|29) ;; # no additional fixtures needed
     esac
 
     log "  ${branch} done."
@@ -697,13 +739,13 @@ Stub directory for sandbox-20 version-file-groups no-match tests.
 main() {
     if [ -n "$SINGLE_SANDBOX" ]; then
         n=$((10#$SINGLE_SANDBOX))   # strip leading zero
-        if [ "$n" -lt 1 ] || [ "$n" -gt 28 ]; then
-            die "Sandbox number must be between 1 and 28, got: ${SINGLE_SANDBOX}"
+        if [ "$n" -lt 1 ] || [ "$n" -gt 29 ]; then
+            die "Sandbox number must be between 1 and 29, got: ${SINGLE_SANDBOX}"
         fi
         seed_sandbox "$n"
     else
         i=1
-        while [ "$i" -le 28 ]; do
+        while [ "$i" -le 29 ]; do
             seed_sandbox "$i"
             i=$((i + 1))
         done

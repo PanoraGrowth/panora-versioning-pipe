@@ -37,8 +37,17 @@ class TestPRValidation:
         # they never merge, so no tag collision risk exists)
         pr_base = scenario.get("base", "main")
         pr_number = None
+        seeded_tags: list[str] = []
 
         try:
+            # Seed tags declared by the scenario before creating the branch.
+            # These simulate pre-existing tags in the sandbox namespace so that
+            # guardrail scenarios can test against a known latest tag.
+            # Created on the sandbox ref; cleaned up in finally regardless of outcome.
+            for tag_name in scenario.get("seed_tags", []):
+                github.create_tag(tag_name, ref=pr_base)
+                seeded_tags.append(tag_name)
+
             github.create_branch(branch, from_ref=pr_base)
 
             config_override = scenario.get("config_override")
@@ -74,6 +83,8 @@ class TestPRValidation:
             if pr_number is not None:
                 github.close_pr(pr_number)
             github.delete_branch(branch)
+            for tag_name in seeded_tags:
+                github.delete_tag(tag_name)
 
 
 class TestMergeAndTag:

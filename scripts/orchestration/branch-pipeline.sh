@@ -65,6 +65,15 @@ log_info "Bump type: $BUMP_TYPE"
 echo ""
 
 # ============================================================================
+# Run runtime guardrails (ticket 060). Enforcement layer — fails the pipeline
+# before any side effect (CHANGELOG, tag, push) if an invariant is violated.
+# Guardrails read /tmp/*.txt only; they never mutate state.
+# ============================================================================
+"${AUTOMATIONS_DIR}/validation/run-guardrails.sh"
+
+echo ""
+
+# ============================================================================
 # Generate CHANGELOG + version files (before tag creation)
 # ============================================================================
 

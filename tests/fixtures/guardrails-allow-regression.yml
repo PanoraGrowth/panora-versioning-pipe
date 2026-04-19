@@ -1,0 +1,20 @@
+commits:
+  format: "conventional"
+
+version:
+  tag_prefix_v: true
+  components:
+    epoch:
+      enabled: false
+    major:
+      enabled: true
+      initial: 0
+    patch:
+      enabled: true
+      initial: 0
+    hotfix_counter:
+      enabled: true
+      initial: 0
+
+validation:
+  allow_version_regression: true
