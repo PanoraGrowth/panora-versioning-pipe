@@ -524,3 +524,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: d00777d](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/d00777d498d156143769c6b357964d858f4267a8)
 
 
+## v0.11.27 - 2026-04-19
+
+- 🚀 feat(go): port validate-commits + check-commit-hygiene to Go (GO-03)
+  - _Agustín Manessi_
+  - [Commit: 181e270](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/181e270937a07424bbd27089f5b58f79b95ee1ec)
+
+
