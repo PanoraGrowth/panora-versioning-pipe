@@ -455,7 +455,11 @@ validation:
   allow_version_regression: false  # default — block on regression
 ```
 
-Set to `true` only for intentional downgrades. With this flag, the guardrail degrades from a hard block (exit 1) to a warning (continues with log `result=warned`).
+### Escape hatch (emergency override)
+
+If the guardrail itself has a bug or is blocking a release you explicitly want (rare case: intentional downgrade, epoch rollback, or a calculation defect in the pipe), set `allow_version_regression: true` in `.versioning.yml`. The guardrail degrades from a hard block (exit 1) to an advisory warning (exit 0 with `GUARDRAIL ... result=warned` log). The tag is emitted anyway.
+
+**This is the escape hatch.** A bug in the guardrail will never leave a consumer permanently stuck — flip the flag, ship the release, open an issue with the log line, then flip it back. The full recovery workflow is documented in [`docs/troubleshooting.md`](../troubleshooting.md#tag-on-merge-failed-with-version-regression-blocked-guardrail).
 
 ### When the guardrail fires
 
@@ -463,8 +467,9 @@ Common causes:
 - A calculation bug in the pipe (future regression protection)
 - Manual tag manipulation in the repo (deleted/recreated tags out of order)
 - Fetching with a shallow clone that missed recent tags
+- Misconfigured `version.components.*.initial` that would reset the namespace silently
 
-The error message names the specific violation and the exact tags involved so the operator can diagnose quickly.
+The error message names the specific violation and the exact tags involved so the operator can diagnose quickly. See [`docs/troubleshooting.md`](../troubleshooting.md#tag-on-merge-failed-with-version-regression-blocked-guardrail) for the violation table and step-by-step recovery.
 
 ---
 

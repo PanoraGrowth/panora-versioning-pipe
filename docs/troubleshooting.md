@@ -261,6 +261,63 @@ If you already merged and didn't set the PR title correctly, the release is trea
 
 ---
 
+## tag-on-merge failed with "Version regression blocked" (guardrail)
+
+**Cause.** The `assert_no_version_regression` runtime guardrail detected that the computed next tag is inconsistent with the declared bump type relative to the latest tag in the active namespace. The pipe blocks tag emission **before** any side effect (tag, CHANGELOG, push), so recovery is clean — nothing was pushed.
+
+This is a defensive layer added in v0.11.17 (ticket 060). It catches calculation bugs, misconfigured `initial` values, and manual tag manipulation that would otherwise produce a silent version regression.
+
+**How to identify it.** The run log contains a structured line like:
+
+```
+GUARDRAIL name=no_version_regression result=blocked violation=<reason> bump=<type> next=<tag> latest=<tag>
+ERROR: Version regression blocked: computed tag v5.1.0 is inconsistent with bump=major relative to latest tag v5.8.0 (violation: major_not_incremented).
+ERROR: This usually means version.components.*.initial was misconfigured or the namespace filter excluded the latest tag.
+ERROR: To allow an intentional downgrade, set validation.allow_version_regression: true in .versioning.yml.
+```
+
+The `violation=` field names the specific rule that fired. Possible values:
+
+| Violation | What it means |
+|-----------|---------------|
+| `major_not_incremented` | bump=major but computed major is not greater than latest major |
+| `patch_not_incremented` | bump=patch but computed patch is not greater than latest patch |
+| `hotfix_counter_not_incremented` | bump=hotfix, same base, but counter did not advance |
+| `epoch_regressed` | computed epoch is lower than latest epoch |
+| `major_regressed` | computed major is lower than latest major (for patch or hotfix bumps) |
+| `patch_regressed` | hotfix with base changed, but patch dropped without a major bump to justify the reset |
+
+**Fix.** Walk through the causes in order:
+
+1. **Misconfigured `major.initial` or `epoch.initial`.** Somebody set `major.initial: 0` in `.versioning.yml` on a repo that already has tags in `v5.*`. The pipe starts from `v0.1.0`, which is lower than `v5.8.0` → block. **Fix:** set `major.initial` to match the current namespace (or remove the override entirely). See ["My `major.initial` or `epoch.initial` changed but the pipe keeps producing tags in the old namespace"](#my-majorinitial-or-epochinitial-changed-but-the-pipe-keeps-producing-tags-in-the-old-namespace).
+
+2. **Manual tag manipulation.** Somebody pushed or deleted tags directly on `main` and the pipe sees a stale latest. **Fix:** reconcile the tags — either delete the out-of-order manual tag, or re-run the merge so the pipe recalculates from the correct latest.
+
+3. **Shallow clone missed recent tags.** The CI runner fetched with `fetch-depth: 1` and the local latest tag is older than the remote latest. **Fix:** ensure the workflow uses `fetch-depth: 0` or explicitly fetches tags (`git fetch --tags`). The canonical [`examples/github-actions/tag-on-merge.yml`](../examples/github-actions/tag-on-merge.yml) already does this.
+
+4. **Actual calculation bug in the pipe.** Unlikely, but possible — this is exactly what the guardrail exists to catch. **Fix:** file a bug against `panora-versioning-pipe` with the full run log, the `.versioning.yml`, and the output of `git tag --sort=-version:refname | head -5` on the target branch. In the meantime, see the emergency escape hatch below.
+
+**Emergency escape hatch.** If you need to unblock a release NOW and have confirmed the regression is intentional (for example, a downgrade after reverting a buggy release) or urgent (production is broken and you'll dig into the root cause later), set the override in `.versioning.yml`:
+
+```yaml
+validation:
+  allow_version_regression: true  # EMERGENCY OVERRIDE — remove after diagnosing
+```
+
+With the override, the guardrail degrades from a hard block (exit 1) to a warning. The log line changes to `result=warned` and the pipeline continues with the computed tag. **Do not leave this flag at `true` in production config** — it silences the defensive check that exists specifically to prevent silent regressions.
+
+**Recovery.** Because the guardrail aborts before any side effect, there is nothing to clean up on the repo — no tag was created, no CHANGELOG commit landed, no push happened. After fixing the config (or using the override), re-run the workflow manually:
+
+```bash
+gh workflow run tag-on-merge.yml --ref main  # or: push an empty commit to main
+```
+
+**Where this is tested.** The guardrail logic is covered by 15 unit tests in [`tests/unit/validation/guardrails.bats`](../tests/unit/validation/guardrails.bats) (every bump type, cold start, override behavior, structured log format). The enforcement layer itself is visible in any post-merge run log — look for the `RUNNING GUARDRAILS` / `GUARDRAIL name=no_version_regression result=pass` block.
+
+See [`docs/architecture/README.md`](architecture/README.md#safety-guardrails) for the design rationale and the full rules table.
+
+---
+
 ## My `major.initial` or `epoch.initial` changed but the pipe keeps producing tags in the old namespace
 
 **Cause.** This was a silent bug prior to v0.12 (ticket 055). Before the fix, `version.components.epoch.initial` and `version.components.major.initial` were ignored whenever any tag existed that matched the configured tag pattern — the pipe would parse the latest existing tag and continue in that namespace regardless of what you declared.
