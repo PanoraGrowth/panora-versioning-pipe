@@ -1,13 +1,22 @@
 IMAGE_NAME ?= panora-versioning-pipe
 IMAGE_TAG  ?= local
 
-.PHONY: build run shell lint help build-test test test-unit test-unit-filter test-integration test-integration-bitbucket test-integration-all test-integration-filter test-integration-bitbucket-filter
+GO_BINARY     ?= panora-versioning
+GO_VERSION    ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
+GO_COMMIT     ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo unknown)
+GO_BUILT_AT   ?= $(shell date -u +%Y-%m-%dT%H:%M:%SZ)
+GO_LDFLAGS    := -s -w \
+  -X github.com/PanoraGrowth/panora-versioning-pipe/internal/util/version.Version=$(GO_VERSION) \
+  -X github.com/PanoraGrowth/panora-versioning-pipe/internal/util/version.Commit=$(GO_COMMIT) \
+  -X github.com/PanoraGrowth/panora-versioning-pipe/internal/util/version.BuiltAt=$(GO_BUILT_AT)
+
+.PHONY: build run shell lint help build-test test test-unit test-unit-filter test-integration test-integration-bitbucket test-integration-all test-integration-filter test-integration-bitbucket-filter go-build go-test go-lint go-tidy
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
 		awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2}'
 
-build: ## Build the Docker image
+build: ## Build the Docker image (multi-stage: Go compile + Bash runtime)
 	docker build -t $(IMAGE_NAME):$(IMAGE_TAG) .
 
 run: build ## Run the pipe with a mounted working directory
@@ -55,6 +64,24 @@ test-integration-filter: ## Run specific integration scenario (sequential): make
 
 test-integration-bitbucket-filter: ## Run specific Bitbucket scenario: make test-integration-bitbucket-filter S=feat-minor-bump
 	cd tests/integration && pip install -q -r requirements.txt && pytest -v test_bitbucket.py -x -k "$(S)"
+
+go-build: ## Build the Go binary locally with version ldflags injected
+	go build -ldflags "$(GO_LDFLAGS)" -o bin/$(GO_BINARY) ./cmd/panora-versioning
+
+go-test: ## Run Go unit tests with race detector
+	go test ./... -race -count=1
+
+go-lint: ## Run go vet, gofmt check, and golangci-lint
+	go vet ./...
+	@unformatted="$$(gofmt -l .)"; \
+	if [ -n "$$unformatted" ]; then \
+	  echo "gofmt failures:"; echo "$$unformatted"; exit 1; \
+	fi
+	@command -v golangci-lint >/dev/null 2>&1 || { echo "golangci-lint not found. Install: https://golangci-lint.run/"; exit 1; }
+	golangci-lint run
+
+go-tidy: ## Ensure go.mod and go.sum are tidy
+	go mod tidy
 
 build-preview-image: ## Build and push a preview image to GHCR: make build-preview-image TAG=pr-N
 	@test -n "$(TAG)" || { echo "Usage: make build-preview-image TAG=pr-N"; exit 1; }
