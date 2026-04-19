@@ -461,3 +461,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: 0a05b17](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/0a05b172303b7de0d2455ff6a8cc0b608a6c8275)
 
 
+## v0.11.18 - 2026-04-19
+
+- 🐛 fix(integration): extend harness for merge-but-no-tag scenarios + remove unrepresentable guardrail scenario (#117)
+  - _Agustín Manessi_
+  - [Commit: c15d617](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/c15d61742dc2ae43a5a82c09d1b429a8de3ff391)
+
+
