@@ -519,6 +519,15 @@ require_commit_types() {
     [ "$required" = "true" ]
 }
 
+# Controls runtime guardrail behaviour when the next computed tag is lower than
+# the latest tag in the repo. Default false: abort emission. True: degrade to
+# warning and allow the downgrade (ticket 060).
+allow_version_regression() {
+    local allow
+    allow=$(config_get "validation.allow_version_regression" "false")
+    [ "$allow" = "true" ]
+}
+
 # Return the hotfix title enforcement level: "error" (default) or "warn".
 # Controls what happens in PR context when the source branch is a hotfix branch
 # but the PR title does not carry the hotfix keyword — required for squash-merge detection.

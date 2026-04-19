@@ -415,6 +415,59 @@ The declarative behavior of namespace `initial` has no config flag to revert. If
 
 ---
 
+## Safety guardrails
+
+The pipe includes a runtime enforcement layer that runs **after** version calculation and **before** tag emission. If an invariant is violated, the pipeline aborts with an actionable error before any tag, CHANGELOG, or push occurs.
+
+### How it works
+
+```
+calculate-version.sh → /tmp/next_version.txt
+          ↓
+run-guardrails.sh       ← enforcement layer
+          ↓ (pass)
+write-version-file.sh → CHANGELOG → tag → push
+```
+
+Each guardrail is a pure function: reads `/tmp/*.txt` and git state, never modifies anything, and emits a structured log line:
+
+```
+GUARDRAIL name=no_version_regression result=blocked violation=major_not_incremented bump=major next=v29.1.0 latest=v29.5.0
+```
+
+### assert_no_version_regression
+
+Blocks emission when the computed tag is inconsistent with the declared bump type relative to the latest tag in the active namespace.
+
+| Bump type | Rule |
+|-----------|------|
+| `epoch` (BREAKING CHANGE) | `next.epoch > latest.epoch` |
+| `major` (feat) | `next.major > latest.major` + `next.epoch >= latest.epoch` |
+| `patch` (fix) | `next.patch > latest.patch` + `next.major/epoch >= latest` |
+| `hotfix` | Same base → `next.hotfix_counter > latest.hotfix_counter`<br>Base changed → all base components `>=` latest (counter free — reset is valid) |
+
+Cold start (no latest tag in the active namespace) always passes. This handles both fresh repos and intentional namespace upgrades via `major.initial` / `epoch.initial`.
+
+### Configuration
+
+```yaml
+validation:
+  allow_version_regression: false  # default — block on regression
+```
+
+Set to `true` only for intentional downgrades. With this flag, the guardrail degrades from a hard block (exit 1) to a warning (continues with log `result=warned`).
+
+### When the guardrail fires
+
+Common causes:
+- A calculation bug in the pipe (future regression protection)
+- Manual tag manipulation in the repo (deleted/recreated tags out of order)
+- Fetching with a shallow clone that missed recent tags
+
+The error message names the specific violation and the exact tags involved so the operator can diagnose quickly.
+
+---
+
 ## Known limitations
 
 1. **Bump strategy coupled to changelog.mode**: `mode: "last_commit"` uses last-commit-wins; `mode: "full"` uses highest-wins across all commits. There is no way to mix the two (intentional — they are semantically coherent). See "Bump calculation semantics" above.

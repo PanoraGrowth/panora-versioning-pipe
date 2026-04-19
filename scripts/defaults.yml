@@ -18,6 +18,11 @@ validation:
   require_ticket_prefix: false
   require_commit_types: true    # scope driven by changelog.mode: "last_commit" validates only last, "full" validates all
   hotfix_title_required: "error"  # "error" (block merge) or "warn" (advisory only). Guards squash-merge hotfix detection.
+  # Runtime guardrail: block tag emission when the next computed tag is lower than
+  # the latest tag in the repo. Protects against silent version resets caused by
+  # misconfigured `version.components.*.initial` or future calculation bugs.
+  # Set to true only for intentional downgrades (requires explicit override).
+  allow_version_regression: false
   ignore_patterns:
     - "^Merge"
     - "^Revert"
