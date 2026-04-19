@@ -5,6 +5,7 @@
 # The entrypoint /pipe/pipe.sh is a stable public contract covered by semver.
 
 name: Versioning
+run-name: "Versioning (${{ github.event_name == 'pull_request' && 'PR check' || 'tag on merge' }})"
 
 on:
   pull_request:
