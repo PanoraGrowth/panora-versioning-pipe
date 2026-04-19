@@ -9,7 +9,10 @@ import (
 	ulog "github.com/PanoraGrowth/panora-versioning-pipe/internal/util/log"
 )
 
-const scenarioEnvPath = "/tmp/scenario.env"
+const (
+	scenarioEnvPath  = "/tmp/scenario.env"
+	mergedConfigPath = "/tmp/.versioning-merged.yml"
+)
 
 func newDetectScenarioCmd() *cobra.Command {
 	return &cobra.Command{
