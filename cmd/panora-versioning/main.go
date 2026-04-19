@@ -34,6 +34,8 @@ func newRootCmd() *cobra.Command {
 	cmd.SetVersionTemplate(version.Template())
 
 	cmd.AddCommand(newConfigureGitCmd())
+	cmd.AddCommand(newNotifyTeamsCmd())
+	cmd.AddCommand(newBitbucketBuildStatusCmd())
 	cmd.AddCommand(stubCommands()...)
 
 	return cmd
@@ -50,8 +52,6 @@ func stubCommands() []*cobra.Command {
 		{"check-commit-hygiene", "Check commit hygiene (stub — Wave 1)"},
 		{"guardrails", "Run versioning guardrails (stub — Wave 1)"},
 		{"run-guardrails", "Run the guardrail suite (stub — Wave 1)"},
-		{"notify-teams", "Send the Teams notification (stub — Wave 1)"},
-		{"bitbucket-build-status", "Push Bitbucket build status (stub — Wave 1)"},
 		{"write-version-file", "Write version files (stub — Wave 2)"},
 		{"generate-changelog-per-folder", "Generate per-folder changelogs (stub — Wave 2)"},
 		{"generate-changelog-last-commit", "Generate the last-commit changelog (stub — Wave 2)"},
