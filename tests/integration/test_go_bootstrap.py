@@ -36,8 +36,6 @@ STUB_SUBCOMMANDS = [
     "detect-scenario",
     "validate-commits",
     "check-commit-hygiene",
-    "guardrails",
-    "run-guardrails",
     "notify-teams",
     "bitbucket-build-status",
     "write-version-file",
