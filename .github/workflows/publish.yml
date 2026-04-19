@@ -1,9 +1,9 @@
 name: Release
 
 on:
-  push:
-    tags:
-      - 'v*'
+  workflow_run:
+    workflows: ["Versioning"]
+    types: [completed]
   workflow_dispatch:
 
 permissions:
@@ -17,6 +17,16 @@ jobs:
   docker:
     name: Build and Push Docker Image
     runs-on: ubuntu-latest
+    # Release runs on two paths:
+    #   - workflow_dispatch: manual re-publish (always allowed)
+    #   - workflow_run: only when the Versioning workflow completed from a
+    #     push to main (the tag-on-merge path). PR-triggered Versioning runs
+    #     are ignored to avoid republishing the same image on every PR.
+    if: >-
+      ${{ github.event_name == 'workflow_dispatch' ||
+          (github.event.workflow_run.conclusion == 'success' &&
+           github.event.workflow_run.event == 'push' &&
+           github.event.workflow_run.head_branch == 'main') }}
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
