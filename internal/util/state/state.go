@@ -40,11 +40,14 @@ func AppendEnv(path, key, value string) error {
 	if err != nil {
 		return fmt.Errorf("state.AppendEnv %s: %w", path, err)
 	}
-	defer f.Close()
 
 	line := formatEnvLine(key, value)
-	if _, err := fmt.Fprintln(f, line); err != nil {
-		return fmt.Errorf("state.AppendEnv %s: %w", path, err)
+	if _, writeErr := fmt.Fprintln(f, line); writeErr != nil {
+		_ = f.Close()
+		return fmt.Errorf("state.AppendEnv %s: %w", path, writeErr)
+	}
+	if err := f.Close(); err != nil {
+		return fmt.Errorf("state.AppendEnv %s close: %w", path, err)
 	}
 	return nil
 }
@@ -56,7 +59,7 @@ func LoadEnv(path string) (map[string]string, error) {
 	if err != nil {
 		return nil, fmt.Errorf("state.LoadEnv %s: %w", path, err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	out := make(map[string]string)
 	scanner := bufio.NewScanner(f)

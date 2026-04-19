@@ -39,40 +39,44 @@ func WithHandler(h slog.Handler) {
 	logger = slog.New(h)
 }
 
+// Errors from stdout/stderr writes are intentionally ignored — if the
+// terminal or captured buffer is broken, there is no useful recovery. Keeping
+// the signatures void matches what bash `echo` offered callers.
+
 // Section prints a boxed banner identical to the bash log banners.
 func Section(title string) {
-	fmt.Fprintln(stdout, bannerRule)
-	fmt.Fprintf(stdout, "  %s\n", title)
-	fmt.Fprintln(stdout, bannerRule)
+	_, _ = fmt.Fprintln(stdout, bannerRule)
+	_, _ = fmt.Fprintf(stdout, "  %s\n", title)
+	_, _ = fmt.Fprintln(stdout, bannerRule)
 }
 
 // Info logs a plain informational line and forwards to slog for structured sinks.
 func Info(msg string, attrs ...any) {
-	fmt.Fprintln(stdout, msg)
+	_, _ = fmt.Fprintln(stdout, msg)
 	logger.Info(msg, attrs...)
 }
 
 // Success prints a success marker matching the bash output.
 func Success(msg string) {
-	fmt.Fprintf(stdout, "✓ %s\n", msg)
+	_, _ = fmt.Fprintf(stdout, "✓ %s\n", msg)
 }
 
 // Warn prints a warning marker matching the bash output.
 func Warn(msg string) {
-	fmt.Fprintf(stderr, "⚠️  %s\n", msg)
+	_, _ = fmt.Fprintf(stderr, "⚠️  %s\n", msg)
 }
 
 // Error prints an error marker. The err, when non-nil, is appended after a colon.
 func Error(msg string, err error) {
 	if err != nil {
-		fmt.Fprintf(stderr, "ERROR: %s: %v\n", msg, err)
+		_, _ = fmt.Fprintf(stderr, "ERROR: %s: %v\n", msg, err)
 		return
 	}
-	fmt.Fprintf(stderr, "ERROR: %s\n", msg)
+	_, _ = fmt.Fprintf(stderr, "ERROR: %s\n", msg)
 }
 
 // Plain writes a raw line to stdout. Use when the bash script emits an
 // un-decorated echo and we must preserve the string verbatim.
 func Plain(msg string) {
-	fmt.Fprintln(stdout, msg)
+	_, _ = fmt.Fprintln(stdout, msg)
 }
