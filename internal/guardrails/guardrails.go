@@ -181,26 +181,26 @@ func AssertNoVersionRegression(ctx RunContext) (warned bool, err error) {
 func checkViolation(bump BumpType, next, latest parsedComponents) string {
 	switch bump {
 	case BumpEpoch:
-		if !(next.epoch > latest.epoch) {
+		if next.epoch <= latest.epoch {
 			return "epoch_not_incremented"
 		}
 
 	case BumpMajor:
-		if !(next.major > latest.major) {
+		if next.major <= latest.major {
 			return "major_not_incremented"
 		}
-		if !(next.epoch >= latest.epoch) {
+		if next.epoch < latest.epoch {
 			return "epoch_regressed"
 		}
 
 	case BumpMinor, BumpPatch:
-		if !(next.patch > latest.patch) {
+		if next.patch <= latest.patch {
 			return "patch_not_incremented"
 		}
-		if !(next.major >= latest.major) {
+		if next.major < latest.major {
 			return "major_regressed"
 		}
-		if !(next.epoch >= latest.epoch) {
+		if next.epoch < latest.epoch {
 			return "epoch_regressed"
 		}
 
@@ -210,20 +210,20 @@ func checkViolation(bump BumpType, next, latest parsedComponents) string {
 			next.patch == latest.patch
 
 		if sameBase {
-			if !(next.hotfixCounter > latest.hotfixCounter) {
+			if next.hotfixCounter <= latest.hotfixCounter {
 				return "hotfix_counter_not_incremented"
 			}
 		} else {
 			// Tuple comparison: higher-order component dominates.
 			if next.epoch > latest.epoch {
 				// epoch increased → entire base is greater, valid
-			} else if !(next.epoch >= latest.epoch) {
+			} else if next.epoch < latest.epoch {
 				return "epoch_regressed"
 			} else if next.major > latest.major {
 				// same epoch, major increased → valid regardless of patch
-			} else if !(next.major >= latest.major) {
+			} else if next.major < latest.major {
 				return "major_regressed"
-			} else if !(next.patch >= latest.patch) {
+			} else if next.patch < latest.patch {
 				return "patch_regressed"
 			}
 		}
