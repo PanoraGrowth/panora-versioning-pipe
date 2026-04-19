@@ -496,3 +496,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: 5091ef0](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/5091ef0caa31b004e8a7be466cb7ff958b018f74)
 
 
+## v0.11.23 - 2026-04-19
+
+- 🚀 feat(go): bootstrap Go foundation + port configure-git (GO-00) (#123)
+  - _Agustín Manessi_
+  - [Commit: c21ea5e](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/c21ea5e7cdc413224d49f2560c63f9cf7b8aa29d)
+
+
