@@ -34,6 +34,7 @@ func newRootCmd() *cobra.Command {
 	cmd.SetVersionTemplate(version.Template())
 
 	cmd.AddCommand(newConfigureGitCmd())
+	cmd.AddCommand(newCalcVersionCmd())
 	cmd.AddCommand(newDetectScenarioCmd())
 	cmd.AddCommand(newNotifyTeamsCmd())
 	cmd.AddCommand(newBitbucketBuildStatusCmd())
@@ -49,7 +50,6 @@ func stubCommands() []*cobra.Command {
 		name  string
 		short string
 	}{
-		{"calc-version", "Calculate the next semantic version (stub — Wave 1)"},
 		{"guardrails", "Run versioning guardrails (stub — Wave 1)"},
 		{"run-guardrails", "Run the guardrail suite (stub — Wave 1)"},
 		{"write-version-file", "Write version files (stub — Wave 2)"},
