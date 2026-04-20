@@ -43,6 +43,7 @@ func newRootCmd() *cobra.Command {
 	cmd.AddCommand(newNotifyTeamsCmd())
 	cmd.AddCommand(newBitbucketBuildStatusCmd())
 	cmd.AddCommand(newWriteVersionFileCmd())
+	cmd.AddCommand(newCheckReleaseReadinessCmd())
 	cmd.AddCommand(stubCommands()...)
 
 	return cmd
@@ -56,7 +57,6 @@ func stubCommands() []*cobra.Command {
 		{"generate-changelog-per-folder", "Generate per-folder changelogs (stub — Wave 2)"},
 		{"generate-changelog-last-commit", "Generate the last-commit changelog (stub — Wave 2)"},
 		{"update-changelog", "Update CHANGELOG.md (stub — Wave 2)"},
-		{"check-release-readiness", "Check release readiness (stub — Wave 2)"},
 		{"config-parse", "Parse and merge .versioning.yml (stub — Wave N)"},
 		{"pr-pipeline", "Run the PR pipeline (stub — Wave N)"},
 		{"branch-pipeline", "Run the branch pipeline (stub — Wave N)"},
