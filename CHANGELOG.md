@@ -573,3 +573,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: 9175713](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/917571326f20b3fb69a95e622e7efb16dd0de7d6)
 
 
+## v0.11.34 - 2026-04-20
+
+- 🚀 feat(go): port check-release-readiness to Go (GO-08)
+  - _CI Pipeline_
+  - [Commit: af137a6](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/af137a6641832a11c52a2f3b43e270f3288d3b02)
+
+
