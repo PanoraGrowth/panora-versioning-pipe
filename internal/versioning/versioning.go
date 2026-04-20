@@ -14,10 +14,11 @@ import (
 type BumpType string
 
 const (
-	BumpNone  BumpType = "none"
-	BumpPatch BumpType = "patch"
-	BumpMinor BumpType = "minor"
-	BumpMajor BumpType = "major"
+	BumpNone   BumpType = "none"
+	BumpPatch  BumpType = "patch"
+	BumpMinor  BumpType = "minor"
+	BumpMajor  BumpType = "major"
+	BumpHotfix BumpType = "hotfix"
 )
 
 // CommitType mirrors the catalog entry from commit-types.yml / merged config.
@@ -148,6 +149,12 @@ func NextVersion(latestTag string, bump BumpType, cfg VersionConfig) (string, er
 		prefix = "v"
 	}
 
+	// Hotfix uses a 4-component dot-separated tag (e.g. v1.0.0.3) that semver
+	// cannot parse — handle it before the semver path.
+	if bump == BumpHotfix {
+		return nextHotfixVersion(latestTag, prefix, cfg)
+	}
+
 	var base *semver.Version
 
 	if latestTag == "" {
@@ -181,4 +188,48 @@ func NextVersion(latestTag string, bump BumpType, cfg VersionConfig) (string, er
 	}
 
 	return prefix + next.String(), nil
+}
+
+// nextHotfixVersion handles the BumpHotfix case. Tags may be 3-part
+// (major.patch.0 → first hotfix becomes major.patch.0.1) or 4-part
+// (major.patch.base.N → N+1). Cold start seeds from cfg initial values.
+func nextHotfixVersion(latestTag, prefix string, cfg VersionConfig) (string, error) {
+	if latestTag == "" {
+		// Cold start: seed base components + hotfix_counter initial.
+		return fmt.Sprintf("%s%d.%d.%d.%d",
+			prefix,
+			cfg.MajorInitial,
+			cfg.PatchInitial,
+			0,
+			cfg.HotfixCounterInitial+1,
+		), nil
+	}
+
+	stripped := strings.TrimPrefix(latestTag, "v")
+	parts := strings.Split(stripped, ".")
+
+	parseField := func(idx int) (int64, error) {
+		if idx >= len(parts) {
+			return 0, nil
+		}
+		var v int64
+		if _, err := fmt.Sscanf(parts[idx], "%d", &v); err != nil {
+			return 0, fmt.Errorf("versioning.nextHotfixVersion: field %d of %q: %w", idx, latestTag, err)
+		}
+		return v, nil
+	}
+
+	var fields [4]int64
+	for i := range fields {
+		f, err := parseField(i)
+		if err != nil {
+			return "", err
+		}
+		fields[i] = f
+	}
+
+	// Increment hotfix_counter (last component).
+	fields[3]++
+
+	return fmt.Sprintf("%s%d.%d.%d.%d", prefix, fields[0], fields[1], fields[2], fields[3]), nil
 }

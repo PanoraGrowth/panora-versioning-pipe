@@ -105,8 +105,8 @@ func runCalcVersion(_ *cobra.Command, _ []string) error {
 	var bump versioning.BumpType
 	if scenario == "hotfix" {
 		if verCfg.HotfixCounterEnabled {
-			bump = versioning.BumpPatch
-			ulog.Info("Detected: PATCH bump (hotfix scenario)")
+			bump = versioning.BumpHotfix
+			ulog.Info("Detected: HOTFIX bump (hotfix scenario)")
 		} else {
 			ulog.Info("Hotfix scenario but hotfix_counter.enabled=false — skipping tag creation")
 			if wErr := state.WriteLine(nextVersionPath, ""); wErr != nil {

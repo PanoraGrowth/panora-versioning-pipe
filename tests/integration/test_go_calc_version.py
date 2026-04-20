@@ -333,3 +333,110 @@ class TestCalcVersionNamespaceFilter:
         assert result.returncode == 0
         assert _read_tmp(workspace, "next_version.txt") == "v2.1.0"
         assert _read_tmp(workspace, "bump_type.txt") == "minor"
+
+
+def _write_merged_config_hotfix(workspace: Path) -> None:
+    """Write a merged config with hotfix_counter enabled."""
+    tmp = workspace / "tmp"
+    tmp.mkdir(exist_ok=True)
+
+    content = textwrap.dedent("""\
+        commits:
+          format: "conventional"
+        version:
+          components:
+            epoch:
+              enabled: false
+              initial: 0
+            major:
+              enabled: true
+              initial: 0
+            patch:
+              enabled: true
+              initial: 0
+            hotfix_counter:
+              enabled: true
+              initial: 0
+            timestamp:
+              enabled: false
+          tag_prefix_v: true
+          separators:
+            version: "."
+        changelog:
+          mode: "full"
+        commit_types:
+          - name: "feat"
+            bump: "minor"
+          - name: "fix"
+            bump: "patch"
+          - name: "chore"
+            bump: "none"
+        validation:
+          ignore_patterns:
+            - "^Merge"
+            - "^chore\\\\(release\\\\)"
+    """)
+    (tmp / ".versioning-merged.yml").write_text(content)
+
+
+class TestCalcVersionHotfix:
+    """hotfix scenario → bump_type=hotfix, next_version increments hotfix_counter.
+
+    Verifies the fix for AUDIT finding [BLOCKER]: calc_version.go was writing
+    bump_type="patch" instead of "hotfix" in hotfix scenarios, causing the
+    guardrail to check patch regression instead of hotfix_counter regression.
+    """
+
+    def test_exit_code(self, calc_image: str, tmp_path: Path) -> None:
+        workspace = tmp_path / f"repo-{uuid.uuid4().hex[:6]}"
+        workspace.mkdir()
+        _seed_repo(workspace, initial_tag="v1.0.0", commit_msg="fix: critical bug")
+        _write_scenario_env(workspace, scenario="hotfix")
+        _write_merged_config_hotfix(workspace)
+
+        result = _run_calc_version(calc_image, workspace)
+        assert result.returncode == 0, (
+            f"expected exit 0, got {result.returncode}\n"
+            f"stdout:\n{result.stdout}\nstderr:\n{result.stderr}"
+        )
+
+    def test_bump_type_is_hotfix(self, calc_image: str, tmp_path: Path) -> None:
+        """bump_type.txt must contain 'hotfix', not 'patch'."""
+        workspace = tmp_path / f"repo-{uuid.uuid4().hex[:6]}"
+        workspace.mkdir()
+        _seed_repo(workspace, initial_tag="v1.0.0", commit_msg="fix: critical bug")
+        _write_scenario_env(workspace, scenario="hotfix")
+        _write_merged_config_hotfix(workspace)
+
+        _run_calc_version(calc_image, workspace)
+        bump = _read_tmp(workspace, "bump_type.txt")
+        assert bump == "hotfix", (
+            f"expected bump_type='hotfix' (BLOCKER fix), got {bump!r}"
+        )
+
+    def test_next_version_increments_hotfix_counter(self, calc_image: str, tmp_path: Path) -> None:
+        """next_version.txt must have a 4th component (hotfix_counter)."""
+        workspace = tmp_path / f"repo-{uuid.uuid4().hex[:6]}"
+        workspace.mkdir()
+        _seed_repo(workspace, initial_tag="v1.0.0", commit_msg="fix: critical bug")
+        _write_scenario_env(workspace, scenario="hotfix")
+        _write_merged_config_hotfix(workspace)
+
+        _run_calc_version(calc_image, workspace)
+        next_ver = _read_tmp(workspace, "next_version.txt")
+        assert next_ver == "v1.0.0.1", (
+            f"expected next_version='v1.0.0.1', got {next_ver!r}"
+        )
+
+    def test_logs_mention_hotfix(self, calc_image: str, tmp_path: Path) -> None:
+        """stdout must mention 'hotfix' to confirm the correct scenario path."""
+        workspace = tmp_path / f"repo-{uuid.uuid4().hex[:6]}"
+        workspace.mkdir()
+        _seed_repo(workspace, initial_tag="v1.0.0", commit_msg="fix: critical bug")
+        _write_scenario_env(workspace, scenario="hotfix")
+        _write_merged_config_hotfix(workspace)
+
+        result = _run_calc_version(calc_image, workspace)
+        assert "hotfix" in result.stdout.lower(), (
+            f"expected 'hotfix' in stdout logs:\n{result.stdout}"
+        )
