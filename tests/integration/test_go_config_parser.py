@@ -296,7 +296,7 @@ def _fixture_files() -> list[Path]:
     ids=[p.stem for p in _fixture_files()],
 )
 class TestConfigParserDualRunFixtures:
-    """For each fixture, bash and Go must produce semantically equal merged YAML.
+    r"""For each fixture, bash and Go must produce semantically equal merged YAML.
 
     Accepted format deltas (documented in PR "Behavior delta vs bash"):
       - YAML comments from source files
