@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"gopkg.in/yaml.v3"
+	"github.com/PanoraGrowth/panora-versioning-pipe/internal/config"
 )
 
 // Config holds the subset of the merged versioning config needed by guardrails.
@@ -37,18 +37,26 @@ type ValidationConfig struct {
 	AllowVersionRegression bool `yaml:"allow_version_regression"`
 }
 
-// LoadConfig reads the merged config from path and parses the fields guardrails
-// needs. It never fails on unknown keys — yaml.v3 ignores them by default.
+// LoadConfig reads the merged config from path via the canonical config.Load
+// loader and maps the fields guardrails needs.
 func LoadConfig(path string) (Config, error) {
-	data, err := os.ReadFile(path)
+	cfg, err := config.Load(path)
 	if err != nil {
-		return Config{}, fmt.Errorf("guardrails: read config %s: %w", path, err)
+		return Config{}, fmt.Errorf("guardrails: %w", err)
 	}
-	var cfg Config
-	if err := yaml.Unmarshal(data, &cfg); err != nil {
-		return Config{}, fmt.Errorf("guardrails: parse config %s: %w", path, err)
-	}
-	return cfg, nil
+	return Config{
+		Version: VersionConfig{
+			Components: ComponentsConfig{
+				Epoch:         ComponentConfig{Enabled: cfg.Version.Components.Epoch.Enabled},
+				Major:         ComponentConfig{Enabled: cfg.Version.Components.Major.Enabled},
+				Patch:         ComponentConfig{Enabled: cfg.Version.Components.Patch.Enabled},
+				HotfixCounter: ComponentConfig{Enabled: cfg.Version.Components.HotfixCounter.Enabled},
+			},
+		},
+		Validation: ValidationConfig{
+			AllowVersionRegression: cfg.Validation.AllowVersionRegression,
+		},
+	}, nil
 }
 
 // MergedConfigPath returns the path to the merged config file, preferring the

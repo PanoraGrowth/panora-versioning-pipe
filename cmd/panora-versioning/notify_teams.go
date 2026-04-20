@@ -8,8 +8,8 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
-	"gopkg.in/yaml.v3"
 
+	internalconfig "github.com/PanoraGrowth/panora-versioning-pipe/internal/config"
 	"github.com/PanoraGrowth/panora-versioning-pipe/internal/reporting"
 	"github.com/PanoraGrowth/panora-versioning-pipe/internal/util/log"
 )
@@ -101,24 +101,27 @@ func runNotifyTeams(ctx context.Context, triggerType string) error {
 }
 
 func loadNotifConfig() (notifConfig, error) {
-	var cfg notifConfig
-	// Apply defaults matching bash script behavior.
-	cfg.Notifications.Teams.Enabled = true
-	cfg.Notifications.Teams.OnSuccess = true
-	cfg.Notifications.Teams.OnFailure = true
+	cfgPath := "/tmp/.versioning-merged.yml"
+	if v := os.Getenv("PANORA_MERGED_CONFIG"); v != "" {
+		cfgPath = v
+	}
 
-	data, err := os.ReadFile("/tmp/.versioning-merged.yml")
+	if _, err := os.Stat(cfgPath); os.IsNotExist(err) {
+		// No merged config yet — return struct with Go zero values.
+		// Notifications.Teams.Enabled defaults to false → notifications skipped.
+		return notifConfig{}, nil
+	}
+
+	canonical, err := internalconfig.Load(cfgPath)
 	if err != nil {
-		if os.IsNotExist(err) {
-			return cfg, nil // no config → use defaults
-		}
-		return cfg, fmt.Errorf("notify-teams: read config: %w", err)
+		return notifConfig{}, fmt.Errorf("notify-teams: %w", err)
 	}
 
-	if err := yaml.Unmarshal(data, &cfg); err != nil {
-		return cfg, fmt.Errorf("notify-teams: parse config: %w", err)
-	}
-
+	var cfg notifConfig
+	cfg.Notifications.Teams.Enabled = canonical.Notifications.Teams.Enabled
+	cfg.Notifications.Teams.OnSuccess = canonical.Notifications.Teams.OnSuccess
+	cfg.Notifications.Teams.OnFailure = canonical.Notifications.Teams.OnFailure
+	// PayloadTemplate not in config schema — stays empty (resolved via resolveTemplatePath).
 	return cfg, nil
 }
 
