@@ -84,16 +84,16 @@ def _seed_repo(workspace: Path, *, tag: str | None = None) -> None:
 def _write_config(workspace: Path, *, extra_yaml: str = "") -> None:
     tmp = workspace / "tmp"
     tmp.mkdir(exist_ok=True)
-    config = textwrap.dedent(f"""\
+    base = textwrap.dedent("""\
         commits:
           format: conventional
         version:
           tag_prefix_v: true
           components:
-            major: {{enabled: true, initial: 0}}
-            patch: {{enabled: true, initial: 0}}
-        {extra_yaml}
+            major: {enabled: true, initial: 0}
+            patch: {enabled: true, initial: 0}
     """)
+    config = base + textwrap.dedent(extra_yaml)
     (tmp / ".versioning-merged.yml").write_text(config)
 
 
@@ -215,7 +215,7 @@ class TestReleaseReadinessMissingVersionFile:
               groups:
                 - name: root
                   files:
-                    - path: package.json
+                    - package.json
         """))
 
         result = _run_rr(rr_image, workspace)
@@ -233,7 +233,7 @@ class TestReleaseReadinessMissingVersionFile:
               groups:
                 - name: root
                   files:
-                    - path: package.json
+                    - package.json
         """))
 
         result = _run_rr(rr_image, workspace)
@@ -255,7 +255,7 @@ class TestReleaseReadinessMultipleIssues:
               groups:
                 - name: root
                   files:
-                    - path: missing_file.yaml
+                    - missing_file.yaml
         """))
         (workspace / "dirty.txt").write_text("dirty\n")
         subprocess.run(

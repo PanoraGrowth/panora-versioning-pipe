@@ -3,12 +3,22 @@ package main
 import (
 	"fmt"
 	"os"
+	"os/exec"
+	"strings"
 
 	"github.com/spf13/cobra"
 
 	"github.com/PanoraGrowth/panora-versioning-pipe/internal/config"
 	"github.com/PanoraGrowth/panora-versioning-pipe/internal/release"
 )
+
+func repoRootDir() (string, error) {
+	out, err := exec.Command("git", "rev-parse", "--show-toplevel").Output()
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(string(out)), nil
+}
 
 func newCheckReleaseReadinessCmd() *cobra.Command {
 	return &cobra.Command{

@@ -135,13 +135,19 @@ func Print(r Report, w io.Writer) {
 	fmt.Fprintln(w, "------------------------------------------")
 }
 
+func gitRun(ctx Context, args ...string) ([]byte, error) {
+	cmd := exec.Command("git", args...)
+	cmd.Dir = ctx.RepoRoot
+	return cmd.Output()
+}
+
 func prChangedFiles(ctx Context) ([]string, bool) {
-	base, err := exec.Command("git", "merge-base", ctx.BaseRef, "HEAD").Output()
+	base, err := gitRun(ctx, "merge-base", ctx.BaseRef, "HEAD")
 	if err != nil {
 		return nil, false
 	}
 	baseHash := strings.TrimSpace(string(base))
-	out, err := exec.Command("git", "diff", "--name-only", baseHash, "HEAD").Output()
+	out, err := gitRun(ctx, "diff", "--name-only", baseHash, "HEAD")
 	if err != nil {
 		return nil, false
 	}
@@ -155,12 +161,12 @@ func prChangedFiles(ctx Context) ([]string, bool) {
 }
 
 func prCommitMessages(ctx Context) (string, bool) {
-	base, err := exec.Command("git", "merge-base", ctx.BaseRef, "HEAD").Output()
+	base, err := gitRun(ctx, "merge-base", ctx.BaseRef, "HEAD")
 	if err != nil {
 		return "", false
 	}
 	baseHash := strings.TrimSpace(string(base))
-	out, err := exec.Command("git", "log", "--format=%B%x1e", baseHash+"..HEAD").Output()
+	out, err := gitRun(ctx, "log", "--format=%B%x1e", baseHash+"..HEAD")
 	if err != nil {
 		return "", false
 	}
@@ -438,11 +444,15 @@ func checkBitbucketExampleImage(ctx Context) (Severity, string) {
 }
 
 func workdirClean(ctx Context) (Severity, string) {
-	out, err := exec.Command("git", "status", "--porcelain").Output()
+	staged, err := gitRun(ctx, "diff", "--cached", "--name-only")
 	if err != nil {
-		return SeverityUnclear, "could not run git status: " + err.Error()
+		return SeverityUnclear, "could not run git diff --cached: " + err.Error()
 	}
-	if strings.TrimSpace(string(out)) != "" {
+	unstaged, err := gitRun(ctx, "diff", "--name-only")
+	if err != nil {
+		return SeverityUnclear, "could not run git diff: " + err.Error()
+	}
+	if strings.TrimSpace(string(staged)) != "" || strings.TrimSpace(string(unstaged)) != "" {
 		return SeverityBlock, "working directory has uncommitted changes"
 	}
 	return SeverityPass, ""
@@ -455,13 +465,12 @@ func missingVersionFiles(ctx Context) (Severity, string) {
 	var missing []string
 	for _, group := range ctx.Cfg.VersionFile.Groups {
 		for _, entry := range group.Files {
-			path := entryPath(entry)
-			if path == "" {
+			if entry == "" {
 				continue
 			}
-			abs := filepath.Join(ctx.RepoRoot, path)
+			abs := filepath.Join(ctx.RepoRoot, entry)
 			if _, err := os.Stat(abs); os.IsNotExist(err) {
-				missing = append(missing, path)
+				missing = append(missing, entry)
 			}
 		}
 	}
@@ -469,16 +478,4 @@ func missingVersionFiles(ctx Context) (Severity, string) {
 		return SeverityBlock, "configured version files missing: " + strings.Join(missing, ", ")
 	}
 	return SeverityPass, ""
-}
-
-// entryPath extracts the file path from a VersionFileGroup.Files entry.
-// The type changes across migration stages (string vs VersionFileEntry).
-func entryPath(v interface{}) string {
-	switch e := v.(type) {
-	case config.VersionFileEntry:
-		return e.Path
-	case string:
-		return e
-	}
-	return ""
 }
