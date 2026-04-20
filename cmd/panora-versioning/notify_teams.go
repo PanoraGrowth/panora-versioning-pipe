@@ -112,7 +112,9 @@ func loadNotifConfig() (notifConfig, error) {
 		return notifConfig{}, nil
 	}
 
-	canonical, err := internalconfig.Load(cfgPath)
+	// Use Parse (no defaults) — the merged config already has all values set.
+	// Load() applies Defaults() which can overwrite explicit enabled:false.
+	canonical, err := internalconfig.Parse(cfgPath)
 	if err != nil {
 		return notifConfig{}, fmt.Errorf("notify-teams: %w", err)
 	}
