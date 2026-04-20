@@ -594,3 +594,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: 95d5a36](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/95d5a367775843ba1584a2eaace2835ac55acdf1)
 
 
+## v0.11.37 - 2026-04-20
+
+- 🚀 feat(go): port config-parser.sh to Go (GO-10) (#149)
+  - _Agustín Manessi_
+  - [Commit: 610e0d1](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/610e0d1df111e2bda91eff1835af434fc2627002)
+
+
