@@ -559,3 +559,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: 7eabc4a](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/7eabc4a3990f16fccc3cab9a7e08483370ad3025)
 
 
+## v0.11.32 - 2026-04-20
+
+- 🚀 feat(go): add typed config loader for merged YAML (GO-09) (#134)
+  - _Agustín Manessi_
+  - [Commit: a85da59](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/a85da592dadd377b0cca77ab3a85283d00da677e)
+
+
