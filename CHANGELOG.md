@@ -566,3 +566,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: a85da59](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/a85da592dadd377b0cca77ab3a85283d00da677e)
 
 
+## v0.11.33 - 2026-04-20
+
+- 🚀 feat(go): port write-version-file to Go (GO-06) (#143)
+  - _Agustín Manessi_
+  - [Commit: 9175713](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/917571326f20b3fb69a95e622e7efb16dd0de7d6)
+
+
