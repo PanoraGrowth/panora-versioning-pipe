@@ -45,6 +45,10 @@ RUN chmod +x /pipe/pipe.sh
 COPY tests/integration/bash-calc-version-wrapper.sh /pipe/bash-calc-version-wrapper.sh
 RUN chmod +x /pipe/bash-calc-version-wrapper.sh
 
+# Wrapper for config-parser dual-run: invokes load_config() and writes merged YAML.
+COPY tests/integration/bash-config-parser-wrapper.sh /pipe/bash-config-parser-wrapper.sh
+RUN chmod +x /pipe/bash-config-parser-wrapper.sh
+
 USER pipe
 
 ENTRYPOINT ["/pipe/bash-calc-version-wrapper.sh"]
