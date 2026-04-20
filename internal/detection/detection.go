@@ -12,7 +12,7 @@ import (
 	"sort"
 	"strings"
 
-	"gopkg.in/yaml.v3"
+	"github.com/PanoraGrowth/panora-versioning-pipe/internal/config"
 )
 
 // Kind is the detected pipeline scenario.
@@ -251,83 +251,18 @@ func Detect(ctx DetectContext) (Scenario, error) {
 	return Scenario{Kind: KindUnknown}, nil
 }
 
-// rawVersioningYML is the minimal shape of .versioning.yml (or merged config)
-// needed by detect-scenario. Full config loading is GO-09.
-type rawVersioningYML struct {
-	Branches struct {
-		TagOn         string   `yaml:"tag_on"`
-		HotfixTargets []string `yaml:"hotfix_targets"`
-	} `yaml:"branches"`
-	Hotfix struct {
-		Keyword yaml.Node `yaml:"keyword"`
-	} `yaml:"hotfix"`
-}
-
-// LoadConfig parses a .versioning.yml (or /tmp/.versioning-merged.yml) and
-// returns a Config with the fields detect-scenario needs. Defaults match
-// config-parser.sh defaults.
+// LoadConfig parses a .versioning.yml (or /tmp/.versioning-merged.yml) via the
+// canonical config.Load loader and maps the fields detect-scenario needs.
 func LoadConfig(path string) (Config, error) {
-	data, err := os.ReadFile(path)
+	cfg, err := config.Load(path)
 	if err != nil {
 		return Config{}, fmt.Errorf("detection.LoadConfig %s: %w", path, err)
 	}
-
-	var raw rawVersioningYML
-	if err := yaml.Unmarshal(data, &raw); err != nil {
-		return Config{}, fmt.Errorf("detection.LoadConfig parse %s: %w", path, err)
-	}
-
-	tagBranch := raw.Branches.TagOn
-	if tagBranch == "" {
-		tagBranch = "development" // default from config-parser.sh
-	}
-
-	hotfixTargets := raw.Branches.HotfixTargets
-	if len(hotfixTargets) == 0 {
-		hotfixTargets = []string{"main", "pre-production"} // defaults
-	}
-
-	keywords := parseHotfixKeywords(raw.Hotfix.Keyword)
-
 	return Config{
-		TagBranch:      tagBranch,
-		HotfixTargets:  hotfixTargets,
-		HotfixKeywords: keywords,
+		TagBranch:      cfg.Branches.TagOn,
+		HotfixTargets:  cfg.Branches.HotfixTargets,
+		HotfixKeywords: cfg.Hotfix.Keyword.Values,
 	}, nil
-}
-
-// parseHotfixKeywords handles both scalar and sequence keyword values.
-// Scalar "hotfix" → ["hotfix:*", "hotfix(*"] (same as get_hotfix_keywords in bash).
-// Sequence → return as-is.
-func parseHotfixKeywords(node yaml.Node) []string {
-	if node.Kind == 0 {
-		// No hotfix.keyword set → default keyword "hotfix".
-		return defaultKeywordPatterns("hotfix")
-	}
-
-	switch node.Kind {
-	case yaml.ScalarNode:
-		kw := node.Value
-		if kw == "" {
-			kw = "hotfix"
-		}
-		return defaultKeywordPatterns(kw)
-	case yaml.SequenceNode:
-		var patterns []string
-		for _, child := range node.Content {
-			if child.Value != "" {
-				patterns = append(patterns, child.Value)
-			}
-		}
-		return patterns
-	}
-	return defaultKeywordPatterns("hotfix")
-}
-
-// defaultKeywordPatterns replicates get_hotfix_keywords() for a scalar keyword:
-// keyword → ["{kw}:*", "{kw}(*"]
-func defaultKeywordPatterns(kw string) []string {
-	return []string{kw + ":*", kw + "(*"}
 }
 
 // FindConfig locates the versioning config to use for detection.

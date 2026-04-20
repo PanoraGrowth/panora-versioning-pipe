@@ -161,6 +161,11 @@ func (h *HotfixKeywordList) UnmarshalYAML(value *yaml.Node) error {
 	return nil
 }
 
+// MarshalYAML serializes HotfixKeywordList as a plain []string sequence.
+func (h HotfixKeywordList) MarshalYAML() (interface{}, error) {
+	return h.Values, nil
+}
+
 // HotfixConfig holds the hotfix section.
 type HotfixConfig struct {
 	Keyword HotfixKeywordList `yaml:"keyword"`
@@ -187,7 +192,7 @@ type Config struct {
 	Version             VersionConfig                 `yaml:"version"`
 	Changelog           ChangelogConfig               `yaml:"changelog"`
 	CommitTypes         []CommitType                  `yaml:"commit_types"`
-	CommitTypeOverrides map[string]CommitTypeOverride `yaml:"commit_type_overrides"`
+	CommitTypeOverrides map[string]CommitTypeOverride `yaml:"commit_type_overrides,omitempty"`
 	Hotfix              HotfixConfig                  `yaml:"hotfix"`
 	Branches            BranchesConfig                `yaml:"branches"`
 	VersionFile         VersionFileConfig             `yaml:"version_file"`
@@ -195,16 +200,28 @@ type Config struct {
 }
 
 // Load parses the YAML file at path into a Config and applies defaults.
+// Use this when loading a raw .versioning.yml that may be missing fields.
+// For a pre-merged config (already has defaults from config-parse), use Parse.
 func Load(path string) (*Config, error) {
+	cfg, err := Parse(path)
+	if err != nil {
+		return nil, err
+	}
+	cfg.Defaults()
+	return cfg, nil
+}
+
+// Parse parses the YAML file at path into a Config without applying defaults.
+// Use this when loading a merged config that already has all values set.
+func Parse(path string) (*Config, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return nil, fmt.Errorf("config.Load %s: %w", path, err)
+		return nil, fmt.Errorf("config.Parse %s: %w", path, err)
 	}
 	var cfg Config
 	if err := yaml.Unmarshal(data, &cfg); err != nil {
-		return nil, fmt.Errorf("config.Load unmarshal %s: %w", path, err)
+		return nil, fmt.Errorf("config.Parse unmarshal %s: %w", path, err)
 	}
-	cfg.Defaults()
 	return &cfg, nil
 }
 

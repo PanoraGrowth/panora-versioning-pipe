@@ -34,6 +34,7 @@ func newRootCmd() *cobra.Command {
 	cmd.SetVersionTemplate(version.Template())
 
 	cmd.AddCommand(newConfigureGitCmd())
+	cmd.AddCommand(newConfigParseCmd())
 	cmd.AddCommand(newGuardrailsCmd())
 	cmd.AddCommand(newRunGuardrailsCmd())
 	cmd.AddCommand(newCalcVersionCmd())
@@ -57,7 +58,6 @@ func stubCommands() []*cobra.Command {
 		name  string
 		short string
 	}{
-		{"config-parse", "Parse and merge .versioning.yml (stub — Wave N)"},
 		{"pr-pipeline", "Run the PR pipeline (stub — Wave N)"},
 		{"branch-pipeline", "Run the branch pipeline (stub — Wave N)"},
 	}
