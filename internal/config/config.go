@@ -124,10 +124,44 @@ type VersionFileEntry struct {
 
 // VersionFileGroup describes a group of files to update on version bump.
 type VersionFileGroup struct {
-	Name         string   `yaml:"name"`
-	TriggerPaths []string `yaml:"trigger_paths,omitempty"`
-	Files        []string `yaml:"files"`
-	UpdateAll    bool     `yaml:"update_all,omitempty"`
+	Name         string             `yaml:"name"`
+	TriggerPaths []string           `yaml:"trigger_paths,omitempty"`
+	Files        []VersionFileEntry `yaml:"files"`
+	UpdateAll    bool               `yaml:"update_all,omitempty"`
+}
+
+// UnmarshalYAML handles files entries that are plain strings (just a path)
+// or objects with path+pattern fields.
+func (g *VersionFileGroup) UnmarshalYAML(value *yaml.Node) error {
+	type rawGroup struct {
+		Name         string    `yaml:"name"`
+		TriggerPaths []string  `yaml:"trigger_paths,omitempty"`
+		Files        yaml.Node `yaml:"files"`
+		UpdateAll    bool      `yaml:"update_all,omitempty"`
+	}
+	var raw rawGroup
+	if err := value.Decode(&raw); err != nil {
+		return err
+	}
+	g.Name = raw.Name
+	g.TriggerPaths = raw.TriggerPaths
+	g.UpdateAll = raw.UpdateAll
+	if raw.Files.Kind == 0 {
+		return nil
+	}
+	for _, item := range raw.Files.Content {
+		switch item.Kind {
+		case yaml.ScalarNode:
+			g.Files = append(g.Files, VersionFileEntry{Path: item.Value})
+		case yaml.MappingNode:
+			var entry VersionFileEntry
+			if err := item.Decode(&entry); err != nil {
+				return err
+			}
+			g.Files = append(g.Files, entry)
+		}
+	}
+	return nil
 }
 
 // VersionFileConfig holds the version_file section.
