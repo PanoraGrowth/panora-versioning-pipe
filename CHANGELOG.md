@@ -587,3 +587,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: 01fe886](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/01fe886404c43b0211cce93fb25c44c67f24f573)
 
 
+## v0.11.36 - 2026-04-20
+
+- 🐛 fix(versioning): write bump_type=hotfix in hotfix scenario (#146)
+  - _Agustín Manessi_
+  - [Commit: 95d5a36](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/95d5a367775843ba1584a2eaace2835ac55acdf1)
+
+
