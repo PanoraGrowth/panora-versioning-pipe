@@ -5,9 +5,8 @@ package versioning
 import (
 	"fmt"
 	"regexp"
+	"strconv"
 	"strings"
-
-	"github.com/Masterminds/semver/v3"
 )
 
 // BumpType is the strength of a version bump.
@@ -140,54 +139,135 @@ func LatestTagFilter(cfg VersionConfig) *regexp.Regexp {
 	return regexp.MustCompile(fmt.Sprintf(`^%s%s`, prefix, anchor))
 }
 
+// versionSlots holds the parsed numeric components of a version tag.
+// Slot positions follow the enabled component order: [epoch?][major][patch?][hotfix_counter?]
+type versionSlots struct {
+	epoch         int64
+	major         int64
+	patch         int64
+	hotfixCounter int64
+}
+
+// parseVersionSlots parses a tag string into numeric slots given the schema config.
+// It strips the v-prefix and splits on ".". Slot assignment follows the active
+// component order: epoch (if enabled), major, patch (if enabled), hotfix_counter
+// (if enabled and present).
+func parseVersionSlots(tag string, cfg VersionConfig) (versionSlots, error) {
+	stripped := strings.TrimPrefix(tag, "v")
+	parts := strings.Split(stripped, ".")
+	var vs versionSlots
+
+	idx := 0
+	parsePart := func(name string) (int64, error) {
+		if idx >= len(parts) {
+			return 0, nil
+		}
+		v, err := strconv.ParseInt(parts[idx], 10, 64)
+		if err != nil {
+			return 0, fmt.Errorf("versioning: parse slot %s in %q: %w", name, tag, err)
+		}
+		idx++
+		return v, nil
+	}
+
+	var err error
+	if cfg.EpochEnabled {
+		if vs.epoch, err = parsePart("epoch"); err != nil {
+			return vs, err
+		}
+	}
+	if cfg.MajorEnabled {
+		if vs.major, err = parsePart("major"); err != nil {
+			return vs, err
+		}
+	}
+	if cfg.PatchEnabled {
+		if vs.patch, err = parsePart("patch"); err != nil {
+			return vs, err
+		}
+	}
+	if cfg.HotfixCounterEnabled && idx < len(parts) {
+		if vs.hotfixCounter, err = parsePart("hotfix_counter"); err != nil {
+			return vs, err
+		}
+	}
+	return vs, nil
+}
+
+// buildVersionString constructs a dot-separated tag from slots, following only
+// enabled components. Mirrors bash build_version_string / build_full_tag logic.
+// hotfix_counter is appended only when it is enabled AND > 0.
+func buildVersionString(vs versionSlots, cfg VersionConfig) string {
+	var parts []string
+	if cfg.EpochEnabled {
+		parts = append(parts, strconv.FormatInt(vs.epoch, 10))
+	}
+	if cfg.MajorEnabled {
+		parts = append(parts, strconv.FormatInt(vs.major, 10))
+	}
+	if cfg.PatchEnabled {
+		parts = append(parts, strconv.FormatInt(vs.patch, 10))
+	}
+	if cfg.HotfixCounterEnabled && vs.hotfixCounter > 0 {
+		parts = append(parts, strconv.FormatInt(vs.hotfixCounter, 10))
+	}
+	return strings.Join(parts, ".")
+}
+
 // NextVersion computes the next version string given the latest tag (which may
-// be empty for a cold start) and the bump type. Returns an error if the latest
-// tag cannot be parsed as semver.
+// be empty for a cold start) and the bump type. Uses the VersionConfig schema
+// to determine which slot to increment — mirrors bash calculate-version.sh logic
+// (post-ticket-042: BumpMinor and BumpPatch both increment the patch slot, i.e.
+// the 3rd active component, as the "minor" label is a commit-type concern only).
 func NextVersion(latestTag string, bump BumpType, cfg VersionConfig) (string, error) {
 	prefix := ""
 	if cfg.TagPrefixV {
 		prefix = "v"
 	}
 
-	// Hotfix uses a 4-component dot-separated tag (e.g. v1.0.0.3) that semver
-	// cannot parse — handle it before the semver path.
+	// Hotfix uses a 4-component dot-separated tag — dedicated handler.
 	if bump == BumpHotfix {
 		return nextHotfixVersion(latestTag, prefix, cfg)
 	}
 
-	var base *semver.Version
+	var vs versionSlots
 
 	if latestTag == "" {
-		raw := fmt.Sprintf("%d.%d.%d", cfg.MajorInitial, cfg.PatchInitial, 0)
-		v, err := semver.NewVersion(raw)
-		if err != nil {
-			return "", fmt.Errorf("versioning.NextVersion cold-start: %w", err)
+		// Cold start: seed from initial values.
+		vs = versionSlots{
+			epoch:         int64(cfg.EpochInitial),
+			major:         int64(cfg.MajorInitial),
+			patch:         int64(cfg.PatchInitial),
+			hotfixCounter: int64(cfg.HotfixCounterInitial),
 		}
-		base = v
 	} else {
-		tagToParse := strings.TrimPrefix(latestTag, "v")
-		v, err := semver.NewVersion(tagToParse)
+		var err error
+		vs, err = parseVersionSlots(latestTag, cfg)
 		if err != nil {
-			return "", fmt.Errorf("versioning.NextVersion parse %q: %w", latestTag, err)
+			return "", fmt.Errorf("versioning.NextVersion: %w", err)
 		}
-		base = v
 	}
 
-	var next semver.Version
 	switch bump {
 	case BumpMajor:
-		next = base.IncMajor()
+		vs.major++
+		vs.patch = 0
+		vs.hotfixCounter = 0
 	case BumpMinor:
-		next = base.IncMinor()
+		// Post-ticket-042: "minor" bump (feat/feature) increments the patch slot
+		// (3rd active component). There is no separate "minor" numeric slot.
+		vs.patch++
+		vs.hotfixCounter = 0
 	case BumpPatch:
-		next = base.IncPatch()
+		vs.patch++
+		vs.hotfixCounter = 0
 	case BumpNone:
-		return prefix + base.Original(), nil
+		// No version change.
 	default:
 		return "", fmt.Errorf("versioning.NextVersion: unknown bump %q", bump)
 	}
 
-	return prefix + next.String(), nil
+	return prefix + buildVersionString(vs, cfg), nil
 }
 
 // nextHotfixVersion handles the BumpHotfix case. Tags may be 3-part

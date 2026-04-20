@@ -437,33 +437,18 @@ class TestDualRunCalcVersion:
     Cold start (no initial_tag): both runtimes start from scratch.
 
     Scenarios:
-      1. feat:  → bump_type=minor. Version DIVERGES — xfail (FINDING MEDIUM).
-      2. fix:   → bump_type=patch. Version DIVERGES — xfail (FINDING MEDIUM).
-      3. chore: → no bump, no version. Both agree — passes.
+      1. feat:  → bump_type=minor. Both agree — v0.0.1 (FINDING MEDIUM fixed in GO-10).
+      2. fix:   → bump_type=patch. Both agree — v0.0.1.
+      3. chore: → no bump, no version. Both agree.
 
-    [FINDING MEDIUM] Go calc-version ignores the configurable component schema.
-    It uses semver standard (IncMinor/IncPatch). Bash uses a slot-based model
-    where 'feat' bumps the 3rd slot (patch) regardless of schema labelling.
-    Result for epoch+major+patch schema, cold start:
-      bash feat:  bumpea slot 3 (patch) → v0.0.1
-      Go   feat:  IncMinor              → v0.1.0
-    This divergence is EXPECTED and DOCUMENTED. It does NOT block merge of
-    this PR — GO-10 config-parser will resolve it by making the Go version
-    builder schema-aware. See PR description for full analysis.
-
-    # Pattern for GO-10: <ref to this file — test_dual_run_calc_version.py>
+    GO-10 made NextVersion schema-aware (slot-based, no Masterminds/semver).
+    Both runtimes now produce v0.0.1 for feat cold start on epoch+major+patch schema.
     """
 
-    @pytest.mark.xfail(
-        reason="[FINDING MEDIUM] Go calc-version ignores component schema: "
-        "bash bumpea slot 3 (patch=v0.0.1), Go hace IncMinor (v0.1.0). "
-        "Scope de GO-10 config-parser.",
-        strict=True,
-    )
     def test_feat_development_release(
         self, bash_image: str, go_image: str, tmp_path: Path
     ) -> None:
-        """feat: → bump_type=minor en ambos. next_version DIVERGE (xfail — FINDING MEDIUM)."""
+        """feat: → bump_type=minor en ambos. next_version=v0.0.1 en ambos (FINDING MEDIUM fixeado)."""
         workspace = tmp_path / f"repo-{uuid.uuid4().hex[:6]}"
         workspace.mkdir()
 
@@ -484,20 +469,12 @@ class TestDualRunCalcVersion:
             f"bash bump={result.bash_bump!r}, expected 'minor'\n" + result.divergence_report()
         )
 
-        # This assertion FAILS — bash produces v0.0.1, Go produces v0.1.0.
-        # The xfail marker above documents this as FINDING MEDIUM.
         assert result.version_match, result.divergence_report()
 
     def test_fix_development_release(
         self, bash_image: str, go_image: str, tmp_path: Path
     ) -> None:
-        """fix: → bump_type=patch, next_version=v0.0.1 en ambos. Cold start coincide.
-
-        Both bash (slot 3 bump) and Go (IncPatch) happen to produce v0.0.1 from
-        a cold start with epoch+major+patch all at 0. The semantic paths differ
-        but the output agrees — this is the subset of scenarios where the
-        schema divergence (FINDING MEDIUM) doesn't manifest.
-        """
+        """fix: → bump_type=patch, next_version=v0.0.1 en ambos."""
         workspace = tmp_path / f"repo-{uuid.uuid4().hex[:6]}"
         workspace.mkdir()
 
