@@ -34,9 +34,9 @@ func runCheckReleaseReadiness(cmd *cobra.Command, _ []string) error {
 		return fmt.Errorf("check-release-readiness: load config: %w", err)
 	}
 
-	repoRoot, err := repoRootDir()
+	repoRoot, err := os.Getwd()
 	if err != nil {
-		return fmt.Errorf("check-release-readiness: git rev-parse: %w", err)
+		return fmt.Errorf("check-release-readiness: getwd: %w", err)
 	}
 
 	baseRef := os.Getenv("BASE_REF")
