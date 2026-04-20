@@ -7,6 +7,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/PanoraGrowth/panora-versioning-pipe/internal/config"
 	"github.com/PanoraGrowth/panora-versioning-pipe/internal/gitops"
 	ulog "github.com/PanoraGrowth/panora-versioning-pipe/internal/util/log"
 	"github.com/PanoraGrowth/panora-versioning-pipe/internal/util/state"
@@ -25,11 +26,12 @@ func runCalcVersion(_ *cobra.Command, _ []string) error {
 	ulog.Section("CALCULATING VERSION")
 
 	// ── Load merged config ──────────────────────────────────────────────────
-	bumpCfg, verCfg, err := versioning.LoadMergedConfig(mergedConfigPath)
+	cfg, err := config.Load(mergedConfigPath)
 	if err != nil {
 		ulog.Error("loading config", err)
 		os.Exit(1)
 	}
+	bumpCfg, verCfg := versioning.FromConfig(cfg)
 
 	// ── Load scenario env ───────────────────────────────────────────────────
 	scenario := "development_release"
