@@ -1,19 +1,17 @@
 // Command panora-versioning is the Go entry point for the Panora versioning
-// pipe. During the Bash -> Go migration it coexists with the legacy shell
-// pipeline: `pipe.sh` stays as the Docker ENTRYPOINT and dispatches into
-// subcommands implemented either here (Go) or under scripts/ (Bash).
+// pipe. As of GO-11 it is the container ENTRYPOINT: running the binary with
+// no subcommand auto-detects the CI platform and dispatches to either the PR
+// or the branch pipeline, replacing pipe.sh.
 package main
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/spf13/cobra"
 
+	"github.com/PanoraGrowth/panora-versioning-pipe/internal/pipeline"
 	"github.com/PanoraGrowth/panora-versioning-pipe/internal/util/version"
 )
-
-const stubExitCode = 42
 
 func main() {
 	root := newRootCmd()
@@ -30,6 +28,14 @@ func newRootCmd() *cobra.Command {
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		Version:       version.Full(),
+		// Default command (no subcommand) replaces pipe.sh: platform detection,
+		// env mapping, and dispatch to PR or branch pipeline.
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			p := pipeline.New()
+			p.Stdout = cmd.OutOrStdout()
+			p.Stderr = cmd.ErrOrStderr()
+			return p.Dispatch(cmd.Context())
+		},
 	}
 	cmd.SetVersionTemplate(version.Template())
 
@@ -48,32 +54,8 @@ func newRootCmd() *cobra.Command {
 	cmd.AddCommand(newGenerateChangelogPerFolderCmd())
 	cmd.AddCommand(newGenerateChangelogLastCommitCmd())
 	cmd.AddCommand(newUpdateChangelogCmd())
-	cmd.AddCommand(stubCommands()...)
+	cmd.AddCommand(newPRPipelineCmd())
+	cmd.AddCommand(newBranchPipelineCmd())
 
 	return cmd
-}
-
-func stubCommands() []*cobra.Command {
-	stubs := []struct {
-		name  string
-		short string
-	}{
-		{"pr-pipeline", "Run the PR pipeline (stub — Wave N)"},
-		{"branch-pipeline", "Run the branch pipeline (stub — Wave N)"},
-	}
-
-	out := make([]*cobra.Command, 0, len(stubs))
-	for _, s := range stubs {
-		name := s.name
-		out = append(out, &cobra.Command{
-			Use:   name,
-			Short: s.short,
-			RunE: func(cmd *cobra.Command, _ []string) error {
-				_, _ = fmt.Fprintf(cmd.ErrOrStderr(), "%s: not implemented yet\n", name)
-				os.Exit(stubExitCode)
-				return nil
-			},
-		})
-	}
-	return out
 }

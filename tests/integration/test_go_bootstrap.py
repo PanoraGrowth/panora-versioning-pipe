@@ -4,8 +4,8 @@ Builds the multi-stage Docker image and asserts that:
 
 1. The Go binary is present at /usr/local/bin/panora-versioning.
 2. `panora-versioning --version` returns 0 and prints a recognizable version line.
-3. `/pipe/pipe.sh` still exists inside the image (bash legacy must coexist
-   during the migration — Wave N will remove it).
+3. `/pipe/pipe.sh.legacy` still exists inside the image (bash legacy must
+   coexist during the migration — GO-12 will remove it).
 4. `panora-versioning configure-git`, run inside a temporary git repo, replays
    the banner lines emitted by `scripts/setup/configure-git.sh`.
 
@@ -31,7 +31,7 @@ import pytest
 REPO_ROOT = Path(__file__).resolve().parents[2]
 IMAGE_TAG = os.environ.get("GO_BOOTSTRAP_IMAGE", "panora-versioning-pipe:go-bootstrap-test")
 BINARY_PATH = "/usr/local/bin/panora-versioning"
-PIPE_SH_PATH = "/pipe/pipe.sh"
+PIPE_SH_PATH = "/pipe/pipe.sh.legacy"
 
 
 def _docker_available() -> bool:
@@ -85,7 +85,11 @@ def test_go_binary_exists(go_image: str) -> None:
 
 
 def test_pipe_sh_still_present(go_image: str) -> None:
-    """Bash entry point must coexist with Go during the migration."""
+    """Bash entry point must coexist with Go during the migration.
+
+    After GO-11 the Go binary is the active ENTRYPOINT; pipe.sh is retained
+    renamed to /pipe/pipe.sh.legacy for emergency rollback (removed in GO-12).
+    """
     result = _run_in_image(go_image, "ls", PIPE_SH_PATH)
     assert result.returncode == 0, (
         f"{PIPE_SH_PATH} missing — bash legacy must coexist during migration\n"
