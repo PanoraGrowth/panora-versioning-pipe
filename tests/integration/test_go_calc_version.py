@@ -228,7 +228,9 @@ class TestCalcVersionFeat:
         _write_merged_config(workspace)
 
         _run_calc_version(calc_image, workspace)
-        assert _read_tmp(workspace, "next_version.txt") == "v1.1.0"
+        # Schema: major+patch+hotfix_counter. hotfix_counter=0 is omitted (bash gate: >0).
+        # Normal releases are 2-slot: vMAJOR.PATCH. feat bumps patch slot → v1.1.
+        assert _read_tmp(workspace, "next_version.txt") == "v1.1"
 
     def test_bump_type(self, calc_image: str, tmp_path: Path) -> None:
         workspace = tmp_path / f"repo-{uuid.uuid4().hex[:6]}"
@@ -266,7 +268,8 @@ class TestCalcVersionFix:
 
         _run_calc_version(calc_image, workspace)
         assert _read_tmp(workspace, "bump_type.txt") == "patch"
-        assert _read_tmp(workspace, "next_version.txt") == "v1.0.1"
+        # Schema: major+patch+hotfix_counter. hotfix_counter=0 omitted. patch slot bumped → v1.1.
+        assert _read_tmp(workspace, "next_version.txt") == "v1.1"
 
 
 class TestCalcVersionBreaking:
@@ -281,7 +284,8 @@ class TestCalcVersionBreaking:
 
         _run_calc_version(calc_image, workspace)
         assert _read_tmp(workspace, "bump_type.txt") == "major"
-        assert _read_tmp(workspace, "next_version.txt") == "v2.0.0"
+        # Schema: major+patch+hotfix_counter. major++ patch=0 hotfix=0 (omitted). → v2.0.
+        assert _read_tmp(workspace, "next_version.txt") == "v2.0"
 
 
 class TestCalcVersionChore:
@@ -314,7 +318,8 @@ class TestCalcVersionColdStart:
 
         result = _run_calc_version(calc_image, workspace)
         assert result.returncode == 0
-        assert _read_tmp(workspace, "next_version.txt") == "v0.1.0"
+        # Schema: major+patch+hotfix_counter. Cold start: major=0, patch=0+1=1, hotfix=0 (omitted). → v0.1.
+        assert _read_tmp(workspace, "next_version.txt") == "v0.1"
         assert _read_tmp(workspace, "bump_type.txt") == "minor"
 
 
@@ -331,7 +336,8 @@ class TestCalcVersionNamespaceFilter:
 
         result = _run_calc_version(calc_image, workspace)
         assert result.returncode == 0
-        assert _read_tmp(workspace, "next_version.txt") == "v2.1.0"
+        # Schema: major+patch+hotfix_counter. major_initial=2, cold start → patch=0+1=1, hotfix=0 (omitted). → v2.1.
+        assert _read_tmp(workspace, "next_version.txt") == "v2.1"
         assert _read_tmp(workspace, "bump_type.txt") == "minor"
 
 
