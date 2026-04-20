@@ -161,6 +161,11 @@ func (h *HotfixKeywordList) UnmarshalYAML(value *yaml.Node) error {
 	return nil
 }
 
+// MarshalYAML serializes HotfixKeywordList as a plain []string sequence.
+func (h HotfixKeywordList) MarshalYAML() (interface{}, error) {
+	return h.Values, nil
+}
+
 // HotfixConfig holds the hotfix section.
 type HotfixConfig struct {
 	Keyword HotfixKeywordList `yaml:"keyword"`
