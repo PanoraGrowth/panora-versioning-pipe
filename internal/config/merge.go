@@ -69,8 +69,9 @@ func mergeRaw(sources ...map[string]interface{}) map[string]interface{} {
 // commit_type_overrides, and returns a fully-typed *Config.
 //
 // Merge order matches bash config-parser.sh:
-//   select(fileIndex==0) * select(fileIndex==1) * select(fileIndex==2)
-//   => commit-types.yml * defaults.yml * .versioning.yml
+//
+//	select(fileIndex==0) * select(fileIndex==1) * select(fileIndex==2)
+//	=> commit-types.yml * defaults.yml * .versioning.yml
 //
 // For maps: later files override earlier (yq * semantics).
 // For arrays: later file replaces earlier entirely (yq * semantics).
