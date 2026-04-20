@@ -192,7 +192,7 @@ type Config struct {
 	Version             VersionConfig                 `yaml:"version"`
 	Changelog           ChangelogConfig               `yaml:"changelog"`
 	CommitTypes         []CommitType                  `yaml:"commit_types"`
-	CommitTypeOverrides map[string]CommitTypeOverride `yaml:"commit_type_overrides"`
+	CommitTypeOverrides map[string]CommitTypeOverride `yaml:"commit_type_overrides,omitempty"`
 	Hotfix              HotfixConfig                  `yaml:"hotfix"`
 	Branches            BranchesConfig                `yaml:"branches"`
 	VersionFile         VersionFileConfig             `yaml:"version_file"`
