@@ -186,9 +186,24 @@ func parseVersionSlots(tag string, cfg VersionConfig) (versionSlots, error) {
 			return vs, err
 		}
 	}
-	if cfg.HotfixCounterEnabled && idx < len(parts) {
-		if vs.hotfixCounter, err = parsePart("hotfix_counter"); err != nil {
-			return vs, err
+	if cfg.HotfixCounterEnabled {
+		// Legacy 4-slot tags (e.g. v12.1.0.1 with a "base" slot) have more parts
+		// than enabled components. Read hotfix_counter from the last slot in that case.
+		if idx < len(parts) {
+			enabledCount := idx + 1
+			if len(parts) > enabledCount {
+				// More parts than components — counter is in the last slot.
+				last := len(parts) - 1
+				v, err := strconv.ParseInt(parts[last], 10, 64)
+				if err != nil {
+					return vs, fmt.Errorf("versioning: parse slot hotfix_counter (last) in %q: %w", tag, err)
+				}
+				vs.hotfixCounter = v
+			} else {
+				if vs.hotfixCounter, err = parsePart("hotfix_counter"); err != nil {
+					return vs, err
+				}
+			}
 		}
 	}
 	return vs, nil
@@ -270,46 +285,31 @@ func NextVersion(latestTag string, bump BumpType, cfg VersionConfig) (string, er
 	return prefix + buildVersionString(vs, cfg), nil
 }
 
-// nextHotfixVersion handles the BumpHotfix case. Tags may be 3-part
-// (major.patch.0 → first hotfix becomes major.patch.0.1) or 4-part
-// (major.patch.base.N → N+1). Cold start seeds from cfg initial values.
+// nextHotfixVersion handles the BumpHotfix case. Delegates rendering to
+// buildVersionString so the emitted tag always matches the enabled schema
+// (no hardcoded slots, no "base=0" placeholder).
+//
+// Legacy 4-slot tags (e.g. v12.1.0.1 from earlier pipe versions) are
+// handled by parseVersionSlots which extracts hotfix_counter from the last
+// slot in that case. The emitted tag is re-collapsed to the current schema.
 func nextHotfixVersion(latestTag, prefix string, cfg VersionConfig) (string, error) {
+	var vs versionSlots
+
 	if latestTag == "" {
-		// Cold start: seed base components + hotfix_counter initial.
-		return fmt.Sprintf("%s%d.%d.%d.%d",
-			prefix,
-			cfg.MajorInitial,
-			cfg.PatchInitial,
-			0,
-			cfg.HotfixCounterInitial+1,
-		), nil
-	}
-
-	stripped := strings.TrimPrefix(latestTag, "v")
-	parts := strings.Split(stripped, ".")
-
-	parseField := func(idx int) (int64, error) {
-		if idx >= len(parts) {
-			return 0, nil
+		vs = versionSlots{
+			epoch:         int64(cfg.EpochInitial),
+			major:         int64(cfg.MajorInitial),
+			patch:         int64(cfg.PatchInitial),
+			hotfixCounter: int64(cfg.HotfixCounterInitial) + 1,
 		}
-		var v int64
-		if _, err := fmt.Sscanf(parts[idx], "%d", &v); err != nil {
-			return 0, fmt.Errorf("versioning.nextHotfixVersion: field %d of %q: %w", idx, latestTag, err)
-		}
-		return v, nil
-	}
-
-	var fields [4]int64
-	for i := range fields {
-		f, err := parseField(i)
+	} else {
+		var err error
+		vs, err = parseVersionSlots(latestTag, cfg)
 		if err != nil {
-			return "", err
+			return "", fmt.Errorf("versioning.nextHotfixVersion: %w", err)
 		}
-		fields[i] = f
+		vs.hotfixCounter++
 	}
 
-	// Increment hotfix_counter (last component).
-	fields[3]++
-
-	return fmt.Sprintf("%s%d.%d.%d.%d", prefix, fields[0], fields[1], fields[2], fields[3]), nil
+	return prefix + buildVersionString(vs, cfg), nil
 }
