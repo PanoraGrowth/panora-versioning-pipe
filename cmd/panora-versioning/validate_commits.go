@@ -58,6 +58,27 @@ func runValidateCommits(cmd *cobra.Command, _ []string) error {
 		return nil
 	}
 
+	// Validate PR title first (VALIDATION 3)
+	prTitle := env["VERSIONING_PR_TITLE"]
+	if prTitle == "" {
+		prTitle = os.Getenv("VERSIONING_PR_TITLE")
+	}
+	if prTitle == "" {
+		prTitle = os.Getenv("GITHUB_PR_TITLE")
+	}
+
+	if prTitle != "" && cfg.RequireCommitTypes() {
+		ilog.Info(fmt.Sprintf("PR title: %q", prTitle))
+		_, _ = fmt.Fprintln(cmd.OutOrStdout(), "")
+		if err := validation.ValidatePRTitle(prTitle, cfg); err != nil {
+			_, _ = fmt.Fprintln(cmd.ErrOrStderr(), err.Error())
+			os.Exit(1)
+			return nil
+		}
+		ilog.Success("PR title is well-formed")
+		_, _ = fmt.Fprintln(cmd.OutOrStdout(), "")
+	}
+
 	// Get commits via git log origin/<target>..HEAD --no-merges --pretty=%s
 	rawCommits, err := gitLogSubjects(targetBranch)
 	if err != nil {
