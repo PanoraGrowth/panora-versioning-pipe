@@ -12,8 +12,6 @@ jobs:
   release-readiness:
     name: Release Readiness
     runs-on: ubuntu-latest
-    container:
-      image: ghcr.io/panoragrowth/panora-versioning-pipe:${{ vars.VERSIONING_PIPE_TAG }}
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
@@ -28,7 +26,19 @@ jobs:
         id: checks
         env:
           BASE_REF: origin/${{ github.base_ref }}
-        run: /usr/local/bin/panora-versioning check-release-readiness | tee /tmp/release-readiness.log
+          IMAGE: ghcr.io/panoragrowth/panora-versioning-pipe:${{ vars.VERSIONING_PIPE_TAG }}
+        run: |
+          set +e
+          docker run --rm \
+            -v "$PWD:/workspace" -w /workspace \
+            -v /tmp:/tmp \
+            -e BASE_REF \
+            --entrypoint /bin/sh \
+            "$IMAGE" -c '
+              /usr/local/bin/panora-versioning config-parse &&
+              /usr/local/bin/panora-versioning check-release-readiness
+            ' | tee /tmp/release-readiness.log
+          echo "exit_code=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
 
       - name: Post PR comment
         if: always()
@@ -45,3 +55,9 @@ jobs:
             echo '```'
           } > /tmp/comment.md
           gh pr comment "$PR_NUMBER" --body-file /tmp/comment.md
+
+      - name: Enforce gate result
+        if: steps.checks.outputs.exit_code != '0'
+        run: |
+          echo "release-readiness gate failed (exit=${{ steps.checks.outputs.exit_code }})"
+          exit 1
