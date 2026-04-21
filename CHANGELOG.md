@@ -636,3 +636,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: 29f2de7](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/29f2de7b1da0a3f250955506170d3055c5cb6d0c)
 
 
+## v1.4 - 2026-04-21
+
+- 🐛 fix(validation): port PR title validation from bash to Go (#157)
+  - _Agustín Manessi_
+  - [Commit: 833c748](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/833c748ebcfbe5d8e3296f13f67ab10e5b6f69a3)
+
+
