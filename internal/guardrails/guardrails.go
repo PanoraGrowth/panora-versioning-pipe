@@ -99,7 +99,15 @@ func parseTag(tag string, cfg Config) (parsedComponents, error) {
 	}
 
 	if cfg.Version.Components.HotfixCounter.Enabled {
-		pc.hotfixCounter = getField(pos)
+		// Tags written by nextHotfixVersion may have a "base" slot between patch and
+		// counter (e.g. v12.1.0.1 where "0" is the base and "1" is the counter).
+		// When len(parts) > enabled component count, read counter from the last slot.
+		enabledCount := pos + 1
+		if len(parts) > enabledCount {
+			pc.hotfixCounter = getField(len(parts) - 1)
+		} else {
+			pc.hotfixCounter = getField(pos)
+		}
 	}
 
 	return pc, nil
