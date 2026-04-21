@@ -421,7 +421,13 @@ class TestCalcVersionHotfix:
         )
 
     def test_next_version_increments_hotfix_counter(self, calc_image: str, tmp_path: Path) -> None:
-        """next_version.txt must have a 4th component (hotfix_counter)."""
+        """next_version.txt must increment hotfix_counter in schema-aware format
+        (3-slot when epoch disabled: major.patch.hotfix_counter).
+
+        Ticket 074: post-fix, nextHotfixVersion emits slots equal to enabled
+        components, without the spurious "base" slot. Seed v1.0.0 (3-slot)
+        + hotfix → v1.0.1 (not v1.0.0.1).
+        """
         workspace = tmp_path / f"repo-{uuid.uuid4().hex[:6]}"
         workspace.mkdir()
         _seed_repo(workspace, initial_tag="v1.0.0", commit_msg="fix: critical bug")
@@ -430,8 +436,8 @@ class TestCalcVersionHotfix:
 
         _run_calc_version(calc_image, workspace)
         next_ver = _read_tmp(workspace, "next_version.txt")
-        assert next_ver == "v1.0.0.1", (
-            f"expected next_version='v1.0.0.1', got {next_ver!r}"
+        assert next_ver == "v1.0.1", (
+            f"expected next_version='v1.0.1', got {next_ver!r}"
         )
 
     def test_logs_mention_hotfix(self, calc_image: str, tmp_path: Path) -> None:
