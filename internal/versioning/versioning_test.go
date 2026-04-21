@@ -4,7 +4,17 @@ import (
 	"testing"
 )
 
-func TestNextVersionHotfix(t *testing.T) {
+// TestNextVersionHotfix_SchemaAware validates schema-aware hotfix tag emission
+// (ticket 074 parte 2). nextHotfixVersion must delegate to buildVersionString —
+// no hardcoded 4-slot format, no "base=0" placeholder.
+//
+// Cases marked [legacy] use latestTag in the old 4-slot format (v1.0.0.N)
+// produced by earlier Go pipe versions. They are still read correctly via the
+// parseVersionSlots legacy compat path (hotfix_counter from last slot), and
+// re-emitted in the current schema (3-slot when epoch disabled).
+//
+// Pre-074 expected values are noted inline for historical reference.
+func TestNextVersionHotfix_SchemaAware(t *testing.T) {
 	cfg := VersionConfig{
 		MajorEnabled:         true,
 		MajorInitial:         0,
@@ -21,24 +31,30 @@ func TestNextVersionHotfix(t *testing.T) {
 		want      string
 	}{
 		{
+			// Pre-074: "v0.0.0.1" (4-slot with base=0 placeholder — was the bug)
 			name:      "cold start",
 			latestTag: "",
-			want:      "v0.0.0.1",
+			want:      "v0.0.1",
 		},
 		{
+			// latestTag is 3-slot: major=1, patch=0, hotfixCounter=0 → incr → 1 → "v1.0.1"
+			// Pre-074: "v1.0.0.1" (4-slot, treated "0" as base slot)
 			name:      "first hotfix on 3-part tag",
 			latestTag: "v1.0.0",
-			want:      "v1.0.0.1",
+			want:      "v1.0.1",
 		},
 		{
-			name:      "increment existing hotfix counter",
+			// [legacy] latestTag is old-format 4-slot: hotfix_counter read from last slot (3) → incr → 4
+			// Re-emitted as 3-slot per current schema. Pre-074: "v1.0.0.4"
+			name:      "increment existing hotfix counter (legacy 4-slot)",
 			latestTag: "v1.0.0.3",
-			want:      "v1.0.0.4",
+			want:      "v1.0.4",
 		},
 		{
-			name:      "hotfix counter wraps correctly from high base",
+			// [legacy] hotfix_counter=9 from last slot → incr → 10 → "v2.5.10". Pre-074: "v2.5.1.10"
+			name:      "hotfix counter wraps correctly from high base (legacy 4-slot)",
 			latestTag: "v2.5.1.9",
-			want:      "v2.5.1.10",
+			want:      "v2.5.10",
 		},
 	}
 
@@ -53,6 +69,130 @@ func TestNextVersionHotfix(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestNextVersionHotfix_NewCases covers the 6 acceptance criteria cases
+// from ticket 074 parte 2.
+func TestNextVersionHotfix_NewCases(t *testing.T) {
+	t.Run("cold start 3-slot schema epoch off", func(t *testing.T) {
+		cfg := VersionConfig{
+			MajorEnabled:         true,
+			MajorInitial:         1,
+			PatchEnabled:         true,
+			PatchInitial:         0,
+			HotfixCounterEnabled: true,
+			HotfixCounterInitial: 0,
+			TagPrefixV:           true,
+		}
+		got, err := NextVersion("", BumpHotfix, cfg)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if got != "v1.0.1" {
+			t.Errorf("got %q, want %q", got, "v1.0.1")
+		}
+	})
+
+	t.Run("cold start 4-slot schema epoch on", func(t *testing.T) {
+		cfg := VersionConfig{
+			EpochEnabled:         true,
+			EpochInitial:         1,
+			MajorEnabled:         true,
+			MajorInitial:         12,
+			PatchEnabled:         true,
+			PatchInitial:         1,
+			HotfixCounterEnabled: true,
+			HotfixCounterInitial: 0,
+			TagPrefixV:           true,
+		}
+		got, err := NextVersion("", BumpHotfix, cfg)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if got != "v1.12.1.1" {
+			t.Errorf("got %q, want %q", got, "v1.12.1.1")
+		}
+	})
+
+	t.Run("latest 2-slot hotfix bump", func(t *testing.T) {
+		cfg := VersionConfig{
+			MajorEnabled:         true,
+			MajorInitial:         0,
+			PatchEnabled:         true,
+			PatchInitial:         0,
+			HotfixCounterEnabled: true,
+			HotfixCounterInitial: 0,
+			TagPrefixV:           true,
+		}
+		got, err := NextVersion("v12.1", BumpHotfix, cfg)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if got != "v12.1.1" {
+			t.Errorf("got %q, want %q", got, "v12.1.1")
+		}
+	})
+
+	t.Run("latest 3-slot hotfix bump", func(t *testing.T) {
+		cfg := VersionConfig{
+			MajorEnabled:         true,
+			MajorInitial:         0,
+			PatchEnabled:         true,
+			PatchInitial:         0,
+			HotfixCounterEnabled: true,
+			HotfixCounterInitial: 0,
+			TagPrefixV:           true,
+		}
+		got, err := NextVersion("v12.1.5", BumpHotfix, cfg)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if got != "v12.1.6" {
+			t.Errorf("got %q, want %q", got, "v12.1.6")
+		}
+	})
+
+	t.Run("latest legacy 4-slot compat re-emitted as 3-slot", func(t *testing.T) {
+		// v12.1.0.1: legacy 4-slot, hotfix_counter=1 (last slot).
+		// Schema: epoch off → 3-slot. Incr → 2. Emits "v12.1.2".
+		cfg := VersionConfig{
+			MajorEnabled:         true,
+			MajorInitial:         0,
+			PatchEnabled:         true,
+			PatchInitial:         0,
+			HotfixCounterEnabled: true,
+			HotfixCounterInitial: 0,
+			TagPrefixV:           true,
+		}
+		got, err := NextVersion("v12.1.0.1", BumpHotfix, cfg)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if got != "v12.1.2" {
+			t.Errorf("got %q, want %q", got, "v12.1.2")
+		}
+	})
+
+	t.Run("epoch on latest 4-slot hotfix bump", func(t *testing.T) {
+		cfg := VersionConfig{
+			EpochEnabled:         true,
+			EpochInitial:         0,
+			MajorEnabled:         true,
+			MajorInitial:         0,
+			PatchEnabled:         true,
+			PatchInitial:         0,
+			HotfixCounterEnabled: true,
+			HotfixCounterInitial: 0,
+			TagPrefixV:           true,
+		}
+		got, err := NextVersion("v1.12.1.3", BumpHotfix, cfg)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if got != "v1.12.1.4" {
+			t.Errorf("got %q, want %q", got, "v1.12.1.4")
+		}
+	})
 }
 
 func TestBumpHotfixConstant(t *testing.T) {
