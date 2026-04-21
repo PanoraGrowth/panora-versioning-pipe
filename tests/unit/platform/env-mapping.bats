@@ -1,12 +1,14 @@
 #!/usr/bin/env bats
 
-# Tests for pipe.sh platform detection — runs as subprocess
-# Mocks configure-git.sh to avoid real git config operations
-
+# Tests for the bash pipe.sh platform detection — retained to verify the
+# legacy rollback script still works. As of GO-11 the active ENTRYPOINT is
+# the Go binary (see internal/pipeline tests + test_go_pipeline_*.py); the
+# bash script is kept at /pipe/pipe.sh.legacy for emergency rollback until
+# GO-12 removes it.
 load '../../helpers/setup'
 load '../../helpers/assertions'
 
-PIPE_SCRIPT="/pipe/pipe.sh"
+PIPE_SCRIPT="/pipe/pipe.sh.legacy"
 
 setup() {
     common_setup

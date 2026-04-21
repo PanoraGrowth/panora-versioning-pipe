@@ -65,9 +65,11 @@ COPY scripts/ /pipe/
 # Make all scripts executable (must run as root, before USER directive)
 RUN find /pipe -name "*.sh" -exec chmod +x {} \;
 
-# Entry point script
-COPY pipe.sh /pipe/
-RUN chmod +x /pipe/pipe.sh
+# Legacy bash entry point, retained as /pipe/pipe.sh.legacy for emergency
+# rollback. The active ENTRYPOINT is the Go binary (see below). GO-12 removes
+# this file entirely once the Go entrypoint is stable in production.
+COPY pipe.sh /pipe/pipe.sh.legacy
+RUN chmod +x /pipe/pipe.sh.legacy
 
 # Bundle the Go binary. Wave N removes bash/yq/jq/curl once every subcommand
 # lives in Go; until then both runtimes coexist inside the same image.
@@ -75,4 +77,4 @@ COPY --from=builder /out/panora-versioning /usr/local/bin/panora-versioning
 
 USER pipe
 
-ENTRYPOINT ["/pipe/pipe.sh"]
+ENTRYPOINT ["/usr/local/bin/panora-versioning"]
