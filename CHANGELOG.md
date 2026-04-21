@@ -622,3 +622,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: 6a8b11d](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/6a8b11d6039d1f9db0f68127981c4f2ced3fdae7)
 
 
+## v1.2 - 2026-04-21
+
+- 🐛 fix(guardrails): parseTag hotfix_counter en tags 4-slot (#154)
+  - _Agustín Manessi_
+  - [Commit: 9b656b7](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/9b656b7382e72b1905ab63cc9ab5c8740e9d9d88)
+
+
