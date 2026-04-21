@@ -8,15 +8,11 @@ The test:
   2. Writes /tmp/.versioning-merged.yml with changelog config.
   3. Runs the binary.
   4. Asserts exit code, CHANGELOG.md content, and /tmp/changelog_entries.txt.
-
-Dual-run diff: selected scenarios also run the bash script and compare
-the CHANGELOG.md byte-for-byte (hashes normalized).
 """
 
 from __future__ import annotations
 
 import os
-import re
 import shutil
 import subprocess
 import textwrap
@@ -25,13 +21,13 @@ from pathlib import Path
 
 import pytest
 
+
 REPO_ROOT = Path(__file__).resolve().parents[2]
 IMAGE_TAG = os.environ.get(
     "GO_CHANGELOG_IMAGE",
     "panora-versioning-pipe:go-changelog-test",
 )
 BINARY = "/usr/local/bin/panora-versioning"
-BASH_SCRIPT = "/pipe/changelog/generate-changelog-last-commit.sh"
 
 
 def _docker_available() -> bool:
@@ -124,7 +120,6 @@ def _run_last_commit(
     workspace: Path,
     *,
     env_overrides: dict[str, str] | None = None,
-    use_bash: bool = False,
     routed_commits: list[str] | None = None,
 ) -> subprocess.CompletedProcess:
     tmp_dir = workspace / "tmp"
@@ -144,14 +139,11 @@ def _run_last_commit(
         for k, v in env_overrides.items():
             env_flags += ["-e", f"{k}={v}"]
 
-    if use_bash:
-        entrypoint_args = ["--entrypoint", "/bin/bash", image, BASH_SCRIPT]
-    else:
-        entrypoint_args = [
-            "--entrypoint", BINARY,
-            image,
-            "generate-changelog-last-commit",
-        ]
+    entrypoint_args = [
+        "--entrypoint", BINARY,
+        image,
+        "generate-changelog-last-commit",
+    ]
 
     return subprocess.run(
         [
@@ -165,10 +157,6 @@ def _run_last_commit(
         capture_output=True,
         text=True,
     )
-
-
-def _norm_hashes(text: str) -> str:
-    return re.sub(r"\b[0-9a-f]{7,40}\b", "HASH", text)
 
 
 # ---------------------------------------------------------------------------
@@ -370,28 +358,3 @@ class TestLastCommitEmoji:
         assert "🚀" in content, f"emoji missing:\n{content}"
 
 
-# ---------------------------------------------------------------------------
-# Scenario 6: dual-run diff
-# ---------------------------------------------------------------------------
-
-class TestLastCommitDualRun:
-    def test_changelog_identical_to_bash(self, changelog_image: str, tmp_path: Path) -> None:
-        ws_go = _make_workspace(tmp_path)
-        ws_bash = _make_workspace(tmp_path)
-        for ws in (ws_go, ws_bash):
-            _seed_repo_with_commits(ws, ["feat: add feature"])
-            _write_config(ws)
-
-        _run_last_commit(changelog_image, ws_go, use_bash=False)
-        _run_last_commit(changelog_image, ws_bash, use_bash=True)
-
-        go_cl = ws_go / "CHANGELOG.md"
-        bash_cl = ws_bash / "CHANGELOG.md"
-
-        go_text = go_cl.read_text() if go_cl.exists() else ""
-        bash_text = bash_cl.read_text() if bash_cl.exists() else ""
-
-        assert _norm_hashes(go_text) == _norm_hashes(bash_text), (
-            f"Go vs bash CHANGELOG differ (hashes normalized):\n"
-            f"--- bash ---\n{bash_text}\n--- go ---\n{go_text}"
-        )

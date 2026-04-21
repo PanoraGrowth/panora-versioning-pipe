@@ -8,6 +8,16 @@ permissions:
   contents: read
   pull-requests: write
 
+env:
+  # Flip to "true" to make this workflow block merges when the Go check
+  # reports a FAIL. Historically the gate was non-blocking by accident
+  # (the bash variant pipelined the check into `tee` without capturing
+  # PIPESTATUS → exit code always 0). The Go rewrite exposed that FAILs
+  # were surfacing regularly but never blocked merges. Leaving the gate
+  # informational until the open checks are triaged — see follow-up
+  # ticket tracked in temp/features/.
+  ENFORCE_GATE: "false"
+
 jobs:
   release-readiness:
     name: Release Readiness
@@ -22,19 +32,29 @@ jobs:
       - name: Ensure base ref is available
         run: git fetch origin ${{ github.base_ref }} --depth=0 || git fetch origin ${{ github.base_ref }}
 
-      - name: Install yq
-        run: |
-          if ! command -v yq >/dev/null 2>&1; then
-            sudo wget -q -O /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
-            sudo chmod +x /usr/local/bin/yq
-          fi
-          yq --version
-
+      # Runs the Go check inside the published pipe image and posts the
+      # result as a PR comment. The step itself never fails the job
+      # (continue-on-error); enforcement is gated below by ENFORCE_GATE
+      # so a future fix to the underlying checks can re-enable blocking
+      # without rewriting the workflow.
       - name: Run release readiness checks
         id: checks
+        continue-on-error: true
         env:
           BASE_REF: origin/${{ github.base_ref }}
-        run: bash scripts/release/check-release-readiness.sh | tee /tmp/release-readiness.log
+          IMAGE: ghcr.io/panoragrowth/panora-versioning-pipe:${{ vars.VERSIONING_PIPE_TAG }}
+        run: |
+          docker run --rm \
+            -v "$PWD:/workspace" -w /workspace \
+            -v /tmp:/tmp \
+            -e BASE_REF \
+            --entrypoint /bin/sh \
+            "$IMAGE" -c '
+              /usr/local/bin/panora-versioning config-parse &&
+              /usr/local/bin/panora-versioning check-release-readiness
+            ' 2>&1 | tee /tmp/release-readiness.log
+          # Capture the docker/check exit code (not tee's).
+          echo "exit_code=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
 
       - name: Post PR comment
         if: always()
@@ -51,3 +71,12 @@ jobs:
             echo '```'
           } > /tmp/comment.md
           gh pr comment "$PR_NUMBER" --body-file /tmp/comment.md
+
+      - name: Enforce gate result
+        # No-op unless ENFORCE_GATE is flipped to "true" at the env level
+        # above. Kept as explicit infra so the next person who wants the
+        # gate to block merges just flips one flag.
+        if: env.ENFORCE_GATE == 'true' && steps.checks.outputs.exit_code != '0'
+        run: |
+          echo "release-readiness gate failed (exit=${{ steps.checks.outputs.exit_code }})"
+          exit 1

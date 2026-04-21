@@ -1,7 +1,6 @@
 # Dockerfile for Versioning Pipe
-# Multi-stage build: stage 1 compiles the Go binary, stage 2 keeps the
-# existing Bash entry point (pipe.sh) and bundles both so the migration
-# can progress incrementally.
+# Multi-stage build: stage 1 compiles the Go binary, stage 2 is the pure-Go
+# runtime image. Bash/jq/yq/curl were removed in GO-12.
 
 # =============================================================================
 # Stage 1 — build the Go binary
@@ -28,7 +27,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build \
     -o /out/panora-versioning ./cmd/panora-versioning
 
 # =============================================================================
-# Stage 2 — runtime image (Bash legacy + Go binary)
+# Stage 2 — runtime image (pure Go)
 # =============================================================================
 FROM public.ecr.aws/docker/library/alpine:3.19
 
@@ -38,41 +37,28 @@ LABEL description="Automated versioning, changelog generation, and version file 
 # Upgrade base packages first to pull in security patches (e.g. musl CVE-2026-40200)
 RUN apk upgrade --no-cache
 
-# Install dependencies + yq from Alpine community repo (integrity verified by APK signing)
+# Runtime deps:
+#   git    — the Go binary shells out to `git` for all repo operations
+#   tzdata — ENV TZ=UTC below requires tzdata; UTC tag timestamps are a
+#            documented contract (see GO-11 behavior delta).
 RUN apk add --no-cache \
-    bash \
     git \
-    curl \
-    jq \
-    yq \
-    coreutils \
     tzdata \
-    gettext \
     && rm -rf /var/cache/apk/*
 
-# Set timezone
+# Set timezone (consumed by tag timestamp formatter)
 ENV TZ=UTC
 
 # Create non-root user for runtime
 RUN adduser -D -u 1001 pipe
 
-# Create working directory
 WORKDIR /pipe
 
-# Copy scripts
-COPY scripts/ /pipe/
+# Bundled YAML defaults (commit-types.yml, defaults.yml). Resolved at runtime
+# by internal/config.ResolveBundledFile — path override via PANORA_DEFAULTS_DIR.
+COPY config/defaults/ /etc/panora/defaults/
 
-# Make all scripts executable (must run as root, before USER directive)
-RUN find /pipe -name "*.sh" -exec chmod +x {} \;
-
-# Legacy bash entry point, retained as /pipe/pipe.sh.legacy for emergency
-# rollback. The active ENTRYPOINT is the Go binary (see below). GO-12 removes
-# this file entirely once the Go entrypoint is stable in production.
-COPY pipe.sh /pipe/pipe.sh.legacy
-RUN chmod +x /pipe/pipe.sh.legacy
-
-# Bundle the Go binary. Wave N removes bash/yq/jq/curl once every subcommand
-# lives in Go; until then both runtimes coexist inside the same image.
+# Go binary
 COPY --from=builder /out/panora-versioning /usr/local/bin/panora-versioning
 
 USER pipe

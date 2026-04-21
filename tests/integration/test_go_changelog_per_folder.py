@@ -11,9 +11,6 @@ The test:
   3. Runs the binary.
   4. Asserts exit code, folder-level CHANGELOG.md content,
      /tmp/routed_commits.txt, and logs.
-
-Dual-run diff: selected scenarios also run the bash script on the same fixture
-and compare output byte-for-byte.
 """
 
 from __future__ import annotations
@@ -33,7 +30,6 @@ IMAGE_TAG = os.environ.get(
     "panora-versioning-pipe:go-changelog-test",
 )
 BINARY = "/usr/local/bin/panora-versioning"
-BASH_SCRIPT = "/pipe/changelog/generate-changelog-per-folder.sh"
 
 
 def _docker_available() -> bool:
@@ -156,7 +152,6 @@ def _run_per_folder(
     workspace: Path,
     *,
     env_overrides: dict[str, str] | None = None,
-    use_bash: bool = False,
 ) -> subprocess.CompletedProcess:
     tmp_dir = workspace / "tmp"
     tmp_dir.mkdir(exist_ok=True)
@@ -174,14 +169,11 @@ def _run_per_folder(
         for k, v in env_overrides.items():
             env_flags += ["-e", f"{k}={v}"]
 
-    if use_bash:
-        entrypoint_args = ["--entrypoint", "/bin/bash", image, BASH_SCRIPT]
-    else:
-        entrypoint_args = [
-            "--entrypoint", BINARY,
-            image,
-            "generate-changelog-per-folder",
-        ]
+    entrypoint_args = [
+        "--entrypoint", BINARY,
+        image,
+        "generate-changelog-per-folder",
+    ]
 
     return subprocess.run(
         [
@@ -336,75 +328,3 @@ class TestPerFolderDisabled:
         assert not (ws / "services" / "auth" / "CHANGELOG.md").exists()
 
 
-# ---------------------------------------------------------------------------
-# Scenario 4: dual-run diff — Go output byte-identical to bash
-# ---------------------------------------------------------------------------
-
-class TestPerFolderDualRun:
-    """Run bash and Go on identical fixtures; diff the folder CHANGELOG.md files.
-
-    The bash script uses config-parser.sh which reads /tmp/.versioning-merged.yml
-    AND requires a .versioning.yml in the workspace root (REPO_ROOT detection).
-    Both workspaces need the same structure to produce comparable output.
-    """
-
-    def _seed_monorepo_for_dual(self, workspace: Path) -> None:
-        """Same as _seed_monorepo but also writes .versioning.yml for bash REPO_ROOT."""
-        _seed_monorepo(workspace)
-        # bash config-parser needs .versioning.yml to find REPO_ROOT
-        versioning_yml = textwrap.dedent("""\
-            commits:
-              format: "conventional"
-            changelog:
-              mode: "full"
-              use_emojis: false
-              include_author: true
-              include_commit_link: false
-              include_ticket_link: false
-              per_folder:
-                enabled: true
-                folders:
-                  - services/auth
-                  - services/billing
-                scope_matching: "exact"
-                fallback: "none"
-            """)
-        (workspace / ".versioning.yml").write_text(versioning_yml)
-        subprocess.run(["git", "add", ".versioning.yml"], cwd=workspace, check=True, capture_output=True)
-        subprocess.run(
-            ["git", "commit", "-m", "chore: add versioning config"],
-            cwd=workspace, check=True, capture_output=True,
-        )
-
-    def test_auth_changelog_identical_to_bash(self, changelog_image: str, tmp_path: Path) -> None:
-        ws_go = _make_workspace(tmp_path)
-        ws_bash = _make_workspace(tmp_path)
-
-        for ws in (ws_go, ws_bash):
-            self._seed_monorepo_for_dual(ws)
-            _write_per_folder_config(ws)
-
-        result_go = _run_per_folder(changelog_image, ws_go, use_bash=False)
-        result_bash = _run_per_folder(changelog_image, ws_bash, use_bash=True)
-
-        go_cl = ws_go / "services" / "auth" / "CHANGELOG.md"
-        bash_cl = ws_bash / "services" / "auth" / "CHANGELOG.md"
-
-        if not go_cl.exists() and not bash_cl.exists():
-            return  # both produced nothing — consistent
-
-        go_text = go_cl.read_text() if go_cl.exists() else ""
-        bash_text = bash_cl.read_text() if bash_cl.exists() else ""
-
-        # Normalize commit hashes before comparing structure
-        import re
-        def _norm(t: str) -> str:
-            return re.sub(r"\b[0-9a-f]{7,40}\b", "HASH", t)
-
-        assert _norm(go_text) == _norm(bash_text), (
-            f"Go vs bash auth CHANGELOG differ (hashes normalized):\n"
-            f"--- bash (exit {result_bash.returncode}) ---\n{bash_text}\n"
-            f"--- go (exit {result_go.returncode}) ---\n{go_text}\n"
-            f"bash logs:\n{result_bash.stdout}{result_bash.stderr}\n"
-            f"go logs:\n{result_go.stdout}{result_go.stderr}"
-        )

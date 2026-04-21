@@ -8,11 +8,9 @@ Automated versioning, changelog generation, and version file updates for CI/CD p
 
 Runs as a Docker container step in your pipeline. Supports Bitbucket Pipelines natively, and GitHub Actions with a simple environment variable mapping.
 
-> **Migration to Go in progress.** The pipe is being ported from Bash to a single Go binary incrementally. Both runtimes coexist inside the same Docker image while each subcommand is migrated. See `temp/migration/INDEX.md` for the ticket backlog and current status.
+> **Pure Go runtime (v1.0+).** The pipe is a single Go binary distributed as a minimal Alpine image — bash, jq, yq, and curl were removed in v1.0. The only runtime dependencies are `git` and `tzdata`. To build from source you need Go 1.26+; otherwise pull the published Docker image or the goreleaser binaries.
 >
-> Requires Go 1.26+ to build from source. Use the published Docker image or the goreleaser binaries otherwise.
->
-> **Last updated:** 2026-04-19
+> **Last updated:** 2026-04-21
 
 ## Features
 
@@ -34,9 +32,9 @@ Platform variables are auto-detected — no manual mapping needed.
 ```yaml
 - step:
     name: Versioning
-    image: public.ecr.aws/k5n8p2t3/panora-versioning-pipe:v0
+    image: public.ecr.aws/k5n8p2t3/panora-versioning-pipe:v1
     script:
-      - /pipe/pipe.sh
+      - /usr/local/bin/panora-versioning
 ```
 
 **GitHub Actions (with org-level variable):**
@@ -52,12 +50,12 @@ jobs:
         with:
           fetch-depth: 0
           ref: ${{ github.head_ref }}
-      - run: /pipe/pipe.sh
+      - run: /usr/local/bin/panora-versioning
 ```
 
 Set `VERSIONING_PIPE_TAG` as an **organization variable** (Settings → Secrets and variables → Actions → Variables) to control the pipe version for all repos from one place. Override at repo level to pin a specific version.
 
-> **Why `container.image` + `run:` instead of `uses: docker://`?** GitHub Actions does not support `${{ vars.* }}` expressions in the `uses:` key — it is parsed statically before contexts are resolved ([discussion](https://github.com/orgs/community/discussions/27048)). The `container.image` field does support vars, and the pattern mirrors Bitbucket's `image:` + `script:` approach. The entrypoint `/pipe/pipe.sh` is a stable public contract covered by semver.
+> **Why `container.image` + `run:` instead of `uses: docker://`?** GitHub Actions does not support `${{ vars.* }}` expressions in the `uses:` key — it is parsed statically before contexts are resolved ([discussion](https://github.com/orgs/community/discussions/27048)). The `container.image` field does support vars, and the pattern mirrors Bitbucket's `image:` + `script:` approach. The container ENTRYPOINT (`/usr/local/bin/panora-versioning`) is a stable public contract covered by semver.
 
 The pipe publishes three tag levels per release — pin the one that matches your risk tolerance:
 
@@ -73,7 +71,7 @@ Place a `.versioning.yml` in your repository root. If the file doesn't exist, al
 
 See [`examples/`](examples/) for full pipeline examples for both platforms.
 
-> **Why does Bitbucket need `script: - /pipe/pipe.sh` while GitHub Actions doesn't?**
+> **Why does Bitbucket need `script: - /usr/local/bin/panora-versioning` while GitHub Actions doesn't?**
 >
 > Bitbucket Pipelines always overrides the Docker ENTRYPOINT with `--entrypoint /bin/sh` and requires a `script:` block in every step. This is a Bitbucket platform limitation — the container's ENTRYPOINT never runs automatically. In GitHub Actions, `uses: docker://` respects the ENTRYPOINT, so the pipe runs with zero configuration. In both cases, platform variables (`BITBUCKET_*`, `GITHUB_*`) are auto-detected inside the container — no manual mapping needed.
 
@@ -139,7 +137,7 @@ The following are only required if you use the optional Bitbucket build-status a
 
 ## Configuration Reference
 
-Create a `.versioning.yml` file in your repository root. All keys are optional — defaults are applied automatically from [`scripts/defaults.yml`](scripts/defaults.yml).
+Create a `.versioning.yml` file in your repository root. All keys are optional — defaults are applied automatically from [`config/defaults/defaults.yml`](config/defaults/defaults.yml).
 
 ### commits
 
@@ -414,7 +412,7 @@ jobs:
           fetch-depth: 0
           ref: ${{ github.head_ref }}   # required — do not drop
 
-      - run: /pipe/pipe.sh
+      - run: /usr/local/bin/panora-versioning
 ```
 
 ```yaml
@@ -444,7 +442,7 @@ jobs:
           ref: main
           token: ${{ steps.ci-token.outputs.token }}
 
-      - run: /pipe/pipe.sh
+      - run: /usr/local/bin/panora-versioning
         env:
           CI_GITHUB_TOKEN: ${{ steps.ci-token.outputs.token }}
 ```
@@ -492,10 +490,11 @@ See [`examples/configs/versioning-monorepo.yml`](examples/configs/versioning-mon
 ## Local Development
 
 ```bash
-make build    # Build the Docker image (IMAGE_NAME=panora-versioning-pipe, IMAGE_TAG=local)
-make run      # Run the pipe with the current directory mounted as /workspace
-make shell    # Open an interactive bash shell inside the container
-make lint     # Run shellcheck on all scripts (requires: brew install shellcheck)
+make build        # Build the Docker image (IMAGE_NAME=panora-versioning-pipe, IMAGE_TAG=local)
+make run          # Run the pipe with the current directory mounted as /workspace
+make go-build     # Build the Go binary locally (bin/panora-versioning)
+make go-test      # Run Go unit tests with race detector
+make go-lint      # go vet + gofmt + golangci-lint
 ```
 
 Override defaults:

@@ -10,13 +10,13 @@ GO_LDFLAGS    := -s -w \
   -X github.com/PanoraGrowth/panora-versioning-pipe/internal/util/version.Commit=$(GO_COMMIT) \
   -X github.com/PanoraGrowth/panora-versioning-pipe/internal/util/version.BuiltAt=$(GO_BUILT_AT)
 
-.PHONY: build run shell lint help build-test test test-unit test-unit-filter test-integration test-integration-bitbucket test-integration-all test-integration-filter test-integration-bitbucket-filter test-integration-go go-build go-test go-lint go-tidy
+.PHONY: build run help test test-unit test-integration test-integration-bitbucket test-integration-all test-integration-go test-integration-filter test-integration-bitbucket-filter go-build go-test go-lint go-tidy build-preview-image
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
 		awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2}'
 
-build: ## Build the Docker image (multi-stage: Go compile + Bash runtime)
+build: ## Build the Docker image (pure Go runtime)
 	docker build -t $(IMAGE_NAME):$(IMAGE_TAG) .
 
 run: build ## Run the pipe with a mounted working directory
@@ -29,26 +29,10 @@ run: build ## Run the pipe with a mounted working directory
 		-e BITBUCKET_COMMIT=$${BITBUCKET_COMMIT:-} \
 		$(IMAGE_NAME):$(IMAGE_TAG)
 
-shell: build ## Open an interactive shell in the container
-	docker run --rm -it \
-		-v "$$(pwd):/workspace" \
-		-w /workspace \
-		$(IMAGE_NAME):$(IMAGE_TAG) /bin/bash
+test: test-unit ## Run all local tests (unit only; integration requires credentials)
 
-lint: ## Run shellcheck on all scripts (requires shellcheck)
-	@command -v shellcheck >/dev/null 2>&1 || { echo "shellcheck not found. Install: brew install shellcheck"; exit 1; }
-	shellcheck --exclude=SC1091 scripts/**/*.sh pipe.sh
-
-build-test: build ## Build the test Docker image (bats-core)
-	docker build -f tests/Dockerfile.test --build-arg BASE_IMAGE=$(IMAGE_NAME):$(IMAGE_TAG) -t $(IMAGE_NAME)-test:$(IMAGE_TAG) .
-
-test: test-unit ## Run all local tests (unit only, integration requires credentials)
-
-test-unit: build-test ## Run unit tests in Docker
-	docker run --rm $(IMAGE_NAME)-test:$(IMAGE_TAG) bats -r tests/unit/
-
-test-unit-filter: build-test ## Run specific test: make test-unit-filter F=config-parser/getters
-	docker run --rm $(IMAGE_NAME)-test:$(IMAGE_TAG) bats tests/unit/$(F).bats
+test-unit: ## Run Go unit tests with race detector
+	go test ./... -race -count=1
 
 test-integration: ## Run integration tests — GitHub (parallel, requires gh CLI authenticated)
 	cd tests/integration && pip install -q -r requirements.txt && pytest -v -n 15 --dist worksteal test_github.py
@@ -74,8 +58,7 @@ test-integration-bitbucket-filter: ## Run specific Bitbucket scenario: make test
 go-build: ## Build the Go binary locally with version ldflags injected
 	go build -ldflags "$(GO_LDFLAGS)" -o bin/$(GO_BINARY) ./cmd/panora-versioning
 
-go-test: ## Run Go unit tests with race detector
-	go test ./... -race -count=1
+go-test: test-unit ## Alias for test-unit (Go unit tests)
 
 go-lint: ## Run go vet, gofmt check, and golangci-lint
 	go vet ./...

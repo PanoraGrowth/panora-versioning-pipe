@@ -1,6 +1,6 @@
 # Architecture
 
-**Last updated:** 2026-04-18 (initial values semantics update, ticket 059)
+**Last updated:** 2026-04-21 (Go cutover, GO-12)
 
 ---
 
@@ -10,26 +10,35 @@ panora-versioning-pipe is a CI/CD versioning tool packaged as a Docker image. It
 
 Supported platforms: **GitHub Actions** and **Bitbucket Pipelines**.
 
+The runtime is a single Go binary (`panora-versioning`). Bash, `jq`, `yq`, and `curl` were removed in GO-12; the image carries only `git` and `tzdata` on top of Alpine.
+
 ---
 
 ## How it works
 
 ```
 PR opened/updated
-  └── pipe.sh → pr-pipeline.sh → validate commit format
+  └── panora-versioning (default cmd)
+        ├── preflight: configure-git → platform detect → config-parse
+        └── pr-pipeline → detect-scenario → validate-commits
 
 Merge to tag branch (main or development)
-  └── pipe.sh → branch-pipeline.sh
-        ├── detect-scenario.sh        → routes hotfix vs development_release
-        ├── calculate-version.sh      → determine next version (PATCH for hotfixes)
-        ├── write-version-file.sh     → update version in project files
-        ├── generate-changelog-per-folder.sh  → per-folder CHANGELOGs (monorepo)
-        ├── generate-changelog-last-commit.sh → root CHANGELOG (+ "(Hotfix)" marker)
-        ├── update-changelog.sh       → commit CHANGELOG (no push in branch context)
-        └── atomic push: CHANGELOG commit + git tag (single push, CI-skip marker)
+  └── panora-versioning (default cmd)
+        ├── preflight: configure-git → platform detect → config-parse
+        └── branch-pipeline
+              ├── detect-scenario              → routes hotfix vs development_release
+              ├── calc-version                 → next version (PATCH for hotfixes)
+              ├── run-guardrails               → invariants enforced before side effects
+              ├── write-version-file           → update version in project files
+              ├── generate-changelog-per-folder → per-folder CHANGELOGs (monorepo)
+              ├── generate-changelog-last-commit → root CHANGELOG (+ "(Hotfix)" marker)
+              ├── update-changelog             → commit CHANGELOG (no push yet)
+              └── atomic push: CHANGELOG commit + git tag (single push, CI-skip marker)
 ```
 
-The PR pipeline only validates. The branch pipeline does all the work: scenario detection, version calculation, CHANGELOG generation, and tag creation.
+The PR pipeline only validates. The branch pipeline does all the work: scenario detection, version calculation, guardrails, CHANGELOG generation, and tag creation.
+
+Each stage above is a subcommand of the same binary. The default command (no subcommand) replicates the old `pipe.sh` entry point: it runs preflight, then dispatches to `pr-pipeline` or `branch-pipeline` based on `VERSIONING_PR_ID` / `VERSIONING_BRANCH`. Subcommands can also be invoked directly for debugging or composition.
 
 ---
 
@@ -37,25 +46,47 @@ The PR pipeline only validates. The branch pipeline does all the work: scenario 
 
 ```
 panora-versioning-pipe/
-├── pipe.sh                    # Entry point — platform detection + routing
-├── Dockerfile                 # Alpine 3.19 + bash/git/curl/jq/yq
-├── scripts/
-│   ├── defaults.yml           # All default config values
-│   ├── lib/
-│   │   ├── common.sh          # Shared utilities (logging, state, git ops)
-│   │   └── config-parser.sh   # Config loading, version helpers, folder routing
-│   ├── setup/                 # Git identity + dependency installation
-│   ├── detection/             # Pipeline scenario detection
-│   ├── validation/            # Commit message format validation
-│   ├── versioning/            # Version calculation + file updates
-│   ├── changelog/             # CHANGELOG generation (root + per-folder)
-│   ├── orchestration/         # Pipeline orchestrators (PR + branch)
-│   └── reporting/             # Notifications (Teams webhook, Bitbucket status)
-├── tests/                     # Test framework (unit + integration)
-├── docs/                      # Feature documentation + test coverage
-├── .github/workflows/         # GitHub Actions workflows
-└── examples/                  # Example configs + CI setups
+├── cmd/panora-versioning/        # Go entry point (cobra root + subcommands)
+│   ├── main.go                   # Root command — default run dispatches PR/branch
+│   ├── pr_pipeline.go            # pr-pipeline subcommand
+│   ├── branch_pipeline.go        # branch-pipeline subcommand
+│   ├── configure_git.go          # configure-git (identity, remote auth, fetch)
+│   ├── config_parse.go           # config-parse (deep merge → merged YAML)
+│   ├── detect_scenario.go        # detect-scenario (hotfix vs development_release)
+│   ├── calc_version.go           # calc-version
+│   ├── run_guardrails.go         # run-guardrails (+ guardrails subcommand)
+│   ├── write_version_file.go     # write-version-file
+│   ├── generate_changelog_*.go   # per-folder and last-commit CHANGELOG generators
+│   ├── update_changelog.go       # update-changelog (stage + commit)
+│   ├── validate_commits.go       # validate-commits (PR pipeline)
+│   ├── check_commit_hygiene.go   # check-commit-hygiene (extra PR check)
+│   ├── check_release_readiness.go# check-release-readiness
+│   ├── notify_teams.go           # Teams webhook notifier
+│   └── bitbucket_build_status.go # Bitbucket build status reporter
+├── internal/
+│   ├── pipeline/                 # Orchestrator: preflight, PR/branch dispatch, platform detect + env mapping
+│   ├── config/                   # YAML load, deep-merge, bundled-defaults path resolution
+│   ├── versioning/               # Version calculation + bump strategy (last-commit-wins, highest-wins)
+│   ├── detection/                # Scenario detection (PR branch dispatch + post-merge git heuristics)
+│   ├── validation/               # Commit message format + hygiene checks
+│   ├── guardrails/               # Runtime invariants (no_version_regression, etc.)
+│   ├── changelog/                # CHANGELOG generation (root + per-folder) + update/commit
+│   ├── versionfile/              # Version file patchers for project manifests
+│   ├── gitops/                   # Git helpers (fetch, tag, push, merge-commit inspection)
+│   ├── release/                  # Release readiness + tag push orchestration
+│   ├── reporting/                # Teams webhook + Bitbucket build status payloads
+│   └── util/                     # log, state (/tmp contract helpers), version metadata
+├── config/defaults/
+│   ├── defaults.yml              # All default config values (bundled into image)
+│   └── commit-types.yml          # Default commit-type → bump mapping
+├── Dockerfile                    # Multi-stage: golang:1.26-alpine → alpine:3.19 + git + tzdata
+├── tests/                        # Unit (go test) + integration (pytest + gh CLI)
+├── docs/                         # Feature documentation + architecture reference
+├── .github/workflows/            # GitHub Actions workflows
+└── examples/                     # Example configs + CI setups
 ```
+
+The Docker image ships the Go binary at `/usr/local/bin/panora-versioning` and the bundled YAML defaults at `/etc/panora/defaults/`.
 
 ---
 
@@ -63,10 +94,12 @@ panora-versioning-pipe/
 
 The pipe uses a deep-merge configuration system:
 
-1. `scripts/defaults.yml` ships with ALL default values
+1. `config/defaults/defaults.yml` ships with ALL default values (bundled into the image at `/etc/panora/defaults/defaults.yml`)
 2. `.versioning.yml` in your repo overrides only what you need
 
 You only specify what you want to change. Everything else inherits defaults.
+
+The runtime path for bundled defaults is `/etc/panora/defaults/`. For tests and local runs you can override it with the `PANORA_DEFAULTS_DIR` environment variable — `internal/config.ResolveBundledFile` checks the env override first, then the baked-in path, then two fallbacks next to the binary.
 
 ### Minimal config example
 
@@ -90,7 +123,7 @@ This produces tags like `v0.1.0`, `v0.2.0`, etc.
 
 ### Full config reference
 
-See `scripts/defaults.yml` for all available options with descriptions.
+See `config/defaults/defaults.yml` for all available options with descriptions.
 
 ---
 
@@ -129,7 +162,7 @@ The coupling is intentional: if you want all commits visible in the CHANGELOG (`
 
 **Merge commit / rebase-and-merge with `last_commit` mode**: commits `[feat: big, fix: small]` in that chronological order produce a **patch** bump, silently losing the `feat:`. Use `mode: full` or squash merge to avoid this.
 
-The implementation lives in `scripts/versioning/calculate-version.sh` and is locked by integration scenarios `multi-commit-last-wins` (sandbox-06) and `multi-commit-highest-wins` (sandbox-25) in `tests/integration/test-scenarios.yml`.
+The implementation lives in `internal/versioning` and is locked by integration scenarios `multi-commit-last-wins` (sandbox-06) and `multi-commit-highest-wins` (sandbox-25) in `tests/integration/test-scenarios.yml`.
 
 ---
 
@@ -139,7 +172,7 @@ The pipe supports hotfixes via a single unified scenario and a default-on PATCH 
 
 ### Detection
 
-`scripts/detection/detect-scenario.sh` runs in two contexts:
+`internal/detection` runs in two contexts (invoked through the `detect-scenario` subcommand):
 
 | Context | Signal | Detection strategy |
 |---------|--------|--------------------|
@@ -180,7 +213,7 @@ Hotfix releases render with a `(Hotfix)` suffix in the version header so release
   - _oncall-engineer_
 ```
 
-Both the root CHANGELOG (`generate-changelog-last-commit.sh`) and per-folder CHANGELOGs (`generate-changelog-per-folder.sh`) inject the marker consistently. Dev releases render unchanged.
+Both the root CHANGELOG (`generate-changelog-last-commit` subcommand) and per-folder CHANGELOGs (`generate-changelog-per-folder` subcommand) inject the marker consistently. Dev releases render unchanged. Both are backed by `internal/changelog`.
 
 ### Configuration
 
@@ -258,11 +291,11 @@ The pipe ships with three workflows in `.github/workflows/`:
 | `pr-versioning.yml` | `pull_request: [main]` | Validates commits and generates the CHANGELOG preview |
 | `tag-on-merge.yml` | `push: [main]` | Runs the branch pipeline, creates the version tag |
 | `publish.yml` | `workflow_run: [Main - Create Version Tag] / workflow_dispatch` | Builds the Docker image and pushes to GHCR + ECR Public |
-| `run-unit-tests.yml` | `pull_request` on core paths | Runs the bats unit-test suite |
+| `run-unit-tests.yml` | `pull_request` on core paths | Runs the Go unit-test suite |
 
 `tag-on-merge.yml` uses a GitHub App token (`CI_APP_ID` + `CI_APP_PRIVATE_KEY`) to push past branch protection and to re-trigger downstream workflows (the default `GITHUB_TOKEN` cannot do either).
 
-The pipe auto-detects GitHub Actions and maps `GITHUB_*` variables to `VERSIONING_*` internally (see `pipe.sh:39-54`).
+The pipe auto-detects GitHub Actions and maps `GITHUB_*` variables to `VERSIONING_*` internally. Platform detection and env mapping live in `internal/pipeline/platform.go` and are invoked during the default-command preflight.
 
 The branch pipeline's CHANGELOG commit uses the CI-skip marker to prevent re-triggering workflows. Tag + CHANGELOG are pushed atomically in a single `git push`.
 
@@ -274,17 +307,13 @@ pipelines:
     '**':
       - step:
           image: public.ecr.aws/k5n8p2t3/panora-versioning-pipe:latest
-          script:
-            - /pipe/pipe.sh
   branches:
     main:
       - step:
           image: public.ecr.aws/k5n8p2t3/panora-versioning-pipe:latest
-          script:
-            - /pipe/pipe.sh
 ```
 
-Bitbucket overrides Docker ENTRYPOINT, so `/pipe/pipe.sh` must be called explicitly.
+The container ENTRYPOINT is `/usr/local/bin/panora-versioning`. Bitbucket honors it directly — no explicit script call is required now that the bash entry point is gone. If you override the entry point or need a sub-behavior, invoke a subcommand explicitly (e.g. `- /usr/local/bin/panora-versioning branch-pipeline`).
 
 ### Generic CI
 
@@ -299,28 +328,36 @@ Set these environment variables manually:
 
 ---
 
-## Inter-script communication
+## Inter-stage state
 
-Scripts communicate via temp files:
+Although all logic lives in a single Go binary, each pipeline stage is executed as a subcommand in its own process (the orchestrator uses a `SelfExecRunner` so each stage runs with a clean environment and a predictable exit code). Stages therefore persist a small amount of state through `/tmp` files — the same contract the integration tests rely on:
 
-| File | Purpose |
-|------|---------|
-| `/tmp/scenario.env` | Pipeline scenario (`development_release`, `hotfix`, `promotion_*`, `unknown`). Written by `detect-scenario.sh` before `calculate-version.sh` runs so the hotfix routing can drive the PATCH bump. |
-| `/tmp/next_version.txt` | Calculated next version tag |
-| `/tmp/bump_type.txt` | Bump type (`major`, `minor`, `patch`, `timestamp_only`) |
-| `/tmp/latest_tag.txt` | Latest matching version tag |
-| `/tmp/routed_commits.txt` | Commits routed to per-folder CHANGELOGs |
-| `/tmp/per_folder_changelogs.txt` | Per-folder CHANGELOG paths for staging |
-| `/tmp/version_files_modified.txt` | Modified version file paths for staging |
-| `/tmp/changelog_committed.flag` | Signals CHANGELOG was committed, push pending |
+| File | Purpose | Producer |
+|------|---------|----------|
+| `/tmp/.versioning-merged.yml` | Deep-merged config (defaults + `.versioning.yml`) consumed by every downstream stage | `config-parse` |
+| `/tmp/scenario.env` | Pipeline scenario (`development_release`, `hotfix`, `promotion_*`, `unknown`). Written before `calc-version` so hotfix routing can drive the PATCH bump. | `detect-scenario` |
+| `/tmp/next_version.txt` | Calculated next version tag | `calc-version` |
+| `/tmp/bump_type.txt` | Bump type (`major`, `minor`, `patch`, `timestamp_only`) | `calc-version` |
+| `/tmp/latest_tag.txt` | Latest matching version tag | `calc-version` |
+| `/tmp/routed_commits.txt` | Commits routed to per-folder CHANGELOGs | `generate-changelog-per-folder` |
+| `/tmp/per_folder_changelogs.txt` | Per-folder CHANGELOG paths for staging | `generate-changelog-per-folder` |
+| `/tmp/version_files_modified.txt` | Modified version file paths for staging | `write-version-file` |
+| `/tmp/changelog_committed.flag` | Signals CHANGELOG was committed, push pending | `update-changelog` |
+
+Helpers for reading/writing this contract live in `internal/util/state`. Paths are passed in — never hardcoded inside handlers — so tests can redirect them.
 
 ---
 
 ## Docker image
 
 ```
-Base: Alpine 3.19
-Tools: bash, git, curl, jq, yq v4.35.1
+Base:     Alpine 3.19 (runtime stage)
+Builder:  golang:1.26-alpine (compiles static binary, CGO disabled)
+Runtime:  git, tzdata (pure Go binary — no bash, no jq, no yq, no curl)
+Binary:   /usr/local/bin/panora-versioning
+Defaults: /etc/panora/defaults/{defaults.yml, commit-types.yml}
+User:     pipe (UID 1001, non-root)
+TZ:       UTC (required by the tag timestamp formatter)
 Registries: ghcr.io/panoragrowth/panora-versioning-pipe
             public.ecr.aws/k5n8p2t3/panora-versioning-pipe
 ```
@@ -343,7 +380,7 @@ Each release publishes three tags. Push order within each registry is always spe
 
 ### v0.11+ — `major` and `minor` commit types removed
 
-The `major` and `minor` commit types were removed from `scripts/defaults.yml` in this version. Consumers using these types will experience a silent behavior change:
+The `major` and `minor` commit types were removed from `config/defaults/defaults.yml` in this version. Consumers using these types will experience a silent behavior change:
 
 - `major:` commits no longer trigger a major bump — they are unrecognized and fall through to timestamp-only behavior.
 - `minor:` commits no longer trigger a minor bump — same fallback.
@@ -366,6 +403,17 @@ commit_type_overrides:
     bump: "minor"
     changelog_section: "Release"
 ```
+
+### v1.0+ — Go cutover (GO-12)
+
+The entire bash runtime (`pipe.sh`, `scripts/*.sh`, `scripts/lib/*.sh`) was removed. The container image no longer ships `bash`, `jq`, `yq`, `curl`, `gettext`, or `coreutils`. Only `git` and `tzdata` remain on top of Alpine. All behavior is driven by the Go binary at `/usr/local/bin/panora-versioning`.
+
+Consumer impact:
+
+- **No config change required.** `.versioning.yml` schema is unchanged.
+- **ENTRYPOINT unchanged in practice.** The image ENTRYPOINT now points at the Go binary directly. If your CI calls `/pipe/pipe.sh` explicitly, update it to either drop the explicit call (use the ENTRYPOINT) or call `/usr/local/bin/panora-versioning`.
+- **Do not rely on shelling into the container to run bash scripts.** They are gone. Debug by running subcommands (`panora-versioning config-parse`, `panora-versioning detect-scenario`, etc.) against a merged config.
+- **Bundled defaults moved.** `scripts/defaults.yml` → `config/defaults/defaults.yml` in the repo, mounted at `/etc/panora/defaults/defaults.yml` in the image. Override with `PANORA_DEFAULTS_DIR` for local/test runs.
 
 ---
 
@@ -422,11 +470,11 @@ The pipe includes a runtime enforcement layer that runs **after** version calcul
 ### How it works
 
 ```
-calculate-version.sh → /tmp/next_version.txt
-          ↓
-run-guardrails.sh       ← enforcement layer
-          ↓ (pass)
-write-version-file.sh → CHANGELOG → tag → push
+calc-version → /tmp/next_version.txt
+       ↓
+run-guardrails            ← enforcement layer (internal/guardrails)
+       ↓ (pass)
+write-version-file → CHANGELOG → tag → push
 ```
 
 Each guardrail is a pure function: reads `/tmp/*.txt` and git state, never modifies anything, and emits a structured log line:
@@ -477,8 +525,8 @@ The error message names the specific violation and the exact tags involved so th
 
 1. **Bump strategy coupled to changelog.mode**: `mode: "last_commit"` uses last-commit-wins; `mode: "full"` uses highest-wins across all commits. There is no way to mix the two (intentional — they are semantically coherent). See "Bump calculation semantics" above.
 
-2. **config_get_array and spaces**: array values with spaces in config (like regex patterns) will be split incorrectly. Avoid spaces in `ignore_patterns`.
+2. **Array config values with spaces**: list values that contain spaces (e.g. regex patterns in `ignore_patterns`) must be quoted in YAML. Prefer anchored patterns without whitespace when possible.
 
 3. **Tag format migration**: changing version format config (epoch, timestamp, v-prefix) causes old tags to be ignored. The pipe starts from `initial` values whenever the configured namespace (`epoch.initial` + `major.initial`) is empty — see "Initial values semantics" above for the full declarative vs cold-start rules.
 
-4. **Orphaned hotfix generator (REMOVED in v0.6.3)**: `scripts/changelog/generate-hotfix-changelog.sh` and its test file `tests/unit/changelog/hotfix.bats` were deleted in PR #49 (ticket 031). The unified wire-up (ticket 024) already routed hotfix releases through `generate-changelog-last-commit.sh` with a `(Hotfix)` header marker — the old generator was dead code.
+4. **Orphaned hotfix generator (REMOVED in v0.6.3)**: the standalone hotfix changelog generator was deleted in PR #49 (ticket 031). The unified wire-up (ticket 024) already routed hotfix releases through `generate-changelog-last-commit` with a `(Hotfix)` header marker — the old generator was dead code.

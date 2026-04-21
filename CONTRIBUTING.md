@@ -4,9 +4,10 @@ Thank you for your interest in contributing. This document covers how to set up 
 
 ## Prerequisites
 
-- [Docker](https://docs.docker.com/get-docker/) — required to build and run the pipe
+- [Go](https://go.dev/dl/) 1.26+ — required to build the binary and run unit tests
+- [Docker](https://docs.docker.com/get-docker/) — required to build the runtime image and run integration tests
 - [Make](https://www.gnu.org/software/make/) — for the development workflow targets
-- [shellcheck](https://www.shellcheck.net/) — optional but recommended for linting (`brew install shellcheck`)
+- [golangci-lint](https://golangci-lint.run/) — optional, required for `make go-lint`
 
 ## Development Setup
 
@@ -17,80 +18,63 @@ Thank you for your interest in contributing. This document covers how to set up 
    cd panora-versioning-pipe
    ```
 
-2. Build the Docker image locally:
+2. Build the binary and the Docker image locally:
 
    ```bash
-   make build
-   ```
-
-3. Open an interactive shell inside the container to explore or debug:
-
-   ```bash
-   make shell
+   make go-build   # binary at bin/panora-versioning
+   make build      # Docker image: panora-versioning-pipe:local
    ```
 
 ## Local Testing
 
-For day-to-day development, exercise the pipe via the automated unit tests (Dockerised bats suite) and the integration tests that drive real repositories on GitHub and Bitbucket:
-
 ```bash
-make test                      # bats unit tests in Docker
-make test-integration          # GitHub integration scenarios (requires gh CLI)
-make test-integration-bitbucket # Bitbucket integration scenarios (requires BB_TOKEN)
+make test-unit                    # Go unit tests with race detector
+make test-integration             # GitHub integration scenarios (requires gh CLI)
+make test-integration-bitbucket   # Bitbucket integration scenarios (requires BB_TOKEN)
+make test-integration-go          # Go-specific integration tests (docker + pytest)
 ```
 
 See `docs/tests/README.md` for the full test-coverage reference.
 
-For manual spot-checks you can also drive the container directly. `make shell` drops you into an interactive shell with the current directory mounted at `/workspace`, where you can export the generic `VERSIONING_*` variables and run `/pipe/pipe.sh` by hand:
+For manual spot-checks, run the binary against a mounted workspace:
 
 ```bash
-make shell
-
-# inside the container
-export VERSIONING_PR_ID=1
-export VERSIONING_BRANCH=feature/my-branch
-export VERSIONING_TARGET_BRANCH=main
-export VERSIONING_COMMIT=$(git rev-parse HEAD)
-/pipe/pipe.sh
+docker run --rm \
+  -v "$(pwd):/workspace" -w /workspace \
+  -e VERSIONING_PR_ID=1 \
+  -e VERSIONING_BRANCH=feature/my-branch \
+  -e VERSIONING_TARGET_BRANCH=main \
+  -e VERSIONING_COMMIT="$(git rev-parse HEAD)" \
+  panora-versioning-pipe:local
 ```
 
 Place a `.versioning.yml` in the directory you run from to test different configurations. See `examples/configs/` for ready-to-use config examples.
 
 ## Linting
 
-Run shellcheck on all shell scripts:
-
 ```bash
-make lint
+make go-lint   # go vet + gofmt + golangci-lint
 ```
 
-All scripts must pass shellcheck with no errors before submitting a PR.
+All Go code must pass these checks before submitting a PR.
 
 ## Code Style
 
-- Shell scripts use POSIX `sh` (`#!/bin/sh`) unless Bash-specific features are strictly required.
-- Follow the existing pattern: `set -e` at the top, explicit `|| true` for optional failures.
-- Use `log_info`, `log_error`, `log_success` from `scripts/lib/common.sh` — do not use bare `echo` for status messages.
-- Keep functions short and single-purpose.
-- Comments must be in English.
+- Go code follows `gofmt` and the defaults of `golangci-lint`.
+- Keep functions short and single-purpose. Table-driven tests are preferred.
+- Use the logging helpers in `internal/util/log` (`log.Info`, `log.Error`, `log.Section`, …) — do not use bare `fmt.Println` for status messages.
+- Comments must be in English. Only add a comment when the *why* is non-obvious.
 
 ## Commit Format
 
-This repository uses **ticket format** by default. Commits should follow one of these formats:
+This repository uses **conventional commits**. Commits should follow:
 
-**Ticket format** (if your team uses a ticket tracker):
-```
-PROJ-123 - feat: add support for custom tag prefix
-PROJ-456 - fix: handle empty commit list edge case
-```
-
-**Conventional commits** (if no ticket system):
 ```
 feat: add support for custom tag prefix
 fix: handle empty commit list edge case
 ```
 
-Valid types: `feat`, `fix`, `docs`, `test`, `chore`, `refactor`, `perf`, `ci`, `build`, `style`, `revert`.
+Valid types: `feat`, `fix`, `docs`, `test`, `chore`, `refactor`, `perf`, `ci`, `build`, `style`, `revert`, `hotfix`, `security`, `breaking`.
 
 The last commit in a PR must include a type. Intermediate commits may be untyped (merge commits, fixups).
 
@@ -100,7 +84,7 @@ GitHub Actions scans commit messages for workflow-skip directives like `[skip ci
 
 This matters in two very different places:
 
-1. **Intentional — the pipe itself**. `scripts/changelog/update-changelog.sh` deliberately writes `[skip ci]` in the CHANGELOG commit subject so that the atomic tag-and-changelog push from `tag-on-merge.yml` does not re-trigger itself into an infinite loop. This is the pipe's internal circuit breaker and must never be removed.
+1. **Intentional — the pipe itself**. The `update-changelog` subcommand deliberately writes `[skip ci]` in the CHANGELOG commit subject so that the atomic tag-and-changelog push from `tag-on-merge.yml` does not re-trigger itself into an infinite loop. This is the pipe's internal circuit breaker and must never be removed.
 2. **Accidental — in PR commit messages**. When you describe the pipe's behavior in a commit message or PR body (for example, explaining how the atomic push works), do NOT paste the literal directive string as prose. GitHub will substring-match it, skip the workflow on merge, and the PR will land on main without triggering `tag-on-merge.yml` — no tag, no CHANGELOG, no release.
 
 **Safe alternatives when documenting the behavior in commits or PR bodies**:
@@ -113,23 +97,20 @@ This matters in two very different places:
 
 **Incident context**: PR #34 was merged to `main` without a tag because its commit body contained the literal substring as descriptive prose. GitHub's substring match skipped `tag-on-merge.yml`, leaving the change untagged. The fix was to bundle PR #34 into the next release (PR #35). If you hit the same gotcha, open a follow-up PR whose merge triggers the missed tagging — do not try to re-run the skipped workflow manually.
 
-File contents (READMEs, YAML comments, shell scripts) are **not** scanned — only commit messages and the subject line of the HEAD commit on a push. You can freely write the literal directive inside a file like this `CONTRIBUTING.md` for educational purposes. Just keep it out of the git log.
+File contents (READMEs, YAML comments, source files) are **not** scanned — only commit messages and the subject line of the HEAD commit on a push. You can freely write the literal directive inside a file like this `CONTRIBUTING.md` for educational purposes. Just keep it out of the git log.
 
 ### Automated enforcement
 
-A lint script at `scripts/lint/check-commit-hygiene.sh` enforces the rules above. It is wired into the `Commit Hygiene` GitHub Actions workflow (`.github/workflows/commit-hygiene.yml`), which runs on every pull request targeting `main` and blocks merge on failure. The lint also distinguishes pipe-authored commits (`chore(release):` / `chore(hotfix):`) — those are allowed to carry the marker because the pipe's atomic-push circuit breaker depends on it.
+The `check-commit-hygiene` subcommand enforces the rules above. It runs as part of the release-readiness gate on every pull request targeting `main` and blocks merge on failure. The check distinguishes pipe-authored commits (`chore(release):` / `chore(hotfix):`) — those are allowed to carry the marker because the pipe's atomic-push circuit breaker depends on it.
 
 **Run the lint locally**:
 
 ```bash
 # Against an inline message
-scripts/lint/check-commit-hygiene.sh -m "feat: your subject"
+panora-versioning check-commit-hygiene -m "feat: your subject"
 
 # Against the commit message you are about to write
-scripts/lint/check-commit-hygiene.sh -f .git/COMMIT_EDITMSG
-
-# Against an open PR (requires gh CLI authenticated)
-scripts/lint/check-commit-hygiene.sh -p 123
+panora-versioning check-commit-hygiene -f .git/COMMIT_EDITMSG
 ```
 
 Exit codes: `0` clean, `1` forbidden substring found, `2` usage error.
@@ -152,7 +133,7 @@ on its own line in the commit body. The lint recognizes the trailer and lets the
 
 2. Make your changes following the code style guidelines above.
 
-3. Run `make lint` and fix any shellcheck warnings.
+3. Run `make go-lint` and `make test-unit` and fix any failures.
 
 4. Push your branch and open a pull request against `main`.
 

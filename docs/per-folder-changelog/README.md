@@ -253,14 +253,14 @@ CHANGELOG.md (root):
 
 ## Execution order
 
-The changelog scripts run in this order (see `scripts/orchestration/branch-pipeline.sh`):
+The changelog subcommands run in this order inside the branch pipeline (see `internal/pipeline` orchestrator):
 
 ```
-1. generate-changelog-per-folder.sh
+1. changelog-per-folder
    → Routes commits to subfolder CHANGELOGs
    → Writes /tmp/routed_commits.txt (list of commits already handled)
 
-2. generate-changelog-last-commit.sh
+2. changelog-last-commit
    → Handles BOTH changelog.mode values ("last_commit" and "full") internally
    → Reads /tmp/routed_commits.txt and excludes already-routed commits
    → Writes remaining commits to root CHANGELOG.md

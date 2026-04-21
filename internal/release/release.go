@@ -77,9 +77,8 @@ type Context struct {
 }
 
 const (
-	maxDocAgeDays    = 14
-	minUnitTestCount = 207
-	consumerImage    = "public.ecr.aws/k5n8p2t3/panora-versioning-pipe"
+	maxDocAgeDays = 14
+	consumerImage = "public.ecr.aws/k5n8p2t3/panora-versioning-pipe"
 )
 
 var forbiddenCommitMarkers = []string{
@@ -99,8 +98,6 @@ func Run(ctx Context) Report {
 	rp.add(checkReadmeTimestamp(ctx))
 	rp.add(checkArchitectureTimestamp(ctx))
 	rp.add(checkCommitHygiene(ctx))
-	rp.add(checkUnitTestCount(ctx))
-	rp.add(checkDefaultsKeysHaveGetters(ctx))
 	rp.add(checkExampleImageURLs(ctx))
 	rp.add(checkBitbucketExampleImage(ctx))
 
@@ -216,7 +213,7 @@ func checkChangelogHasEntry(ctx Context) Result {
 		}
 	}
 	// Docs-only PRs don't need a CHANGELOG bump.
-	codeRe := regexp.MustCompile(`^(scripts/|pipe\.sh$|Dockerfile$|Makefile$|tests/)`)
+	codeRe := regexp.MustCompile(`^(cmd/|internal/|config/|Dockerfile$|Makefile$|tests/|go\.mod$|go\.sum$)`)
 	for _, f := range changed {
 		if codeRe.MatchString(f) {
 			return Result{Name: name, Sev: SeverityBlock, Reason: "code files changed but CHANGELOG.md untouched"}
@@ -261,127 +258,7 @@ func checkCommitHygiene(ctx Context) Result {
 	return Result{Name: name, Sev: SeverityPass}
 }
 
-// e. Unit test count does not regress below the known floor.
-func checkUnitTestCount(ctx Context) Result {
-	const name = "unit_test_count"
-	testsDir := filepath.Join(ctx.RepoRoot, "tests")
-	if _, err := os.Stat(testsDir); os.IsNotExist(err) {
-		return Result{Name: name, Sev: SeverityBlock, Reason: "could not count @test definitions under tests/"}
-	}
-	// Walk .bats files and count @test lines.
-	count := 0
-	err := filepath.Walk(testsDir, func(path string, info os.FileInfo, err error) error {
-		if err != nil || info.IsDir() || filepath.Ext(path) != ".bats" {
-			return nil
-		}
-		data, err := os.ReadFile(path)
-		if err != nil {
-			return nil
-		}
-		re := regexp.MustCompile(`(?m)^@test `)
-		count += len(re.FindAllIndex(data, -1))
-		return nil
-	})
-	if err != nil || count == 0 {
-		return Result{Name: name, Sev: SeverityUnclear, Reason: "could not count @test definitions under tests/"}
-	}
-	if count < minUnitTestCount {
-		return Result{
-			Name:   name,
-			Sev:    SeverityBlock,
-			Reason: fmt.Sprintf("found %d @test definitions, expected >= %d", count, minUnitTestCount),
-		}
-	}
-	return Result{Name: name, Sev: SeverityPass}
-}
-
-// f. Every top-level defaults.yml key is actually read by config-parser.sh.
-func checkDefaultsKeysHaveGetters(ctx Context) Result {
-	const name = "defaults_keys_have_getters"
-	defaultsFile := filepath.Join(ctx.RepoRoot, "scripts", "defaults.yml")
-	parserFile := filepath.Join(ctx.RepoRoot, "scripts", "lib", "config-parser.sh")
-	if _, err := os.Stat(defaultsFile); os.IsNotExist(err) {
-		return Result{Name: name, Sev: SeverityUnclear, Reason: "defaults.yml or config-parser.sh missing"}
-	}
-	if _, err := os.Stat(parserFile); os.IsNotExist(err) {
-		return Result{Name: name, Sev: SeverityUnclear, Reason: "defaults.yml or config-parser.sh missing"}
-	}
-	// Parse top-level keys from defaults.yml.
-	data, err := os.ReadFile(defaultsFile)
-	if err != nil {
-		return Result{Name: name, Sev: SeverityUnclear, Reason: "could not read defaults.yml"}
-	}
-	keyRe := regexp.MustCompile(`(?m)^([a-z_][a-z0-9_]*):\s`)
-	matches := keyRe.FindAllSubmatch(data, -1)
-	if len(matches) == 0 {
-		return Result{Name: name, Sev: SeverityUnclear, Reason: "yq returned no top-level keys"}
-	}
-
-	parserData, err := os.ReadFile(parserFile)
-	if err != nil {
-		return Result{Name: name, Sev: SeverityUnclear, Reason: "could not read config-parser.sh"}
-	}
-	// Read all scripts/ for exempt key fallback check.
-	scriptsData, err := readDirFiles(filepath.Join(ctx.RepoRoot, "scripts"))
-	if err != nil {
-		return Result{Name: name, Sev: SeverityUnclear, Reason: "could not read scripts/"}
-	}
-
-	exempt := map[string]bool{"notifications": true, "commit_types": true}
-	var missing []string
-	seen := map[string]bool{}
-
-	for _, m := range matches {
-		key := string(m[1])
-		if seen[key] {
-			continue
-		}
-		seen[key] = true
-
-		if exempt[key] {
-			// Must be consumed somewhere in scripts/
-			if !strings.Contains(string(parserData), "."+key+".") &&
-				!strings.Contains(string(parserData), key) &&
-				!strings.Contains(scriptsData, key) {
-				missing = append(missing, key)
-			}
-			continue
-		}
-		// Regular key: must have config_get or config_get_array getter.
-		getterRe := regexp.MustCompile(`config_get(_array)?\s+"` + regexp.QuoteMeta(key) + `\.`)
-		if !getterRe.Match(parserData) {
-			missing = append(missing, key)
-		}
-	}
-
-	if len(missing) > 0 {
-		return Result{
-			Name:   name,
-			Sev:    SeverityBlock,
-			Reason: "defaults.yml keys without a getter in config-parser.sh: " + strings.Join(missing, " "),
-		}
-	}
-	return Result{Name: name, Sev: SeverityPass}
-}
-
-// readDirFiles concatenates all file contents under a directory.
-func readDirFiles(dir string) (string, error) {
-	var sb strings.Builder
-	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
-		if err != nil || info.IsDir() {
-			return nil
-		}
-		data, err := os.ReadFile(path)
-		if err != nil {
-			return nil
-		}
-		sb.Write(data)
-		return nil
-	})
-	return sb.String(), err
-}
-
-// g. examples/github-actions/*.yml all reference the current consumer image.
+// e. examples/github-actions/*.yml all reference the current consumer image.
 func checkExampleImageURLs(ctx Context) Result {
 	const name = "example_image_urls"
 	dir := filepath.Join(ctx.RepoRoot, "examples", "github-actions")

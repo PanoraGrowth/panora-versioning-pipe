@@ -11,11 +11,11 @@ version:
   tag_prefix_v: true
   components:
     epoch:
-      enabled: true
+      enabled: false
       initial: 0
     major:
       enabled: true
-      initial: 11
+      initial: 0
     patch:
       enabled: true
       initial: 0

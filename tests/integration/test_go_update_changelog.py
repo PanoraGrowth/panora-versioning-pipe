@@ -28,7 +28,6 @@ IMAGE_TAG = os.environ.get(
     "panora-versioning-pipe:go-changelog-test",
 )
 BINARY = "/usr/local/bin/panora-versioning"
-BASH_SCRIPT = "/pipe/changelog/update-changelog.sh"
 
 
 def _docker_available() -> bool:
@@ -118,7 +117,6 @@ def _run_update_changelog(
     workspace: Path,
     *,
     env_overrides: dict[str, str] | None = None,
-    use_bash: bool = False,
     scenario: str = "development_release",
 ) -> subprocess.CompletedProcess:
     tmp_dir = workspace / "tmp"
@@ -139,14 +137,11 @@ def _run_update_changelog(
         for k, v in env_overrides.items():
             env_flags += ["-e", f"{k}={v}"]
 
-    if use_bash:
-        entrypoint_args = ["--entrypoint", "/bin/bash", image, BASH_SCRIPT]
-    else:
-        entrypoint_args = [
-            "--entrypoint", BINARY,
-            image,
-            "update-changelog",
-        ]
+    entrypoint_args = [
+        "--entrypoint", BINARY,
+        image,
+        "update-changelog",
+    ]
 
     return subprocess.run(
         [

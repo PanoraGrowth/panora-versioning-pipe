@@ -1,20 +1,18 @@
-"""Smoke integration test for the Go bootstrap (ticket GO-00).
+"""Smoke integration test for the Go bootstrap.
 
 Builds the multi-stage Docker image and asserts that:
 
 1. The Go binary is present at /usr/local/bin/panora-versioning.
 2. `panora-versioning --version` returns 0 and prints a recognizable version line.
-3. `/pipe/pipe.sh.legacy` still exists inside the image (bash legacy must
-   coexist during the migration — GO-12 will remove it).
-4. `panora-versioning configure-git`, run inside a temporary git repo, replays
-   the banner lines emitted by `scripts/setup/configure-git.sh`.
+3. `panora-versioning configure-git`, run inside a temporary git repo, replays
+   the banner lines expected by the integration fixtures.
 
 This is a Go-side smoke test — it does NOT talk to GitHub/Bitbucket and does
 NOT depend on the sandbox fixtures used by `test_github.py`.
 
 Each subcommand has its own `test_go_<subcommand>.py` that validates its real
 behavior. This bootstrap file intentionally stays narrow so it doesn't go
-stale when subcommands get ported — see ticket 063.
+stale when subcommands evolve.
 """
 
 from __future__ import annotations
@@ -31,7 +29,6 @@ import pytest
 REPO_ROOT = Path(__file__).resolve().parents[2]
 IMAGE_TAG = os.environ.get("GO_BOOTSTRAP_IMAGE", "panora-versioning-pipe:go-bootstrap-test")
 BINARY_PATH = "/usr/local/bin/panora-versioning"
-PIPE_SH_PATH = "/pipe/pipe.sh.legacy"
 
 
 def _docker_available() -> bool:
@@ -82,19 +79,6 @@ def test_go_binary_exists(go_image: str) -> None:
         f"{BINARY_PATH} missing inside image\nstderr: {result.stderr}"
     )
     assert BINARY_PATH in result.stdout
-
-
-def test_pipe_sh_still_present(go_image: str) -> None:
-    """Bash entry point must coexist with Go during the migration.
-
-    After GO-11 the Go binary is the active ENTRYPOINT; pipe.sh is retained
-    renamed to /pipe/pipe.sh.legacy for emergency rollback (removed in GO-12).
-    """
-    result = _run_in_image(go_image, "ls", PIPE_SH_PATH)
-    assert result.returncode == 0, (
-        f"{PIPE_SH_PATH} missing — bash legacy must coexist during migration\n"
-        f"stderr: {result.stderr}"
-    )
 
 
 def test_version_flag(go_image: str) -> None:

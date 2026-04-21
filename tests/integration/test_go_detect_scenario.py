@@ -4,7 +4,6 @@ Verifies that `panora-versioning detect-scenario`:
 1. Produces /tmp/scenario.env with the correct SCENARIO value.
 2. Emits the expected log banners in order.
 3. Exits 0 on success.
-4. Dual-run: Go output matches bash output byte-for-byte on shared scenarios.
 
 Pattern: build the image once per module, run each scenario against the
 compiled binary. No GitHub/Bitbucket API calls.
@@ -108,79 +107,6 @@ def _run_detect_scenario(
         capture_output=True,
         text=True,
     )
-
-
-def _read_scenario_env(image: str, workspace: Path) -> str:
-    """Read /tmp/scenario.env from the last container run (mounted as tmpfs)."""
-    result = subprocess.run(
-        [
-            "docker", "run", "--rm",
-            "-v", f"{workspace}:/workspace",
-            "-w", "/workspace",
-            "--entrypoint", "sh",
-            image,
-            "-c", "cat /tmp/scenario.env 2>/dev/null || echo MISSING",
-        ],
-        capture_output=True,
-        text=True,
-    )
-    return result.stdout.strip()
-
-
-def _run_bash_detect_scenario(
-    image: str,
-    workspace: Path,
-    *,
-    source_branch: str,
-    target_branch: str | None = None,
-    commit: str = "HEAD",
-    fixture_name: str = "minimal",
-) -> tuple[subprocess.CompletedProcess, str]:
-    """Run the bash detect-scenario.sh inside Docker and return (result, scenario_env)."""
-    fixture_src = FIXTURES_DIR / f"{fixture_name}.yml"
-    (workspace / ".versioning.yml").write_bytes(fixture_src.read_bytes())
-
-    env_flags = [
-        f"-e=VERSIONING_BRANCH={source_branch}",
-        f"-e=VERSIONING_COMMIT={commit}",
-    ]
-    if target_branch is not None:
-        env_flags.append(f"-e=VERSIONING_TARGET_BRANCH={target_branch}")
-
-    result = subprocess.run(
-        [
-            "docker", "run", "--rm",
-            "-v", f"{workspace}:/workspace",
-            "-w", "/workspace",
-            "--entrypoint", "sh",
-            *env_flags,
-            image,
-            "/pipe/scripts/detection/detect-scenario.sh",
-        ],
-        capture_output=True,
-        text=True,
-    )
-    # Extract SCENARIO from stdout (bash writes SCENARIO_ENV= style in tests, but
-    # here we capture the env file content by running a second command)
-    scenario_env = ""
-    if result.returncode == 0:
-        env_result = subprocess.run(
-            [
-                "docker", "run", "--rm",
-                "-v", f"{workspace}:/workspace",
-                "-w", "/workspace",
-                "--entrypoint", "sh",
-                *env_flags,
-                image,
-                "-c",
-                "sh /pipe/detection/detect-scenario.sh > /dev/null 2>&1; "
-                "cat /tmp/scenario.env 2>/dev/null || echo MISSING",
-            ],
-            capture_output=True,
-            text=True,
-        )
-        scenario_env = env_result.stdout.strip()
-    return result, scenario_env
 
 
 # =============================================================================
@@ -549,91 +475,3 @@ class TestLogContent:
         )
 
 
-# =============================================================================
-# Dual-run: Go output matches bash for same inputs
-# =============================================================================
-
-class TestDualRun:
-    """Gold-standard: Go scenario.env content must match bash on shared scenarios."""
-
-    @pytest.mark.parametrize(
-        "source_branch,target_branch,fixture",
-        [
-            ("feature/login", "development", "minimal"),
-            ("hotfix/urgent-fix", "pre-production", "minimal"),
-            ("development", "pre-production", "minimal"),
-            ("feature/quick-fix", "main", "minimal"),
-            ("hotfix/fix-auth", "main", "tag-on-equals-hotfix-target"),
-            ("feature/new-ui", "main", "tag-on-equals-hotfix-target"),
-            ("hotfix/db-crash", "staging", "custom-branches"),
-        ],
-    )
-    def test_go_matches_bash_pr_context(
-        self,
-        go_image: str,
-        tmp_path: Path,
-        source_branch: str,
-        target_branch: str,
-        fixture: str,
-    ) -> None:
-        """Go detect-scenario must produce identical scenario.env as bash."""
-        workspace_go = tmp_path / f"go-{uuid.uuid4().hex[:8]}"
-        workspace_go.mkdir()
-        _init_git_repo(workspace_go)
-
-        workspace_bash = tmp_path / f"bash-{uuid.uuid4().hex[:8]}"
-        workspace_bash.mkdir()
-        _init_git_repo(workspace_bash)
-
-        fixture_src = FIXTURES_DIR / f"{fixture}.yml"
-        (workspace_go / ".versioning.yml").write_bytes(fixture_src.read_bytes())
-        (workspace_bash / ".versioning.yml").write_bytes(fixture_src.read_bytes())
-
-        go_result = subprocess.run(
-            [
-                "docker", "run", "--rm",
-                "-v", f"{workspace_go}:/workspace",
-                "-w", "/workspace",
-                "--entrypoint", "sh",
-                f"-e=VERSIONING_BRANCH={source_branch}",
-                f"-e=VERSIONING_TARGET_BRANCH={target_branch}",
-                go_image,
-                "-c",
-                "/usr/local/bin/panora-versioning detect-scenario > /dev/null 2>&1; "
-                "cat /tmp/scenario.env 2>/dev/null || echo MISSING",
-            ],
-            capture_output=True,
-            text=True,
-        )
-
-        bash_result = subprocess.run(
-            [
-                "docker", "run", "--rm",
-                "-v", f"{workspace_bash}:/workspace",
-                "-w", "/workspace",
-                "--entrypoint", "sh",
-                f"-e=VERSIONING_BRANCH={source_branch}",
-                f"-e=VERSIONING_TARGET_BRANCH={target_branch}",
-                go_image,
-                "-c",
-                "sh /pipe/detection/detect-scenario.sh > /dev/null 2>&1; "
-                "cat /tmp/scenario.env 2>/dev/null || echo MISSING",
-            ],
-            capture_output=True,
-            text=True,
-        )
-
-        go_scenario = go_result.stdout.strip()
-        bash_scenario = bash_result.stdout.strip()
-
-        assert go_scenario != "MISSING", (
-            f"Go binary did not write scenario.env\nstderr: {go_result.stderr}"
-        )
-        assert bash_scenario != "MISSING", (
-            f"Bash script did not write scenario.env\nstderr: {bash_result.stderr}"
-        )
-        assert go_scenario == bash_scenario, (
-            f"Go/bash scenario.env mismatch for {source_branch}->{target_branch} [{fixture}]\n"
-            f"Go:   {go_scenario!r}\n"
-            f"Bash: {bash_scenario!r}"
-        )
