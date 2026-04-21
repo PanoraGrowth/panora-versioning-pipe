@@ -615,3 +615,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: 831b577](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/831b5774c1121e9e5c4425cac0ff068bde961e37)
 
 
+## v1.1 - 2026-04-21
+
+- 🐛 fix(publish): propagate version build-args to docker build
+  - _Agustín Manessi_
+  - [Commit: 6a8b11d](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/6a8b11d6039d1f9db0f68127981c4f2ced3fdae7)
+
+
