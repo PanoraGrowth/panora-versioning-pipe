@@ -67,7 +67,7 @@ Three decisions worth understanding:
 - **`commit_type_overrides.docs.bump: "none"`** — documentation-only commits won't trigger a release. This is the pattern the pipe itself uses.
 - **`branches.tag_on: "main"`** — single-trunk workflow. If you use a dev/main flow, set it to `development` instead. The `hotfix_targets` list (default: `["main", "pre-production"]`) controls which branches can receive hotfix PRs; adjust it to match your topology.
 
-All other keys inherit from [`scripts/defaults.yml`](../scripts/defaults.yml). You only override what you need.
+All other keys inherit from [`config/defaults/defaults.yml`](../config/defaults/defaults.yml). You only override what you need.
 
 ---
 
@@ -155,7 +155,7 @@ After the first merge to `main` completes, verify:
 2. **"Unable to push to main" from `tag-on-merge`.** Branch protection doesn't allow the GitHub App to bypass PR requirements. See [`troubleshooting.md`](troubleshooting.md#tag-on-merge-failed-with-unable-to-push-to-main).
 3. **Docker image pull fails with "manifest unknown".** The ECR Public alias (`k5n8p2t3`) is AWS auto-generated and will eventually transition to `panoragrowth`. Pin to a version tag (e.g. `:v0.5.5`) in production. See [`troubleshooting.md`](troubleshooting.md#docker-image-pull-failed-manifest-unknown).
 4. **Multi-commit PR produces an unexpected bump.** With `changelog.mode: "last_commit"` (default) the last commit wins — use squash merge or switch to `mode: "full"` for highest-wins semantics. See [`troubleshooting.md`](troubleshooting.md#multi-commit-pr-produced-a-minor-bump-but-i-expected-major).
-5. **`commit_type_overrides` is ignored.** Usually a typo in the key name or a type not present in `scripts/defaults.yml`. See [`troubleshooting.md`](troubleshooting.md#my-config-has-commit_type_overrides-but-the-override-is-ignored).
+5. **`commit_type_overrides` is ignored.** Usually a typo in the key name or a type not present in `config/defaults/commit-types.yml`. See [`troubleshooting.md`](troubleshooting.md#my-config-has-commit_type_overrides-but-the-override-is-ignored).
 6. **`tag-on-merge` aborted with `Version regression blocked`.** The runtime guardrail caught a computed tag lower than the latest in the repo — usually a misconfigured `version.components.*.initial` or a shallow clone. The error log names the violation and the tags involved. If you're stuck and the guardrail itself is the problem, there is an **escape hatch** (`validation.allow_version_regression: true`) that degrades the block to a warning — see [`troubleshooting.md`](troubleshooting.md#tag-on-merge-failed-with-version-regression-blocked-guardrail) for the full recovery workflow.
 
 ---
@@ -275,10 +275,10 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - run: /pipe/pipe.sh
+      - run: /usr/local/bin/panora-versioning
 ```
 
-> **Note:** `uses: docker://` does not support `${{ vars.* }}` — GitHub parses it statically before resolving contexts ([discussion](https://github.com/orgs/community/discussions/27048)). The `container.image` field resolves vars at runtime. The entrypoint `/pipe/pipe.sh` is a stable public contract covered by semver.
+> **Note:** `uses: docker://` does not support `${{ vars.* }}` — GitHub parses it statically before resolving contexts ([discussion](https://github.com/orgs/community/discussions/27048)). The `container.image` field resolves vars at runtime. The container ENTRYPOINT (`/usr/local/bin/panora-versioning`) is a stable public contract covered by semver.
 
 This gives you a single control point for the entire organization. When you're ready to upgrade (e.g. from `v0` to `v1`), change the variable once and every repo picks it up on their next CI run.
 

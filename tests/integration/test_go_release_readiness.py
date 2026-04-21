@@ -1,4 +1,4 @@
-"""Integration test for GO-08: check-release-readiness subcommand.
+"""Integration test for check-release-readiness subcommand.
 
 Builds the Docker image and runs `panora-versioning check-release-readiness`
 against seeded local git repos. The test:
@@ -8,8 +8,8 @@ against seeded local git repos. The test:
   3. Runs the binary.
   4. Asserts exit code, stdout check lines, and summary format.
 
-Dual-run diff: selected scenarios also run the bash script and compare
-summary format to ensure Go output is equivalent.
+Post-GO-12: the bash dual-run scenario was dropped — bash has been removed
+from the runtime image. Only the Go binary is exercised.
 """
 
 from __future__ import annotations
@@ -29,7 +29,6 @@ IMAGE_TAG = os.environ.get(
     "panora-versioning-pipe:go-release-readiness-test",
 )
 BINARY = "/usr/local/bin/panora-versioning"
-BASH_SCRIPT = "/pipe/release/check-release-readiness.sh"
 
 
 def _docker_available() -> bool:
@@ -120,6 +119,21 @@ def _seed_examples(workspace: Path) -> None:
     )
 
 
+def _seed_broken_examples(workspace: Path) -> None:
+    """Seed examples/ with a wrong consumer image URL → image checks FAIL."""
+    gh_dir = workspace / "examples" / "github-actions"
+    gh_dir.mkdir(parents=True)
+    bb_dir = workspace / "examples" / "bitbucket"
+    bb_dir.mkdir(parents=True)
+
+    (gh_dir / "versioning.yml").write_text(
+        "image: docker.io/wrong/image:latest\n"
+    )
+    (bb_dir / "bitbucket-pipelines.yml").write_text(
+        "image: docker.io/wrong/image:latest\n"
+    )
+
+
 def _seed_changelog(workspace: Path) -> None:
     """Write a CHANGELOG.md so changelog check can pass."""
     (workspace / "CHANGELOG.md").write_text("# Changelog\n")
@@ -137,7 +151,6 @@ def _run_rr(
     workspace: Path,
     *,
     env_overrides: dict[str, str] | None = None,
-    use_bash: bool = False,
 ) -> subprocess.CompletedProcess:
     env_flags: list[str] = []
     if env_overrides:
@@ -147,11 +160,6 @@ def _run_rr(
     tmp_dir = workspace / "tmp"
     tmp_dir.mkdir(exist_ok=True)
 
-    if use_bash:
-        entrypoint_args = ["--entrypoint", "/bin/bash", image, BASH_SCRIPT]
-    else:
-        entrypoint_args = ["--entrypoint", BINARY, image, "check-release-readiness"]
-
     return subprocess.run(
         [
             "docker", "run", "--rm",
@@ -159,7 +167,8 @@ def _run_rr(
             "-v", f"{tmp_dir}:/tmp",
             "-w", "/workspace",
             *env_flags,
-            *entrypoint_args,
+            "--entrypoint", BINARY,
+            image, "check-release-readiness",
         ],
         capture_output=True,
         text=True,
@@ -170,34 +179,22 @@ def _run_rr(
 # Scenario 1: clean repo, no blocked checks → exit 0
 # ---------------------------------------------------------------------------
 
-def _seed_bats(workspace: Path, count: int = 220) -> None:
-    """Seed a minimal tests/unit/ bats file with enough @test entries to pass the floor."""
-    unit_dir = workspace / "tests" / "unit"
-    unit_dir.mkdir(parents=True)
-    content = "\n".join(f"@test \"stub {i}\" {{ true; }}" for i in range(count))
-    (unit_dir / "stubs.bats").write_text(content + "\n")
-
-
 class TestCleanRepo:
-    """Repo with enough bats to pass unit_test_count and unreachable BASE_REF → all UNCLEAR/PASS → exit 0."""
+    """Repo with unreachable BASE_REF → all UNCLEAR/PASS → exit 0."""
 
     def _setup(self, tmp_path: Path) -> Path:
         ws = _make_workspace(tmp_path)
         _seed_repo(ws, tag="v0.1.0")
         _write_merged_config(ws)
-        _seed_bats(ws)
         _seed_examples(ws)
         return ws
 
     def test_exit_0_clean(self, rr_image: str, tmp_path: Path) -> None:
-        """With enough bats and an unreachable BASE_REF, no check should block → exit 0."""
+        """With a clean repo and unreachable BASE_REF, no check should block → exit 0."""
         ws = self._setup(tmp_path)
         # Use a nonexistent BASE_REF: changelog/readme/arch/commit checks → UNCLEAR (not FAIL)
-        # unit_test_count → PASS (220 bats seeded)
-        # defaults_keys → UNCLEAR (no scripts/defaults.yml in our test workspace)
         # examples → PASS (seeded with consumer image)
         result = _run_rr(rr_image, ws, env_overrides={"BASE_REF": "nonexistent-ref"})
-        combined = result.stdout + result.stderr
         assert result.returncode == 0, (
             f"expected exit 0, got {result.returncode}\n"
             f"stdout:\n{result.stdout}\nstderr:\n{result.stderr}"
@@ -231,26 +228,30 @@ class TestCleanRepo:
 
 
 # ---------------------------------------------------------------------------
-# Scenario 2: uncommitted changes → exit 1 (via commit_hygiene or unit test count)
-# Note: the bash script doesn't check uncommitted changes directly — it checks
-# commit messages, CHANGELOG, doc timestamps, unit test count, defaults keys,
-# and image URLs. We test the unit_test_count block check as the canonical
-# "block → exit 1" path.
+# Scenario 2: commit with forbidden CI-skip marker → commit_hygiene FAIL → exit 1
 # ---------------------------------------------------------------------------
 
 class TestBlockingCheck:
-    """When unit_test_count drops below floor → FAIL → exit 1."""
+    """When commit_hygiene finds a forbidden marker → FAIL → exit 1."""
 
-    def test_exit_1_when_no_bats(self, rr_image: str, tmp_path: Path) -> None:
-        """No bats tests in repo → unit_test_count FAIL → exit 1."""
+    def test_exit_1_on_skip_ci_marker(self, rr_image: str, tmp_path: Path) -> None:
+        """Commit message with [skip ci] → commit_hygiene FAIL → exit 1."""
         ws = _make_workspace(tmp_path)
         _seed_repo(ws, tag="v0.1.0")
         _write_merged_config(ws)
-        # No tests/ directory → rg finds 0 @test → below floor → FAIL
+
+        (ws / "file.txt").write_text("change\n")
+        subprocess.run(["git", "add", "file.txt"], cwd=ws, check=True, capture_output=True)
+        subprocess.run(
+            ["git", "commit", "-m", "feat: something [skip ci]"],
+            cwd=ws,
+            check=True,
+            capture_output=True,
+        )
 
         result = _run_rr(rr_image, ws, env_overrides={"BASE_REF": "HEAD~1"})
         assert result.returncode == 1, (
-            f"expected exit 1 (unit_test_count fail), got {result.returncode}\n"
+            f"expected exit 1 (commit_hygiene fail), got {result.returncode}\n"
             f"stdout:\n{result.stdout}\nstderr:\n{result.stderr}"
         )
 
@@ -258,6 +259,15 @@ class TestBlockingCheck:
         ws = _make_workspace(tmp_path)
         _seed_repo(ws, tag="v0.1.0")
         _write_merged_config(ws)
+
+        (ws / "file.txt").write_text("change\n")
+        subprocess.run(["git", "add", "file.txt"], cwd=ws, check=True, capture_output=True)
+        subprocess.run(
+            ["git", "commit", "-m", "feat: something [skip ci]"],
+            cwd=ws,
+            check=True,
+            capture_output=True,
+        )
 
         result = _run_rr(rr_image, ws, env_overrides={"BASE_REF": "HEAD~1"})
         combined = result.stdout + result.stderr
@@ -268,7 +278,6 @@ class TestBlockingCheck:
 
 # ---------------------------------------------------------------------------
 # Scenario 3: CHANGELOG touched in PR → changelog_has_entry PASS
-# The bash script checks whether CHANGELOG.md was modified in the PR diff.
 # ---------------------------------------------------------------------------
 
 class TestChangelogCheck:
@@ -281,7 +290,6 @@ class TestChangelogCheck:
         _seed_changelog(ws)
         _write_merged_config(ws)
 
-        # BASE_REF = the commit before CHANGELOG was added → diff includes CHANGELOG.md
         result = _run_rr(rr_image, ws, env_overrides={"BASE_REF": "HEAD~1"})
         combined = result.stdout + result.stderr
         assert "[PASS] changelog_has_entry" in combined or "changelog_has_entry" in combined, (
@@ -294,7 +302,6 @@ class TestChangelogCheck:
         _seed_repo(ws, tag="v0.1.0")
         _write_merged_config(ws)
 
-        # Add a commit with a forbidden marker
         (ws / "file.txt").write_text("change\n")
         subprocess.run(["git", "add", "file.txt"], cwd=ws, check=True, capture_output=True)
         subprocess.run(
@@ -321,12 +328,13 @@ class TestMultipleIssues:
     """Multiple FAIL conditions → all reported in output, exit 1."""
 
     def test_all_issues_reported(self, rr_image: str, tmp_path: Path) -> None:
-        """No bats (unit_test_count FAIL) + skip-ci commit (commit_hygiene FAIL) → both reported."""
+        """skip-ci commit (commit_hygiene FAIL) + broken image URLs (example_image_urls FAIL)
+        → at least two [FAIL] lines, exit 1."""
         ws = _make_workspace(tmp_path)
         _seed_repo(ws, tag="v0.1.0")
         _write_merged_config(ws)
+        _seed_broken_examples(ws)
 
-        # Add commit with forbidden marker → commit_hygiene FAIL
         (ws / "extra.txt").write_text("x\n")
         subprocess.run(["git", "add", "extra.txt"], cwd=ws, check=True, capture_output=True)
         subprocess.run(
@@ -335,8 +343,6 @@ class TestMultipleIssues:
             check=True,
             capture_output=True,
         )
-        # No tests/ dir → unit_test_count FAIL
-        # Both should appear in output
 
         result = _run_rr(rr_image, ws, env_overrides={"BASE_REF": "HEAD~1"})
         combined = result.stdout + result.stderr
@@ -357,25 +363,17 @@ class TestUnclearDoesNotBlock:
     """UNCLEAR results must never cause exit 1."""
 
     def test_unclear_is_exit_0(self, rr_image: str, tmp_path: Path) -> None:
-        """Repo with no tests/ dir but mocked unit test count → only UNCLEAR, no FAIL → exit 0.
-
-        We test the changelog_has_entry check: when BASE_REF is unreachable,
-        check emits UNCLEAR. Exit should still be 0 (no FAILs).
-        We seed enough bats to pass the unit_test_count floor.
-        """
+        """Repo with unreachable BASE_REF → changelog/commit checks UNCLEAR → exit 0."""
         ws = _make_workspace(tmp_path)
         _seed_repo(ws, tag="v0.1.0")
         _write_merged_config(ws)
-        _seed_bats(ws)
         _seed_examples(ws)
 
-        # BASE_REF=nonexistent → changelog_has_entry/commit_hygiene become UNCLEAR
         result = _run_rr(rr_image, ws, env_overrides={"BASE_REF": "nonexistent-branch"})
         combined = result.stdout + result.stderr
         assert "[FAIL]" not in combined or result.returncode == 0, (
             f"UNCLEAR-only run should exit 0:\n{combined}"
         )
-        # Key assertion: no FAILs means exit 0
         if "[FAIL]" not in combined:
             assert result.returncode == 0, (
                 f"No FAILs but exit {result.returncode}:\n{combined}"
@@ -383,52 +381,37 @@ class TestUnclearDoesNotBlock:
 
 
 # ---------------------------------------------------------------------------
-# Scenario 6: dual-run diff — Go summary matches bash summary format
+# Scenario 6: output format sanity (Go-only post-cutover)
 # ---------------------------------------------------------------------------
 
-class TestDualRunSummaryFormat:
-    """Go and bash must produce the same summary line format."""
+class TestOutputFormat:
+    """Go binary emits the expected result-line and summary-line formats."""
 
-    def test_summary_line_format_matches_bash(self, rr_image: str, tmp_path: Path) -> None:
-        """Both Go and bash must emit 'summary: N pass, N fail, N unclear'."""
-        import re
-        env = {"BASE_REF": "nonexistent-ref"}
-
-        ws_go = _make_workspace(tmp_path)
-        _seed_repo(ws_go, tag="v0.1.0")
-        _write_merged_config(ws_go)
-        _seed_bats(ws_go)
-        _seed_examples(ws_go)
-        go_result = _run_rr(rr_image, ws_go, env_overrides=env)
-        go_combined = go_result.stdout + go_result.stderr
-
-        ws_bash = _make_workspace(tmp_path)
-        _seed_repo(ws_bash, tag="v0.1.0")
-        _write_merged_config(ws_bash)
-        _seed_bats(ws_bash)
-        _seed_examples(ws_bash)
-        bash_result = _run_rr(rr_image, ws_bash, env_overrides=env, use_bash=True)
-        bash_combined = bash_result.stdout + bash_result.stderr
-
-        pattern = r"summary:\s+\d+ pass, \d+ fail, \d+ unclear"
-        go_match = re.search(pattern, go_combined)
-        bash_match = re.search(pattern, bash_combined)
-
-        assert go_match is not None, f"Go output missing summary line:\n{go_combined}"
-        assert bash_match is not None, f"Bash output missing summary line:\n{bash_combined}"
-
-    def test_check_result_lines_format(self, rr_image: str, tmp_path: Path) -> None:
-        """Both Go and bash must use [PASS]/[FAIL]/[UNCLEAR] prefix format."""
+    def test_summary_line_format(self, rr_image: str, tmp_path: Path) -> None:
+        """Summary line must match: 'summary: N pass, N fail, N unclear'."""
         import re
         ws = _make_workspace(tmp_path)
         _seed_repo(ws, tag="v0.1.0")
         _write_merged_config(ws)
-        _seed_bats(ws)
+        _seed_examples(ws)
 
         result = _run_rr(rr_image, ws, env_overrides={"BASE_REF": "nonexistent-ref"})
         combined = result.stdout + result.stderr
 
-        # At least one result line with the correct format
+        assert re.search(r"summary:\s+\d+ pass, \d+ fail, \d+ unclear", combined), (
+            f"summary line format wrong:\n{combined}"
+        )
+
+    def test_check_result_lines_format(self, rr_image: str, tmp_path: Path) -> None:
+        """Result lines must use [PASS]/[FAIL]/[UNCLEAR] prefix format."""
+        import re
+        ws = _make_workspace(tmp_path)
+        _seed_repo(ws, tag="v0.1.0")
+        _write_merged_config(ws)
+
+        result = _run_rr(rr_image, ws, env_overrides={"BASE_REF": "nonexistent-ref"})
+        combined = result.stdout + result.stderr
+
         assert re.search(r"\[(PASS|FAIL|UNCLEAR)\]", combined), (
             f"no result lines found in output:\n{combined}"
         )

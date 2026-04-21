@@ -12,7 +12,7 @@ Tooling frustration is real. Most of the issues below are one-line fixes once yo
 
 **Cause.** The last commit in the PR (or the commit on the feature branch that triggered the run) does not match the configured `commits.format`. The default format is `ticket` (`PROJ-123 - feat: message`); if you copied [`examples/configs/versioning-conventional.yml`](../examples/configs/versioning-conventional.yml), it is `conventional` (`feat(scope): message`).
 
-**Fix.** Rewrite the commit subject to match the configured format. For conventional commits, use `type(scope): description` where `type` is one of the values in [`scripts/defaults.yml`](../scripts/defaults.yml) (`feat`, `fix`, `refactor`, `perf`, `docs`, `test`, `chore`, `build`, `ci`, `revert`, `style`, `hotfix`, `security`, `breaking`). The scope in parentheses is optional.
+**Fix.** Rewrite the commit subject to match the configured format. For conventional commits, use `type(scope): description` where `type` is one of the values in [`config/defaults/defaults.yml`](../config/defaults/defaults.yml) (`feat`, `fix`, `refactor`, `perf`, `docs`, `test`, `chore`, `build`, `ci`, `revert`, `style`, `hotfix`, `security`, `breaking`). The scope in parentheses is optional.
 
 Then force-push the amended commit:
 
@@ -31,7 +31,7 @@ This is the most common post-adoption surprise, and it has three distinct causes
 
 ### Cause 1 — the CI skip marker substring in the commit message
 
-GitHub Actions scans every push commit message for the literal substring `[skip ci]` (and variants: `[ci skip]`, `[no ci]`, `[skip actions]`, `[actions skip]`) and skips **all** workflows on that push if any is found. The match is a **plain substring match** — it makes no distinction between a directive and descriptive prose that happens to contain the same characters. The pipe's own CHANGELOG commits deliberately use this marker to prevent re-triggering (see [`scripts/changelog/update-changelog.sh`](../scripts/changelog/update-changelog.sh)), but humans describing that behavior in their own commit bodies trigger the same skip by accident.
+GitHub Actions scans every push commit message for the literal substring `[skip ci]` (and variants: `[ci skip]`, `[no ci]`, `[skip actions]`, `[actions skip]`) and skips **all** workflows on that push if any is found. The match is a **plain substring match** — it makes no distinction between a directive and descriptive prose that happens to contain the same characters. The pipe's own CHANGELOG commits deliberately use this marker to prevent re-triggering, but humans describing that behavior in their own commit bodies trigger the same skip by accident.
 
 **Incident context.** This is Finding #16 in the internal review log. PR #34 was merged with descriptive text explaining the marker behavior in the PR body. The squash-merge commit inherited the body, GitHub substring-matched the skip marker, and `tag-on-merge.yml` never queued. The PR landed on `main` with no tag and no CHANGELOG. Recovery required bundling the missed changes into the next release via PR #35.
 
@@ -116,7 +116,7 @@ Other formatting knobs to verify:
 - `changelog.include_ticket_link` — requires `tickets.url` to be set
 - `changelog.include_author` — toggles the author name
 
-See [`docs/architecture/README.md`](architecture/README.md#changelog-system) for the full mode explanation, and [`scripts/defaults.yml`](../scripts/defaults.yml) for the complete list of keys.
+See [`docs/architecture/README.md`](architecture/README.md#changelog-system) for the full mode explanation, and [`config/defaults/defaults.yml`](../config/defaults/defaults.yml) for the complete list of keys.
 
 ---
 
@@ -179,12 +179,12 @@ With `mode: full`, the pipe scans all commits and picks the strongest bump. `fea
 
 ## My config has `commit_type_overrides` but the override is ignored
 
-**Cause.** Either a typo in the key name, or the override references a commit type that does not exist in [`scripts/defaults.yml`](../scripts/defaults.yml). `commit_type_overrides` is a patch mechanism — it updates existing types by name. It does not create new types (for that, you would replace the whole `commit_types` array, which is a much bigger operation).
+**Cause.** Either a typo in the key name, or the override references a commit type that does not exist in [`config/defaults/commit-types.yml`](../config/defaults/commit-types.yml). `commit_type_overrides` is a patch mechanism — it updates existing types by name. It does not create new types (for that, you would replace the whole `commit_types` array, which is a much bigger operation).
 
 **Fix.**
 
 1. Verify the key is spelled `commit_type_overrides` (plural, with underscores). Not `commit_types_override`, not `commitTypeOverrides`.
-2. Verify each overridden type name matches exactly a `name:` field in `scripts/defaults.yml`'s `commit_types` array. The built-in types are: `breaking`, `feat`, `feature`, `fix`, `hotfix`, `security`, `revert`, `perf`, `refactor`, `docs`, `test`, `chore`, `build`, `ci`, `style`.
+2. Verify each overridden type name matches exactly a `name:` field in `config/defaults/commit-types.yml`'s `commit_types` array. The built-in types are: `breaking`, `feat`, `feature`, `fix`, `hotfix`, `security`, `revert`, `perf`, `refactor`, `docs`, `test`, `chore`, `build`, `ci`, `style`.
 3. If you want to override `docs` to not trigger a bump:
 
    ```yaml
@@ -229,7 +229,7 @@ If you DO want hotfix commits to be a no-op (for example, if your repo uses a 3-
 
 ## My hotfix branch was merged but the scenario wasn't recognized
 
-**Cause.** As of v0.6.3, `scripts/detection/detect-scenario.sh` in branch context (post-merge) uses **pure git** to detect a hotfix — no API calls, no platform-specific tools. It looks in two places:
+**Cause.** As of v0.6.3, the `detect-scenario` subcommand in branch context (post-merge) uses **pure git** to detect a hotfix — no API calls, no platform-specific tools. It looks in two places:
 
 1. **Primary**: the merge commit subject at HEAD starts with `{keyword}:` or `{keyword}(`, where `{keyword}` comes from `hotfix.keyword` in your `.versioning.yml` (default `"hotfix"`).
 2. **Secondary (merge commit style only)**: if HEAD is a merge commit (has 2+ parents), the pipe also inspects the subject of the second parent — the tip of the branch that was merged in. This covers the traditional 3-way merge where HEAD's subject is "Merge pull request #N from ..." and the hotfix signal lives on the branch tip.
@@ -257,7 +257,7 @@ If you already merged and didn't set the PR title correctly, the release is trea
 1. The output of `gh release list --limit 5` (or the equivalent tag listing).
 2. Your `.versioning.yml` contents.
 3. The commit subject that triggered the bad tag.
-4. The `calculate-version.sh` log from the failing tag-on-merge run.
+4. The `calc-version` log from the failing tag-on-merge run.
 
 ---
 
@@ -312,7 +312,7 @@ With the override, the guardrail degrades from a hard block (exit 1) to a warnin
 gh workflow run tag-on-merge.yml --ref main  # or: push an empty commit to main
 ```
 
-**Where this is tested.** The guardrail logic is covered by 15 unit tests in [`tests/unit/validation/guardrails.bats`](../tests/unit/validation/guardrails.bats) (every bump type, cold start, override behavior, structured log format). The enforcement layer itself is visible in any post-merge run log — look for the `RUNNING GUARDRAILS` / `GUARDRAIL name=no_version_regression result=pass` block.
+**Where this is tested.** The guardrail logic is covered by Go unit tests (every bump type, cold start, override behavior, structured log format). The enforcement layer itself is visible in any post-merge run log — look for the `RUNNING GUARDRAILS` / `GUARDRAIL name=no_version_regression result=pass` block.
 
 See [`docs/architecture/README.md`](architecture/README.md#safety-guardrails) for the design rationale and the full rules table.
 
@@ -332,4 +332,4 @@ See [`docs/architecture/README.md`](architecture/README.md#safety-guardrails) fo
 
 See `docs/architecture/README.md` → "Initial values semantics" for the full table of asymmetries.
 
-The pipe's unit tests (`tests/unit/versioning/patch-component.bats` and `hotfix-bump.bats`) lock the expected format — a failure at runtime would indicate a regression the tests didn't catch.
+The pipe's Go unit tests lock the expected format — a failure at runtime would indicate a regression the tests didn't catch.

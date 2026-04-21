@@ -9,8 +9,8 @@ import (
 )
 
 const (
-	commitTypesPath = "../../scripts/commit-types.yml"
-	defaultsPath    = "../../scripts/defaults.yml"
+	commitTypesPath = "../../config/defaults/commit-types.yml"
+	defaultsPath    = "../../config/defaults/defaults.yml"
 )
 
 // TestLoadAndMergeNoUserConfig verifies fallback to defaults+commit-types only.

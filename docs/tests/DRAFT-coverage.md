@@ -1,6 +1,6 @@
 # Test Coverage — panora-versioning-pipe
 
-Cada sección mapea directamente a [`scripts/defaults.yml`](../../scripts/defaults.yml). Para cada key de configuración se listan los escenarios probados y su estado de cobertura.
+Cada sección mapea directamente a [`config/defaults/defaults.yml`](../../config/defaults/defaults.yml). Para cada key de configuración se listan los escenarios probados y su estado de cobertura.
 
 **Leyenda:** ✅ cubierto · ⚠️ parcial · ❌ sin test
 
@@ -8,55 +8,55 @@ Cada sección mapea directamente a [`scripts/defaults.yml`](../../scripts/defaul
 
 ## commits
 
-[→ defaults.yml:9](../../scripts/defaults.yml#L9)
+[→ defaults.yml:9](../../config/defaults/defaults.yml#L9)
 
 Controla cómo se estructuran e interpretan los mensajes de commit.
 
 | Key | Default | Escenario | Cobertura |
 |-----|---------|-----------|-----------|
-| [`commits.format`](../../scripts/defaults.yml#L10) | `"ticket"` | `"conventional"` — acepta `tipo(scope): mensaje`, rechaza formato incorrecto | ✅ |
+| [`commits.format`](../../config/defaults/defaults.yml#L10) | `"ticket"` | `"conventional"` — acepta `tipo(scope): mensaje`, rechaza formato incorrecto | ✅ |
 | | | `"ticket"` — acepta `AM-1234 - tipo: mensaje`, rechaza formato incorrecto | ✅ |
 
 ---
 
 ## tickets
 
-[→ defaults.yml:12](../../scripts/defaults.yml#L12)
+[→ defaults.yml:12](../../config/defaults/defaults.yml#L12)
 
 Aplica cuando `commits.format: "ticket"`. Controla la validación de prefijos y el linkeo en changelogs.
 
 | Key | Default | Escenario | Cobertura |
 |-----|---------|-----------|-----------|
-| [`tickets.prefixes`](../../scripts/defaults.yml#L13) | `[]` | Lista vacía — cualquier prefijo es aceptado | ✅ |
+| [`tickets.prefixes`](../../config/defaults/defaults.yml#L13) | `[]` | Lista vacía — cualquier prefijo es aceptado | ✅ |
 | | | Con valores (`["PROJ", "TEAM"]`) — solo esos prefijos pasan validación | ✅ |
-| [`tickets.required`](../../scripts/defaults.yml#L14) | `false` | `false` — commit sin ticket es aceptado | ✅ |
+| [`tickets.required`](../../config/defaults/defaults.yml#L14) | `false` | `false` — commit sin ticket es aceptado | ✅ |
 | | | `true` — commit sin ticket es rechazado | ✅ |
-| [`tickets.url`](../../scripts/defaults.yml#L15) | `""` | URL configurada — el link aparece en el changelog con el ticket como texto | ✅ |
+| [`tickets.url`](../../config/defaults/defaults.yml#L15) | `""` | URL configurada — el link aparece en el changelog con el ticket como texto | ✅ |
 
 ---
 
 ## validation
 
-[→ defaults.yml:17](../../scripts/defaults.yml#L17)
+[→ defaults.yml:17](../../config/defaults/defaults.yml#L17)
 
 Controla qué commits son aceptados y cuáles se ignoran durante el cálculo de versión.
 
 | Key | Default | Escenario | Cobertura |
 |-----|---------|-----------|-----------|
-| [`validation.require_ticket_prefix`](../../scripts/defaults.yml#L18) | `false` | `false` — commit sin prefijo de ticket es aceptado | ✅ |
+| [`validation.require_ticket_prefix`](../../config/defaults/defaults.yml#L18) | `false` | `false` — commit sin prefijo de ticket es aceptado | ✅ |
 | | | `true` — commit sin prefijo es rechazado | ✅ |
-| [`validation.require_commit_types`](../../scripts/defaults.yml#L19) | `true` | `false` — validación de tipo desactivada, cualquier commit pasa | ✅ |
+| [`validation.require_commit_types`](../../config/defaults/defaults.yml#L19) | `true` | `false` — validación de tipo desactivada, cualquier commit pasa | ✅ |
 | | | `true` + `changelog.mode: "last_commit"` — solo el último commit debe tener tipo válido | ✅ |
 | | | `true` + `changelog.mode: "full"` — todos los commits deben tener tipo válido | ✅ |
-| [`validation.ignore_patterns`](../../scripts/defaults.yml#L20) | ver defaults | Commits que matchean los patrones son ignorados en la validación y el cálculo de versión | ✅ |
+| [`validation.ignore_patterns`](../../config/defaults/defaults.yml#L20) | ver defaults | Commits que matchean los patrones son ignorados en la validación y el cálculo de versión | ✅ |
 | | | Merge commits (`^Merge`), reverts (`^Revert`), `fixup!`, `squash!` ignorados | ✅ |
 | | | `chore(release)` y `chore(hotfix)` ignorados | ✅ |
-| [`validation.hotfix_title_required`](../../scripts/defaults.yml#L20) | `"error"` | `"error"` (default) — bloquea el merge si el branch es hotfix pero el PR title no tiene el hotfix keyword | ✅ unit `pr-title.bats` |
-| | | `"warn"` — emite warning pero no bloquea el merge | ✅ unit `pr-title.bats` |
-| | | Sin `VERSIONING_BRANCH` — chequeo se saltea silenciosamente | ✅ unit `pr-title.bats` |
-| | | SCENARIO distinto de `hotfix` — chequeo no aplica | ✅ unit `pr-title.bats` |
-| [`validation.allow_version_regression`](../../scripts/defaults.yml#L20) | `false` | `false` (default) — regresión detectada bloquea el pipeline (exit 1) antes de emitir tag | ✅ unit `guardrails.bats` |
-| | | `true` — regresión detectada degrada a warning (exit 2, `result=warned`), pipeline continúa | ✅ unit `guardrails.bats` |
+| [`validation.hotfix_title_required`](../../config/defaults/defaults.yml#L20) | `"error"` | `"error"` (default) — bloquea el merge si el branch es hotfix pero el PR title no tiene el hotfix keyword | ✅ |
+| | | `"warn"` — emite warning pero no bloquea el merge | ✅ |
+| | | Sin `VERSIONING_BRANCH` — chequeo se saltea silenciosamente | ✅ |
+| | | SCENARIO distinto de `hotfix` — chequeo no aplica | ✅ |
+| [`validation.allow_version_regression`](../../config/defaults/defaults.yml#L20) | `false` | `false` (default) — regresión detectada bloquea el pipeline (exit 1) antes de emitir tag | ✅ |
+| | | `true` — regresión detectada degrada a warning (exit 2, `result=warned`), pipeline continúa | ✅ |
 
 **PR title validation** (`VERSIONING_PR_TITLE`) — feature 046
 
@@ -64,15 +64,15 @@ En squash merge, el PR title se convierte en el commit subject que determina el 
 
 | Escenario | Cobertura |
 |-----------|-----------|
-| PR title conventional válido (`feat: ...`) — pasa | ✅ unit `pr-title.bats` |
-| PR title no-conventional (`Development (#17)`) — falla | ✅ unit `pr-title.bats` + integration `pr-title-invalid-squash` |
-| PR title ticket-prefix válido (`AM-123 - feat: ...`) — pasa | ✅ unit `pr-title.bats` |
-| PR title ticket-prefix inválido (`AM-123 - Development`) — falla | ✅ unit `pr-title.bats` |
-| `VERSIONING_PR_TITLE` vacío — validación se saltea silenciosamente (Bitbucket, generic CI) | ✅ unit `pr-title.bats` |
-| `require_commit_types: false` — ni commits ni PR title se validan | ✅ unit `pr-title.bats` + integration `pr-title-validation-disabled` |
-| `mode: last_commit` — PR title se valida igual que en `mode: full` | ✅ unit `pr-title.bats` |
-| PR title con hotfix keyword convencional (`hotfix: fix auth`) — pasa | ✅ unit `pr-title.bats` |
-| PR title con hotfix keyword glob (`Hotfix/urgent security patch` matchea `[Hh]otfix/*`) — pasa | ✅ unit `pr-title.bats` (eval-based glob) + integration `hotfix-uppercase-branch-prefix` |
+| PR title conventional válido (`feat: ...`) — pasa | ✅ |
+| PR title no-conventional (`Development (#17)`) — falla | ✅ integration `pr-title-invalid-squash` |
+| PR title ticket-prefix válido (`AM-123 - feat: ...`) — pasa | ✅ |
+| PR title ticket-prefix inválido (`AM-123 - Development`) — falla | ✅ |
+| `VERSIONING_PR_TITLE` vacío — validación se saltea silenciosamente (Bitbucket, generic CI) | ✅ |
+| `require_commit_types: false` — ni commits ni PR title se validan | ✅ integration `pr-title-validation-disabled` |
+| `mode: last_commit` — PR title se valida igual que en `mode: full` | ✅ |
+| PR title con hotfix keyword convencional (`hotfix: fix auth`) — pasa | ✅ |
+| PR title con hotfix keyword glob (`Hotfix/urgent security patch` matchea `[Hh]otfix/*`) — pasa | ✅ integration `hotfix-uppercase-branch-prefix` |
 | PR title no-conventional + merge commit style — PR pipeline falla igual | ✅ integration `pr-title-invalid-merge-commit` |
 | PR title conventional + squash merge — PR pipeline pasa, tag creado | ✅ integration `pr-title-valid-squash` (sandbox-21) |
 
@@ -82,80 +82,80 @@ En squash merge, si el branch es `hotfix/fix-auth` pero el PR title es `fix: res
 
 | Escenario | Cobertura |
 |-----------|-----------|
-| Branch `hotfix/*`, PR title con hotfix keyword (`hotfix: fix auth`) — sin error ni warning | ✅ unit `pr-title.bats` |
-| Branch `hotfix/*`, PR title sin hotfix keyword (`fix: resolve auth`) — error (default) | ✅ unit `pr-title.bats` |
-| Branch `hotfix/*`, PR title sin hotfix keyword (`fix: resolve auth`) — error (default) | ✅ unit `pr-title.bats` · ✅ integration `hotfix-squash-gap-blocked` |
-| Branch `hotfix/*`, PR title sin hotfix keyword + `hotfix_title_required: warn` — warning, no bloquea | ✅ unit `pr-title.bats` · ✅ integration `hotfix-squash-gap-warn` |
-| Branch `hotfix/*`, PR title con hotfix keyword + squash merge → tag con hotfix_counter | ✅ unit `pr-title.bats` · ✅ integration `hotfix-squash-gap-keyword-passes` (sandbox-24) |
-| Branch `hotfix/*`, PR title con glob keyword (`Hotfix/urgent-fix` matchea `[Hh]otfix/*`) — pasa | ✅ unit `pr-title.bats` |
-| Branch `hotfix/*`, PR title convencional con scope (`fix(auth): ...`) — error (no tiene keyword) | ✅ unit `pr-title.bats` |
-| `VERSIONING_BRANCH` vacío — chequeo se saltea (Bitbucket, generic CI sin branch var) | ✅ unit `pr-title.bats` |
-| SCENARIO=`development_release` — chequeo no aplica, aunque branch sea hotfix | ✅ unit `pr-title.bats` |
+| Branch `hotfix/*`, PR title con hotfix keyword (`hotfix: fix auth`) — sin error ni warning | ✅ |
+| Branch `hotfix/*`, PR title sin hotfix keyword (`fix: resolve auth`) — error (default) | ✅ |
+| Branch `hotfix/*`, PR title sin hotfix keyword (`fix: resolve auth`) — error (default) | ✅ integration `hotfix-squash-gap-blocked` |
+| Branch `hotfix/*`, PR title sin hotfix keyword + `hotfix_title_required: warn` — warning, no bloquea | ✅ integration `hotfix-squash-gap-warn` |
+| Branch `hotfix/*`, PR title con hotfix keyword + squash merge → tag con hotfix_counter | ✅ integration `hotfix-squash-gap-keyword-passes` (sandbox-24) |
+| Branch `hotfix/*`, PR title con glob keyword (`Hotfix/urgent-fix` matchea `[Hh]otfix/*`) — pasa | ✅ |
+| Branch `hotfix/*`, PR title convencional con scope (`fix(auth): ...`) — error (no tiene keyword) | ✅ |
+| `VERSIONING_BRANCH` vacío — chequeo se saltea (Bitbucket, generic CI sin branch var) | ✅ |
+| SCENARIO=`development_release` — chequeo no aplica, aunque branch sea hotfix | ✅ |
 
-**Nota de implementación:** los hotfix keyword patterns como `[Hh]otfix/*` son globs con bracket expressions. Cuando el pattern viene de una variable shell, el `case` nativo no expande los brackets correctamente — se usa `eval` para forzar la expansión (mismo comportamiento que `detect-scenario.sh`).
+**Nota de implementación:** los hotfix keyword patterns como `[Hh]otfix/*` son globs con bracket expressions, y la evaluación se comporta igual que la del `detect-scenario` subcommand para mantener consistencia entre el check de PR title y la detección post-merge.
 
-**Gap pendiente:** Bitbucket no expone el PR title como variable nativa (`BITBUCKET_PR_TITLE` no existe). La validación se saltea silenciosamente. Cuando Bitbucket lo agregue, solo hay que mapearlo en `pipe.sh`. Ver ticket 022.
+**Gap pendiente:** Bitbucket no expone el PR title como variable nativa (`BITBUCKET_PR_TITLE` no existe). La validación se saltea silenciosamente. Cuando Bitbucket lo agregue, solo hay que mapearlo en el entrypoint. Ver ticket 022.
 
 **Runtime guardrail: version regression** (`assert_no_version_regression`) — feature 060
 
-Capa de enforcement que corre en `branch-pipeline.sh` entre `calculate-version.sh` y la emisión del tag. Valida que el tag calculado sea consistente con el `bump_type` declarado relativo al `latest_tag` del namespace activo. Bloquea antes de cualquier side-effect (tag, CHANGELOG, push).
+Capa de enforcement que corre en el `branch-pipeline` subcommand entre `calc-version` y la emisión del tag. Valida que el tag calculado sea consistente con el `bump_type` declarado relativo al `latest_tag` del namespace activo. Bloquea antes de cualquier side-effect (tag, CHANGELOG, push).
 
 | Escenario | Cobertura |
 |-----------|-----------|
-| Cold start (no latest tag) — pass con `reason=cold_start` | ✅ unit `guardrails.bats` |
-| `bump=major` y major incrementa (v5.2.0 → v6.1.0) — pass | ✅ unit `guardrails.bats` |
-| `bump=major` y major NO incrementa (v5.2.0 → v5.3.0) — block `violation=major_not_incremented` | ✅ unit `guardrails.bats` |
-| `bump=major` y epoch regressed — block `violation=epoch_regressed` | ✅ unit `guardrails.bats` |
-| `bump=patch` y patch incrementa (v5.2.0 → v5.3.0) — pass | ✅ unit `guardrails.bats` |
-| `bump=patch` y patch NO incrementa (v5.2.0 → v5.2.0) — block `violation=patch_not_incremented` | ✅ unit `guardrails.bats` |
-| `bump=patch` y major regressed — block `violation=major_regressed` | ✅ unit `guardrails.bats` |
-| `bump=hotfix` mismo base, counter incrementa (v0.5.9 → v0.5.9.1) — pass | ✅ unit `guardrails.bats` |
-| `bump=hotfix` mismo base, counter incrementa otra vez (v0.5.9.1 → v0.5.9.2) — pass | ✅ unit `guardrails.bats` |
-| `bump=hotfix` mismo base, counter NO incrementa — block `violation=hotfix_counter_not_incremented` | ✅ unit `guardrails.bats` |
-| `bump=hotfix` base cambió (major up, counter reset a 1, v0.5.9.3 → v0.6.0.1) — pass (tuple comparison) | ✅ unit `guardrails.bats` |
-| `bump=hotfix` base cambió pero major regressed (v0.6.0.2 → v0.5.9.1) — block `violation=major_regressed` | ✅ unit `guardrails.bats` |
-| `allow_version_regression: true` — regresión degradada a warning, exit 2, `result=warned` | ✅ unit `guardrails.bats` |
-| Log estructurado emitido siempre (pass) — `GUARDRAIL name=no_version_regression result=pass ...` | ✅ unit `guardrails.bats` |
-| Log estructurado emitido siempre (block) — `GUARDRAIL name=no_version_regression result=blocked next=v5.3.0 latest=v5.2.0 ...` | ✅ unit `guardrails.bats` |
+| Cold start (no latest tag) — pass con `reason=cold_start` | ✅ |
+| `bump=major` y major incrementa (v5.2.0 → v6.1.0) — pass | ✅ |
+| `bump=major` y major NO incrementa (v5.2.0 → v5.3.0) — block `violation=major_not_incremented` | ✅ |
+| `bump=major` y epoch regressed — block `violation=epoch_regressed` | ✅ |
+| `bump=patch` y patch incrementa (v5.2.0 → v5.3.0) — pass | ✅ |
+| `bump=patch` y patch NO incrementa (v5.2.0 → v5.2.0) — block `violation=patch_not_incremented` | ✅ |
+| `bump=patch` y major regressed — block `violation=major_regressed` | ✅ |
+| `bump=hotfix` mismo base, counter incrementa (v0.5.9 → v0.5.9.1) — pass | ✅ |
+| `bump=hotfix` mismo base, counter incrementa otra vez (v0.5.9.1 → v0.5.9.2) — pass | ✅ |
+| `bump=hotfix` mismo base, counter NO incrementa — block `violation=hotfix_counter_not_incremented` | ✅ |
+| `bump=hotfix` base cambió (major up, counter reset a 1, v0.5.9.3 → v0.6.0.1) — pass (tuple comparison) | ✅ |
+| `bump=hotfix` base cambió pero major regressed (v0.6.0.2 → v0.5.9.1) — block `violation=major_regressed` | ✅ |
+| `allow_version_regression: true` — regresión degradada a warning, exit 2, `result=warned` | ✅ |
+| Log estructurado emitido siempre (pass) — `GUARDRAIL name=no_version_regression result=pass ...` | ✅ |
+| Log estructurado emitido siempre (block) — `GUARDRAIL name=no_version_regression result=blocked next=v5.3.0 latest=v5.2.0 ...` | ✅ |
 | End-to-end flujo normal (el guardrail no rompe ningún escenario existente) — 37/37 integration scenarios pass con el guardrail instalado | ✅ integration (smoke test implícito de los 37 scenarios) |
 
 **Gap pendiente (integration):** No hay un integration scenario que dispare intencionalmente un `result=blocked` end-to-end. Las violations son extremadamente difíciles de reproducir sin introducir un bug artificial en el pipe — después de los fixes de tickets 055, 058 y 059, el pipe no calcula versiones inconsistentes con configuración válida. El guardrail se validó en producción cuando el propio pipe se versionó a sí mismo (run `24618338339`, log visible `GUARDRAIL name=no_version_regression result=pass bump=patch next=v0.11.18 latest=v0.11.17`). El escape hatch (`allow_version_regression: true`) sí podría probarse end-to-end si se logra reproducir una regresión controlada — queda como trabajo futuro.
 
-**Diseño:** el guardrail corre SOLO en `branch-pipeline.sh` (post-merge). El PR pipeline no calcula versiones, así que no hay nada que validar. Ver `docs/architecture/README.md#safety-guardrails` y `docs/troubleshooting.md#tag-on-merge-failed-with-version-regression-blocked-guardrail` para el flujo de recovery.
+**Diseño:** el guardrail corre SOLO en el `branch-pipeline` subcommand (post-merge). El PR pipeline no calcula versiones, así que no hay nada que validar. Ver `docs/architecture/README.md#safety-guardrails` y `docs/troubleshooting.md#tag-on-merge-failed-with-version-regression-blocked-guardrail` para el flujo de recovery.
 
 ---
 
 ## changelog
 
-[→ defaults.yml:72](../../scripts/defaults.yml#L72)
+[→ defaults.yml:72](../../config/defaults/defaults.yml#L72)
 
 Controla cómo se genera y escribe el archivo CHANGELOG.
 
 | Key | Default | Escenario | Cobertura |
 |-----|---------|-----------|-----------|
-| [`changelog.file`](../../scripts/defaults.yml#L73) | `"CHANGELOG.md"` | Nombre de archivo respetado al escribir | ✅ |
-| [`changelog.title`](../../scripts/defaults.yml#L74) | `"Changelog"` | Título correcto en el header del archivo | ✅ |
-| [`changelog.mode`](../../scripts/defaults.yml#L75) | `"last_commit"` | `"last_commit"` — solo el último commit aparece en el entry | ✅ |
+| [`changelog.file`](../../config/defaults/defaults.yml#L73) | `"CHANGELOG.md"` | Nombre de archivo respetado al escribir | ✅ |
+| [`changelog.title`](../../config/defaults/defaults.yml#L74) | `"Changelog"` | Título correcto en el header del archivo | ✅ |
+| [`changelog.mode`](../../config/defaults/defaults.yml#L75) | `"last_commit"` | `"last_commit"` — solo el último commit aparece en el entry | ✅ |
 | | | `"full"` — todos los commits desde el último tag aparecen | ✅ |
 | | | **Bump strategy acoplada al mode** | |
-| | | `"last_commit"` — el último commit del rango determina el bump (ej: `[fix, feat, fix]` → patch porque el último es `fix:`) | ✅ unit `bump-strategy.bats` |
-| | | `"full"` — el commit de mayor jerarquía gana (`[fix, feat, fix]` → minor porque `feat:` > `fix:`) | ✅ unit `bump-strategy.bats` · ✅ integration `multi-commit-highest-wins` (sandbox-25) |
-| | | `"full"` con un solo commit — resultado idéntico a `"last_commit"` | ✅ unit `bump-strategy.bats` |
-| | | `"full"` con commits solo `bump: none` — sin versión producida | ✅ unit `bump-strategy.bats` |
-| [`changelog.use_emojis`](../../scripts/defaults.yml#L76) | `false` | `false` — output sin emojis | ✅ |
+| | | `"last_commit"` — el último commit del rango determina el bump (ej: `[fix, feat, fix]` → patch porque el último es `fix:`) | ✅ |
+| | | `"full"` — el commit de mayor jerarquía gana (`[fix, feat, fix]` → minor porque `feat:` > `fix:`) | ✅ integration `multi-commit-highest-wins` (sandbox-25) |
+| | | `"full"` con un solo commit — resultado idéntico a `"last_commit"` | ✅ |
+| | | `"full"` con commits solo `bump: none` — sin versión producida | ✅ |
+| [`changelog.use_emojis`](../../config/defaults/defaults.yml#L76) | `false` | `false` — output sin emojis | ✅ |
 | | | `true` — output incluye emoji por tipo | ✅ |
-| [`changelog.include_commit_link`](../../scripts/defaults.yml#L77) | `true` | Valor leído correctamente | ✅ |
-| [`changelog.include_ticket_link`](../../scripts/defaults.yml#L78) | `true` | Valor leído correctamente | ✅ |
-| [`changelog.include_author`](../../scripts/defaults.yml#L79) | `true` | Valor leído correctamente | ✅ |
-| [`changelog.commit_url`](../../scripts/defaults.yml#L80) | `""` | Vacío — no aparece link de commit en output | ✅ |
+| [`changelog.include_commit_link`](../../config/defaults/defaults.yml#L77) | `true` | Valor leído correctamente | ✅ |
+| [`changelog.include_ticket_link`](../../config/defaults/defaults.yml#L78) | `true` | Valor leído correctamente | ✅ |
+| [`changelog.include_author`](../../config/defaults/defaults.yml#L79) | `true` | Valor leído correctamente | ✅ |
+| [`changelog.commit_url`](../../config/defaults/defaults.yml#L80) | `""` | Vacío — no aparece link de commit en output | ✅ |
 | | | URL configurada — link al commit aparece en output | ✅ |
-| [`changelog.ticket_link_label`](../../scripts/defaults.yml#L81) | `"View ticket"` | Label correcto en output | ✅ |
+| [`changelog.ticket_link_label`](../../config/defaults/defaults.yml#L81) | `"View ticket"` | Label correcto en output | ✅ |
 
 ---
 
 ### changelog.per_folder
 
-[→ defaults.yml:86](../../scripts/defaults.yml#L86)
+[→ defaults.yml:86](../../config/defaults/defaults.yml#L86)
 
 Habilita changelogs independientes por carpeta en monorepos. Requiere `commits.format: "conventional"`. El routing es exclusivo — cada commit va a una sola carpeta o al root, nunca a ambos.
 
@@ -168,7 +168,7 @@ Habilita changelogs independientes por carpeta en monorepos. Requiere `commits.f
 
 ---
 
-**`changelog.per_folder.folders`** — `string[]` · default `[]` · [→ L88](../../scripts/defaults.yml#L88)
+**`changelog.per_folder.folders`** — `string[]` · default `[]` · [→ L88](../../config/defaults/defaults.yml#L88)
 
 | Escenario | Cobertura |
 |-----------|-----------|
@@ -179,7 +179,7 @@ Habilita changelogs independientes por carpeta en monorepos. Requiere `commits.f
 
 ---
 
-**`changelog.per_folder.folder_pattern`** — `string` (regex) · default `""` · [→ L89](../../scripts/defaults.yml#L89)
+**`changelog.per_folder.folder_pattern`** — `string` (regex) · default `""` · [→ L89](../../config/defaults/defaults.yml#L89)
 
 | Escenario | Cobertura |
 |-----------|-----------|
@@ -189,7 +189,7 @@ Habilita changelogs independientes por carpeta en monorepos. Requiere `commits.f
 
 ---
 
-**`changelog.per_folder.scope_matching`** — `"suffix"` · `"exact"` · [→ L90](../../scripts/defaults.yml#L90) · [escenario: suffix](per-folder/suffix-matching.md) · [escenario: exact](per-folder/exact-matching.md)
+**`changelog.per_folder.scope_matching`** — `"suffix"` · `"exact"` · [→ L90](../../config/defaults/defaults.yml#L90) · [escenario: suffix](per-folder/suffix-matching.md) · [escenario: exact](per-folder/exact-matching.md)
 
 | Valor | Escenario | Cobertura |
 |-------|-----------|-----------|
@@ -205,7 +205,7 @@ Habilita changelogs independientes por carpeta en monorepos. Requiere `commits.f
 
 ---
 
-**`changelog.per_folder.scope_matching_depth`** — `integer` · default `2` · solo aplica a `scope_matching: "suffix"` · [→ L91](../../scripts/defaults.yml#L91)
+**`changelog.per_folder.scope_matching_depth`** — `integer` · default `2` · solo aplica a `scope_matching: "suffix"` · [→ L91](../../config/defaults/defaults.yml#L91)
 
 | Escenario | Cobertura |
 |-----------|-----------|
@@ -214,7 +214,7 @@ Habilita changelogs independientes por carpeta en monorepos. Requiere `commits.f
 
 ---
 
-**`changelog.per_folder.fallback`** — `"root"` · `"file_path"` · [→ L92](../../scripts/defaults.yml#L92) · [escenario: file_path](per-folder/fallback-file-path.md)
+**`changelog.per_folder.fallback`** — `"root"` · `"file_path"` · [→ L92](../../config/defaults/defaults.yml#L92) · [escenario: file_path](per-folder/fallback-file-path.md)
 
 | Valor | Escenario | Cobertura |
 |-------|-----------|-----------|
@@ -234,11 +234,11 @@ Habilita changelogs independientes por carpeta en monorepos. Requiere `commits.f
 
 ## version.components
 
-[→ defaults.yml:29](../../scripts/defaults.yml#L29)
+[→ defaults.yml:29](../../config/defaults/defaults.yml#L29)
 
 Controla qué componentes forman el número de versión. Los componentes se renderizan en orden: `epoch.major.patch[.hotfix_counter][.timestamp]`.
 
-**`version.components.epoch`** — [→ L30](../../scripts/defaults.yml#L30)
+**`version.components.epoch`** — [→ L30](../../config/defaults/defaults.yml#L30)
 
 | Key | Default | Escenario | Cobertura |
 |-----|---------|-----------|-----------|
@@ -248,7 +248,7 @@ Controla qué componentes forman el número de versión. Los componentes se rend
 
 ---
 
-**`version.components.major`** — [→ L33](../../scripts/defaults.yml#L33)
+**`version.components.major`** — [→ L33](../../config/defaults/defaults.yml#L33)
 
 | Key | Default | Escenario | Cobertura |
 |-----|---------|-----------|-----------|
@@ -257,7 +257,7 @@ Controla qué componentes forman el número de versión. Los componentes se rend
 
 ---
 
-**`version.components.patch`** — [→ L36](../../scripts/defaults.yml#L36)
+**`version.components.patch`** — [→ L36](../../config/defaults/defaults.yml#L36)
 
 | Key | Default | Escenario | Cobertura |
 |-----|---------|-----------|-----------|
@@ -267,7 +267,7 @@ Controla qué componentes forman el número de versión. Los componentes se rend
 
 ---
 
-**`version.components.hotfix_counter`** — [→ L46](../../scripts/defaults.yml#L46)
+**`version.components.hotfix_counter`** — [→ L46](../../config/defaults/defaults.yml#L46)
 
 Componente del flujo hotfix. Cuando está habilitado, un commit `hotfix` incrementa este contador. El `.0` se omite — el tag se renderiza como `v0.5.9.1` en lugar de `v0.5.9.0`.
 
@@ -280,7 +280,7 @@ Componente del flujo hotfix. Cuando está habilitado, un commit `hotfix` increme
 
 ---
 
-**`version.components.timestamp`** — [→ L49](../../scripts/defaults.yml#L49)
+**`version.components.timestamp`** — [→ L49](../../config/defaults/defaults.yml#L49)
 
 | Key | Default | Escenario | Cobertura |
 |-----|---------|-----------|-----------|
@@ -296,33 +296,33 @@ Componente del flujo hotfix. Cuando está habilitado, un commit `hotfix` increme
 
 ## version.tag_prefix_v
 
-[→ defaults.yml:54](../../scripts/defaults.yml#L54)
+[→ defaults.yml:54](../../config/defaults/defaults.yml#L54)
 
 | Key | Default | Escenario | Cobertura |
 |-----|---------|-----------|-----------|
-| [`version.tag_prefix_v`](../../scripts/defaults.yml#L54) | `false` | `true` — tags con prefijo `v` (`v0.5.9`) · version files escritos sin `v` para compatibilidad con npm | ✅ |
+| [`version.tag_prefix_v`](../../config/defaults/defaults.yml#L54) | `false` | `true` — tags con prefijo `v` (`v0.5.9`) · version files escritos sin `v` para compatibilidad con npm | ✅ |
 | | | `false` — tags sin prefijo (`0.5.9`) | ✅ |
 
 ---
 
 ## version.separators
 
-[→ defaults.yml:56](../../scripts/defaults.yml#L56)
+[→ defaults.yml:56](../../config/defaults/defaults.yml#L56)
 
 Controla los caracteres que separan las partes del tag generado.
 
 | Key | Default | Escenario | Cobertura |
 |-----|---------|-----------|-----------|
-| [`separators.version`](../../scripts/defaults.yml#L57) | `"."` | Separa los componentes del número de versión — implícito en todos los tests de tag building | ✅ |
-| [`separators.timestamp`](../../scripts/defaults.yml#L58) | `"."` | Separa la versión del timestamp (`0.5.9.20260407120000`) — implícito en tests de tag con timestamp | ✅ |
-| [`separators.tag_append`](../../scripts/defaults.yml#L59) | `""` | Vacío por default — no se agrega nada al final del tag | ✅ |
+| [`separators.version`](../../config/defaults/defaults.yml#L57) | `"."` | Separa los componentes del número de versión — implícito en todos los tests de tag building | ✅ |
+| [`separators.timestamp`](../../config/defaults/defaults.yml#L58) | `"."` | Separa la versión del timestamp (`0.5.9.20260407120000`) — implícito en tests de tag con timestamp | ✅ |
+| [`separators.tag_append`](../../config/defaults/defaults.yml#L59) | `""` | Vacío por default — no se agrega nada al final del tag | ✅ |
 | | | Valor no vacío (ej. `-rc1`) — appended al final del tag después del timestamp | ✅ |
 
 ---
 
 ## commit_types
 
-[→ scripts/commit-types.yml](../../scripts/commit-types.yml)
+[→ config/defaults/commit-types.yml](../../config/defaults/commit-types.yml)
 
 Catálogo de tipos de commit. Cada tipo define el bump de versión que produce, su emoji, y el grupo en el changelog.
 
@@ -369,7 +369,7 @@ Catálogo de tipos de commit. Cada tipo define el bump de versión que produce, 
 
 ## commit_type_overrides
 
-[→ defaults.yml:61](../../scripts/defaults.yml#L61)
+[→ defaults.yml:61](../../config/defaults/defaults.yml#L61)
 
 Permite parchear o extender el catálogo de tipos sin redefinirlo completo. Solo se especifican los campos que cambian.
 
@@ -385,11 +385,11 @@ Permite parchear o extender el catálogo de tipos sin redefinirlo completo. Solo
 
 ## hotfix
 
-[→ defaults.yml:94](../../scripts/defaults.yml#L94)
+[→ defaults.yml:94](../../config/defaults/defaults.yml#L94)
 
 Controla cómo se detecta un commit de hotfix. La detección es puramente git — no depende de APIs de plataforma (funciona en GitHub, Bitbucket, GitLab, o cualquier host git).
 
-**`hotfix.keyword`** — `string` · `string[]` · [→ L103](../../scripts/defaults.yml#L103)
+**`hotfix.keyword`** — `string` · `string[]` · [→ L103](../../config/defaults/defaults.yml#L103)
 
 Patrones glob evaluados contra el subject del commit (o el segundo padre en merge commits). Defaults: `["hotfix:*", "hotfix(*", "[Hh]otfix/*"]`.
 
@@ -408,21 +408,21 @@ Patrones glob evaluados contra el subject del commit (o el segundo padre en merg
 | Multi-keyword — todos los patrones se evalúan | ✅ |
 | Merge commit — detección via subject del segundo padre | ✅ |
 
-> **Squash merge y detección de hotfix**: en squash merge, el branch name se pierde post-merge. Si el PR title no lleva el hotfix keyword, `detect-scenario.sh` clasifica el commit como `development_release`. El guardrail `validation.hotfix_title_required` (default `"error"`) previene esto bloqueando el merge en PR context cuando el branch es hotfix pero el título no tiene el keyword. Ver [ticket 051](../../temp/features/051-hotfix-squash-merge-gap.md).
+> **Squash merge y detección de hotfix**: en squash merge, el branch name se pierde post-merge. Si el PR title no lleva el hotfix keyword, el `detect-scenario` subcommand clasifica el commit como `development_release`. El guardrail `validation.hotfix_title_required` (default `"error"`) previene esto bloqueando el merge en PR context cuando el branch es hotfix pero el título no tiene el keyword. Ver [ticket 051](../../temp/features/051-hotfix-squash-merge-gap.md).
 
 ---
 
 ## branches
 
-[→ defaults.yml:108](../../scripts/defaults.yml#L108)
+[→ defaults.yml:108](../../config/defaults/defaults.yml#L108)
 
 Mapea los roles del pipeline a nombres de rama.
 
 | Key | Default | Escenario | Cobertura |
 |-----|---------|-----------|-----------|
-| [`branches.tag_on`](../../scripts/defaults.yml#L109) | `"development"` | Default — PR a `development` produce `development_release` | ✅ |
+| [`branches.tag_on`](../../config/defaults/defaults.yml#L109) | `"development"` | Default — PR a `development` produce `development_release` | ✅ |
 | | | Custom (`"dev"`) — PR a `dev` produce `development_release` | ✅ |
-| [`branches.hotfix_targets`](../../scripts/defaults.yml#L110) | `["main", "pre-production"]` | Default — PR de `hotfix/` a `main` o `pre-production` produce `hotfix` | ✅ |
+| [`branches.hotfix_targets`](../../config/defaults/defaults.yml#L110) | `["main", "pre-production"]` | Default — PR de `hotfix/` a `main` o `pre-production` produce `hotfix` | ✅ |
 | | | Custom (`["master", "staging"]`) — PR de `hotfix/` a esas ramas produce `hotfix` | ✅ |
 | | | PR de `tag_on` a un `hotfix_target` produce `promotion_to_main` | ✅ |
 | | | PR de feature a un `hotfix_target` produce `unknown` | ✅ |
@@ -440,7 +440,7 @@ Mapea los roles del pipeline a nombres de rama.
 
 ## version_file
 
-[→ defaults.yml:114](../../scripts/defaults.yml#L114)
+[→ defaults.yml:114](../../config/defaults/defaults.yml#L114)
 
 Controla la actualización de archivos de versión (`package.json`, `version.yaml`, archivos con placeholder). Se ejecuta después de calcular la versión.
 
@@ -506,14 +506,14 @@ No hay campo `type` explícito. El comportamiento se determina por la extensión
 
 ## notifications
 
-[→ defaults.yml:134](../../scripts/defaults.yml#L134)
+[→ defaults.yml:134](../../config/defaults/defaults.yml#L134)
 
 Controla las notificaciones a Microsoft Teams.
 
 | Key | Default | Escenario | Cobertura |
 |-----|---------|-----------|-----------|
-| [`notifications.teams.enabled`](../../scripts/defaults.yml#L136) | `true` | `enabled` con trigger inválido — exit no-zero | ✅ |
-| [`notifications.teams.on_success`](../../scripts/defaults.yml#L137) | `false` | `false` (default) + trigger "success" — sale 0 con mensaje "disabled" | ✅ |
+| [`notifications.teams.enabled`](../../config/defaults/defaults.yml#L136) | `true` | `enabled` con trigger inválido — exit no-zero | ✅ |
+| [`notifications.teams.on_success`](../../config/defaults/defaults.yml#L137) | `false` | `false` (default) + trigger "success" — sale 0 con mensaje "disabled" | ✅ |
 | | | `true` + trigger "success" + sin webhook — sale 0 con skip warning | ✅ |
-| [`notifications.teams.on_failure`](../../scripts/defaults.yml#L138) | `true` | `true` (default) + trigger "failure" + sin webhook — sale 0 con skip warning | ✅ |
+| [`notifications.teams.on_failure`](../../config/defaults/defaults.yml#L138) | `true` | `true` (default) + trigger "failure" + sin webhook — sale 0 con skip warning | ✅ |
 | | | **Nota**: enabled=false y on_failure=false no son testeables en unit (REPO_ROOT=/pipe es read-only en el container de test — no se puede inyectar .versioning.yml custom) | ⚠️ |

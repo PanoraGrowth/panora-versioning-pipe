@@ -2,7 +2,7 @@
 
 Unit tests and integration tests validated before every release.
 
-**As of ticket 051 (hotfix squash merge gap)**: 461 unit tests (bats-core) and 18 end-to-end integration scenarios. Integration scenarios run against both GitHub and Bitbucket using a shared `test-scenarios.yml`. The `config_override` mechanism deep-merges deltas on top of the test repo's `.versioning.yml` (not a full replacement), so scenarios only specify keys they actually change.
+**As of ticket 051 (hotfix squash merge gap)**: Go unit tests + 18 end-to-end integration scenarios. Integration scenarios run against both GitHub and Bitbucket using a shared `test-scenarios.yml`. The `config_override` mechanism deep-merges deltas on top of the test repo's `.versioning.yml` (not a full replacement), so scenarios only specify keys they actually change.
 
 ---
 

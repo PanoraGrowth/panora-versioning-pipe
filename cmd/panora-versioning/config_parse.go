@@ -28,11 +28,11 @@ commit_type_overrides: patch or append entries in commit_types by name.`,
 }
 
 func runConfigParse(cmd *cobra.Command, _ []string) error {
-	commitTypesPath, err := resolveScriptFile("commit-types.yml")
+	commitTypesPath, err := config.ResolveBundledFile(config.CommitTypesFile)
 	if err != nil {
 		return fmt.Errorf("config-parse: %w", err)
 	}
-	defaultsPath, err := resolveScriptFile("defaults.yml")
+	defaultsPath, err := config.ResolveBundledFile(config.DefaultsFile)
 	if err != nil {
 		return fmt.Errorf("config-parse: %w", err)
 	}
@@ -70,34 +70,6 @@ func runConfigParse(cmd *cobra.Command, _ []string) error {
 
 	log.Plain(fmt.Sprintf("merged config written (%d commit_types)", len(cfg.CommitTypes)))
 	return nil
-}
-
-// resolveScriptFile locates a bundled script file (e.g. defaults.yml).
-// Search order:
-//  1. PANORA_SCRIPTS_DIR env var (test override)
-//  2. /pipe/ (Docker runtime path)
-//  3. scripts/ relative to binary executable path (local dev)
-func resolveScriptFile(name string) (string, error) {
-	candidates := []string{}
-
-	if dir := os.Getenv("PANORA_SCRIPTS_DIR"); dir != "" {
-		candidates = append(candidates, filepath.Join(dir, name))
-	}
-	candidates = append(candidates, filepath.Join("/pipe", name))
-
-	// Relative to binary executable (local dev / CI without Docker).
-	if exePath, err := os.Executable(); err == nil {
-		exeDir := filepath.Dir(exePath)
-		candidates = append(candidates, filepath.Join(exeDir, "..", "scripts", name))
-		candidates = append(candidates, filepath.Join(exeDir, "scripts", name))
-	}
-
-	for _, p := range candidates {
-		if _, err := os.Stat(p); err == nil {
-			return p, nil
-		}
-	}
-	return "", fmt.Errorf("could not locate %s (searched: %v)", name, candidates)
 }
 
 // repoRootOrCwd returns the git repository working-tree root, falling back to CWD.

@@ -12,6 +12,8 @@ jobs:
   release-readiness:
     name: Release Readiness
     runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/panoragrowth/panora-versioning-pipe:${{ vars.VERSIONING_PIPE_TAG }}
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
@@ -22,19 +24,11 @@ jobs:
       - name: Ensure base ref is available
         run: git fetch origin ${{ github.base_ref }} --depth=0 || git fetch origin ${{ github.base_ref }}
 
-      - name: Install yq
-        run: |
-          if ! command -v yq >/dev/null 2>&1; then
-            sudo wget -q -O /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
-            sudo chmod +x /usr/local/bin/yq
-          fi
-          yq --version
-
       - name: Run release readiness checks
         id: checks
         env:
           BASE_REF: origin/${{ github.base_ref }}
-        run: bash scripts/release/check-release-readiness.sh | tee /tmp/release-readiness.log
+        run: /usr/local/bin/panora-versioning check-release-readiness | tee /tmp/release-readiness.log
 
       - name: Post PR comment
         if: always()
