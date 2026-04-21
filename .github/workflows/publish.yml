@@ -44,11 +44,14 @@ jobs:
           # Derive floating tags: v0.6.3 → v0.6 → v0
           MINOR_SERIES="${VERSION%.*}"
           MAJOR_SERIES="${MINOR_SERIES%.*}"
+          # BUILT_AT format must match Makefile GO_BUILT_AT (single source of truth)
+          BUILT_AT=$(date -u +%Y-%m-%dT%H:%M:%SZ)
           echo "VERSION=$VERSION" >> "$GITHUB_OUTPUT"
           echo "OWNER_LC=$OWNER_LC" >> "$GITHUB_OUTPUT"
           echo "MINOR_SERIES=$MINOR_SERIES" >> "$GITHUB_OUTPUT"
           echo "MAJOR_SERIES=$MAJOR_SERIES" >> "$GITHUB_OUTPUT"
-          echo "Building version: $VERSION (minor series: $MINOR_SERIES, major series: $MAJOR_SERIES, owner: $OWNER_LC)"
+          echo "BUILT_AT=$BUILT_AT" >> "$GITHUB_OUTPUT"
+          echo "Building version: $VERSION (minor series: $MINOR_SERIES, major series: $MAJOR_SERIES, owner: $OWNER_LC, built_at: $BUILT_AT)"
 
       - name: Login to GitHub Container Registry
         uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121  # v4.1.0
@@ -71,6 +74,10 @@ jobs:
           push: false
           load: true
           tags: ${{ env.IMAGE_NAME }}:scan
+          build-args: |
+            VERSION=${{ steps.version.outputs.VERSION }}
+            COMMIT=${{ github.sha }}
+            BUILT_AT=${{ steps.version.outputs.BUILT_AT }}
 
       - name: Scan image for vulnerabilities
         # aquasecurity/trivy-action — third-party action, pinned to SHA per security-review.md §4
@@ -91,6 +98,10 @@ jobs:
         with:
           context: .
           push: true
+          build-args: |
+            VERSION=${{ steps.version.outputs.VERSION }}
+            COMMIT=${{ github.sha }}
+            BUILT_AT=${{ steps.version.outputs.BUILT_AT }}
           tags: |
             ghcr.io/${{ steps.version.outputs.OWNER_LC }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.VERSION }}
             ghcr.io/${{ steps.version.outputs.OWNER_LC }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.MINOR_SERIES }}
