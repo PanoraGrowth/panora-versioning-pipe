@@ -629,3 +629,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: 9b656b7](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/9b656b7382e72b1905ab63cc9ab5c8740e9d9d88)
 
 
+## v1.3 - 2026-04-21
+
+- 🐛 fix(versioning): emit schema-aware hotfix tags (no base slot) (#155)
+  - _Agustín Manessi_
+  - [Commit: 29f2de7](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/29f2de7b1da0a3f250955506170d3055c5cb6d0c)
+
+
