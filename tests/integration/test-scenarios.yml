@@ -527,6 +527,8 @@ scenarios:
       tag_pattern: "^v17\\.\\d+$"
       changelog_contains: "fix(auth): resolve auth token expiry in backend"
       changelog_location: "backend/CHANGELOG.md"
+      changelog_not_locations:
+        - frontend/CHANGELOG.md
 
   - name: per-folder-multi-folder-write
     description: "Scoped commit with no folder match touching both backend/ and frontend/ → fallback=file_path writes CHANGELOG to BOTH folders. Verifies multi-folder write in real GitHub Actions."

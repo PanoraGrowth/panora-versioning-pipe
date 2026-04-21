@@ -260,6 +260,19 @@ class TestMergeAndTag:
                         f"Expected '{key_part}' not found in {extra_path} on {base}"
                     )
 
+            # 8c. Verify changelog NOT in forbidden locations
+            if "changelog_not_locations" in scenario["expected"]:
+                expected_text = scenario["expected"]["changelog_contains"]
+                key_part = (expected_text.split(": ", 1)[-1]
+                            if ": " in expected_text else expected_text)
+                for forbidden_path in scenario["expected"]["changelog_not_locations"]:
+                    forbidden_content = github.get_file_content(forbidden_path, ref=base)
+                    if forbidden_content is not None:
+                        assert key_part not in forbidden_content, (
+                            f"Text '{key_part}' should NOT appear in {forbidden_path} "
+                            f"on {base} but was found"
+                        )
+
             # 9. Verify CHANGELOG section marker (e.g. "(Hotfix)" for hotfix releases)
             if "changelog_section_marker" in scenario["expected"]:
                 marker = scenario["expected"]["changelog_section_marker"]
