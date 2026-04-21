@@ -601,3 +601,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: 610e0d1](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/610e0d1df111e2bda91eff1835af434fc2627002)
 
 
+## v0.11.38 - 2026-04-21
+
+- 🚀 feat(go): port pr/branch orchestrators + pipe.sh dispatch to Go (GO-11) (#150)
+  - _Agustín Manessi_
+  - [Commit: 0030f07](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/0030f070b1fc536829832b272637be52efb94689)
+
+
