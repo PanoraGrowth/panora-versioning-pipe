@@ -608,3 +608,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: 0030f07](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/0030f070b1fc536829832b272637be52efb94689)
 
 
+## v1.0 - 2026-04-21
+
+- 🚀 feat(go)!: cutover a binario único — eliminación de bash runtime
+  - _Agustín Manessi_
+  - [Commit: 831b577](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/831b5774c1121e9e5c4425cac0ff068bde961e37)
+
+
