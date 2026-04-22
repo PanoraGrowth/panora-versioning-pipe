@@ -671,3 +671,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: 0117d93](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/0117d9314f2d4bc1f7aa489704369933cf618fdf)
 
 
+## v1.9 - 2026-04-22
+
+- 🐛 fix(harness): bugs descubiertos durante validación T5 (EPIC001-T5 part 1) (#162)
+  - _Agustín Manessi_
+  - [Commit: 6d7fc6a](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/6d7fc6a59455366019ea8560c8f90031fefe31af)
+
+
