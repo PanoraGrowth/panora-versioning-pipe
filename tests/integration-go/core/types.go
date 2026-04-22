@@ -65,4 +65,6 @@ type ScenarioResult struct {
 	Error      error
 	Duration   time.Duration
 	CreatedTag string
+	Skipped    bool
+	SkipReason string
 }
