@@ -3,6 +3,7 @@ package bitbucket
 import (
 	"fmt"
 	"sort"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -352,7 +353,7 @@ func (d *Driver) WaitForWorkflowRunCompletion(runID int64, timeout time.Duration
 
 // --- Tags ---
 
-func (d *Driver) GetLatestTag(prefix string) (*string, error) {
+func (d *Driver) GetLatestTag(prefix string, excludePrefixes []string) (*string, error) {
 	path := "refs/tags?sort=-target.date&pagelen=25"
 	if prefix != "" {
 		// why: Bitbucket supports q= filter for field matching. name~ means "starts with"
@@ -374,9 +375,16 @@ func (d *Driver) GetLatestTag(prefix string) (*string, error) {
 	}
 
 	// Sort by semver descending — same logic as GitHub driver.
+	// Exclude tags belonging to more-specific sub-namespaces (cross-contamination guard).
 	names := make([]string, 0, len(resp.Values))
 	for _, v := range resp.Values {
+		if hasExcludedPrefix(v.Name, excludePrefixes) {
+			continue
+		}
 		names = append(names, v.Name)
+	}
+	if len(names) == 0 {
+		return nil, nil
 	}
 	sort.Slice(names, func(i, j int) bool {
 		vi, ei := semver.NewVersion(names[i])
@@ -389,10 +397,10 @@ func (d *Driver) GetLatestTag(prefix string) (*string, error) {
 	return &names[0], nil
 }
 
-func (d *Driver) WaitForNewTag(previousTag *string, prefix string, timeout time.Duration) (string, error) {
+func (d *Driver) WaitForNewTag(previousTag *string, prefix string, excludePrefixes []string, timeout time.Duration) (string, error) {
 	deadline := time.Now().Add(timeout)
 	for time.Now().Before(deadline) {
-		current, err := d.GetLatestTag(prefix)
+		current, err := d.GetLatestTag(prefix, excludePrefixes)
 		if err != nil {
 			time.Sleep(d.pollInterval)
 			continue
@@ -407,6 +415,17 @@ func (d *Driver) WaitForNewTag(previousTag *string, prefix string, timeout time.
 		prev = *previousTag
 	}
 	return "", fmt.Errorf("no new tag (prefix=%s) appeared within %s; last: %s", prefix, timeout, prev)
+}
+
+// hasExcludedPrefix reports whether name starts with any of the excludePrefixes.
+// Mirrors the same helper in the GitHub driver — both drivers need identical filtering semantics.
+func hasExcludedPrefix(name string, excludePrefixes []string) bool {
+	for _, ex := range excludePrefixes {
+		if strings.HasPrefix(name, ex) {
+			return true
+		}
+	}
+	return false
 }
 
 // CreateTag creates a lightweight tag pointing to the tip of the given ref.
