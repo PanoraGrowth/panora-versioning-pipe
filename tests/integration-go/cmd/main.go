@@ -1,12 +1,14 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"time"
 
 	"github.com/PanoraGrowth/panora-versioning-pipe/tests/integration-go/adapters/bitbucket"
@@ -24,6 +26,10 @@ func main() {
 	repo := flag.String("repo", "", "override test repo (e.g. org/repo-fork)")
 	imageTag := flag.String("image-tag", "", "pipe preview image tag for workflow dispatch")
 	flag.Parse()
+
+	// Load .env.local if present — must happen before validateEnv so credentials
+	// set there are visible to the validation step. Never fails if file is absent.
+	loadEnvFile(filepath.Join("tests", "integration-go", ".env.local"))
 
 	// Validate required env vars before doing anything else.
 	// Lists ALL missing vars at once so the user can fix them in one shot.
@@ -100,6 +106,34 @@ func main() {
 
 	if failed > 0 {
 		os.Exit(1)
+	}
+}
+
+// loadEnvFile reads a KEY=VALUE file and sets each variable in the process environment.
+// Skips blank lines and lines starting with #. Does not override variables already set
+// in the environment (explicit env wins over file). Silent if the file doesn't exist.
+func loadEnvFile(path string) {
+	f, err := os.Open(path)
+	if err != nil {
+		return // file absent — not an error
+	}
+	defer func() { _ = f.Close() }()
+
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		idx := strings.IndexByte(line, '=')
+		if idx < 1 {
+			continue // malformed line — skip silently
+		}
+		key := strings.TrimSpace(line[:idx])
+		val := strings.TrimSpace(line[idx+1:])
+		if os.Getenv(key) == "" {
+			_ = os.Setenv(key, val)
+		}
 	}
 }
 
