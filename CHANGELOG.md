@@ -678,3 +678,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: 6d7fc6a](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/6d7fc6a59455366019ea8560c8f90031fefe31af)
 
 
+## v1.10 - 2026-04-22
+
+- 🐛 fix(harness): prevent tag cross-contamination in parallel scenarios (EPIC001-T5 part 2) (#163)
+  - _Agustín Manessi_
+  - [Commit: 094e03d](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/094e03d5f61f2cac4e16a89204752819866af00d)
+
+
