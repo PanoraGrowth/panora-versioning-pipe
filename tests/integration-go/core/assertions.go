@@ -18,10 +18,12 @@ func AssertPRCheck(got CheckResult, expected string) error {
 
 // AssertTagCreated verifies whether a new tag appeared (or not).
 // Returns the tag name if created (empty string if expected absent).
-func AssertTagCreated(driver PlatformDriver, scenario Scenario, tagBefore *string, timeout time.Duration) (string, error) {
+// excludePrefixes lists sub-namespace prefixes to exclude from tag lookups — prevents
+// cross-contamination between parallel scenarios sharing a common prefix (e.g. v1. and v1.27.).
+func AssertTagCreated(driver PlatformDriver, scenario Scenario, tagBefore *string, excludePrefixes []string, timeout time.Duration) (string, error) {
 	prefix := scenario.TagPrefix()
 	if scenario.Expected.TagCreated {
-		tag, err := driver.WaitForNewTag(tagBefore, prefix, timeout)
+		tag, err := driver.WaitForNewTag(tagBefore, prefix, excludePrefixes, timeout)
 		if err != nil {
 			return "", fmt.Errorf("tag_created=true but no new tag appeared: %w", err)
 		}
@@ -29,7 +31,7 @@ func AssertTagCreated(driver PlatformDriver, scenario Scenario, tagBefore *strin
 	}
 	// tag_created=false — wait briefly then verify no new tag appeared
 	time.Sleep(15 * time.Second)
-	current, err := driver.GetLatestTag(prefix)
+	current, err := driver.GetLatestTag(prefix, excludePrefixes)
 	if err != nil {
 		return "", fmt.Errorf("get latest tag: %w", err)
 	}

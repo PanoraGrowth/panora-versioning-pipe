@@ -524,7 +524,7 @@ func TestGetLatestTag_noTags(t *testing.T) {
 	defer srv.Close()
 
 	d := newDriverForTest(t, srv)
-	tag, err := d.GetLatestTag("v1.")
+	tag, err := d.GetLatestTag("v1.", nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -544,7 +544,7 @@ func TestGetLatestTag_returnsSemverLatest(t *testing.T) {
 	defer srv.Close()
 
 	d := newDriverForTest(t, srv)
-	tag, err := d.GetLatestTag("v1.")
+	tag, err := d.GetLatestTag("v1.", nil)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -577,7 +577,7 @@ func TestWaitForNewTag_detectsNew(t *testing.T) {
 
 	d := newDriverForTest(t, srv)
 	prev := "v1.0.0"
-	tag, err := d.WaitForNewTag(&prev, "v1.", 500*time.Millisecond)
+	tag, err := d.WaitForNewTag(&prev, "v1.", nil, 500*time.Millisecond)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -594,7 +594,7 @@ func TestWaitForNewTag_timeout(t *testing.T) {
 
 	d := newDriverForTest(t, srv)
 	prev := "v1.0.0"
-	_, err := d.WaitForNewTag(&prev, "v1.", 50*time.Millisecond)
+	_, err := d.WaitForNewTag(&prev, "v1.", nil, 50*time.Millisecond)
 	if err == nil {
 		t.Fatal("expected timeout error, got nil")
 	}

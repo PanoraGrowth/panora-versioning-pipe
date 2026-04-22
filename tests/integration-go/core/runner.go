@@ -24,9 +24,10 @@ type RunOptions struct {
 
 // Runner orchestrates scenario execution.
 type Runner struct {
-	driver PlatformDriver
-	pool   *SandboxPool
-	opts   RunOptions
+	driver           PlatformDriver
+	pool             *SandboxPool
+	opts             RunOptions
+	excludesByPrefix map[string][]string // computed once per Run() from the scenario set
 }
 
 // NewRunner creates a runner with the given driver and options.
@@ -37,6 +38,7 @@ func NewRunner(driver PlatformDriver, pool *SandboxPool, opts RunOptions) *Runne
 // Run executes all matching scenarios and returns results.
 func (r *Runner) Run(ctx context.Context, scenarios []Scenario) []ScenarioResult {
 	filtered := r.filterScenarios(scenarios)
+	r.excludesByPrefix = computeExcludesByPrefix(filtered)
 
 	merge := make([]Scenario, 0)
 	noMerge := make([]Scenario, 0)
@@ -188,7 +190,7 @@ func (r *Runner) execScenario(ctx context.Context, s Scenario) (createdTag strin
 			}
 		} else if s.Expected.TagCreated {
 			// Pipe may have created a tag before the test failed
-			latest, _ := r.driver.GetLatestTag(s.TagPrefix())
+			latest, _ := r.driver.GetLatestTag(s.TagPrefix(), r.excludesByPrefix[s.TagPrefix()])
 			if latest != nil && (tagBefore == nil || *latest != *tagBefore) {
 				_ = r.driver.DeleteTag(*latest)
 			}
@@ -204,7 +206,8 @@ func (r *Runner) execScenario(ctx context.Context, s Scenario) (createdTag strin
 	}
 
 	// 2. Snapshot latest tag (for diff detection later)
-	latest, err := r.driver.GetLatestTag(s.TagPrefix())
+	excludes := r.excludesByPrefix[s.TagPrefix()]
+	latest, err := r.driver.GetLatestTag(s.TagPrefix(), excludes)
 	if err != nil {
 		return "", fmt.Errorf("get latest tag before test: %w", err)
 	}
@@ -306,7 +309,7 @@ func (r *Runner) execScenario(ctx context.Context, s Scenario) (createdTag strin
 	}
 
 	// 11. Assert tag
-	tag, err := AssertTagCreated(r.driver, s, tagBefore, timeout)
+	tag, err := AssertTagCreated(r.driver, s, tagBefore, excludes, timeout)
 	if err != nil {
 		return "", err
 	}
@@ -353,6 +356,38 @@ func (r *Runner) execScenario(ctx context.Context, s Scenario) (createdTag strin
 	}
 
 	return tag, nil
+}
+
+// computeExcludesByPrefix builds a map from each unique tag prefix to the list of
+// more-specific prefixes (sub-namespaces) present in the scenario set.
+//
+// Invariante crítica: todos los prefijos terminan en "." (ver Scenario.TagPrefix()).
+// Esto garantiza que HasPrefix matchea sub-namespaces reales — ej. "v1." no es
+// prefix de "v12." porque "12" ≠ "1" + punto. Si TagPrefix() cambia, este
+// algoritmo debe revisarse.
+func computeExcludesByPrefix(scenarios []Scenario) map[string][]string {
+	// Collect unique prefixes.
+	seen := make(map[string]struct{})
+	for _, s := range scenarios {
+		seen[s.TagPrefix()] = struct{}{}
+	}
+
+	result := make(map[string][]string, len(seen))
+	for p := range seen {
+		if p == "" {
+			result[p] = nil
+			continue
+		}
+		var excludes []string
+		for other := range seen {
+			// A sub-namespace is strictly longer, starts with p, and is not p itself.
+			if other != p && strings.HasPrefix(other, p) {
+				excludes = append(excludes, other)
+			}
+		}
+		result[p] = excludes
+	}
+	return result
 }
 
 // deepMerge recursively merges override into base. Override wins on conflicts.

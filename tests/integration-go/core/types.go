@@ -29,8 +29,13 @@ type PlatformDriver interface {
 	WaitForWorkflowRunCompletion(runID int64, timeout time.Duration) (bool, error)
 
 	// Tags
-	GetLatestTag(prefix string) (*string, error)
-	WaitForNewTag(previousTag *string, prefix string, timeout time.Duration) (string, error)
+	//
+	// excludePrefixes lists tag prefixes that are sub-namespaces of prefix and must be
+	// excluded from results to avoid cross-contamination between parallel scenarios.
+	// Example: GetLatestTag("v1.", ["v1.27."]) returns only v1.NNN tags, not v1.27.NNN.
+	// Computed once per Run() by computeExcludesByPrefix — callers don't build this manually.
+	GetLatestTag(prefix string, excludePrefixes []string) (*string, error)
+	WaitForNewTag(previousTag *string, prefix string, excludePrefixes []string, timeout time.Duration) (string, error)
 	CreateTag(name, ref string) error
 	DeleteTag(name string) error
 }
