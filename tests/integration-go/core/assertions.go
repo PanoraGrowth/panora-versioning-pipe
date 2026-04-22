@@ -99,19 +99,51 @@ func AssertChangelogSectionMarker(driver PlatformDriver, path, ref, marker strin
 }
 
 // AssertVersionFile verifies the version file state.
+// Polls up to 30s because the version file commit may land after the tag appears.
+// why: replica la semántica del harness Python (tests/integration/test_github.py:296-303).
 func AssertVersionFile(driver PlatformDriver, path, ref, expectedTag string, shouldBeUpdated bool) error {
-	content, err := driver.GetFileContent(path, ref)
-	if err != nil {
-		return fmt.Errorf("get version file %s@%s: %w", path, ref, err)
+	versionPlain := strings.TrimPrefix(expectedTag, "v")
+
+	deadline := time.Now().Add(30 * time.Second)
+	var content []byte
+	for time.Now().Before(deadline) {
+		c, err := driver.GetFileContent(path, ref)
+		if err != nil {
+			return fmt.Errorf("get version file %s@%s: %w", path, ref, err)
+		}
+		content = c
+		if containsVersion(content, versionPlain) {
+			break
+		}
+		time.Sleep(3 * time.Second)
 	}
-	updated := content != nil && strings.TrimSpace(string(content)) == strings.TrimPrefix(expectedTag, "v")
+
+	updated := containsVersion(content, versionPlain)
 	if shouldBeUpdated && !updated {
-		return fmt.Errorf("version file %s should contain %q but got %q", path, expectedTag, string(content))
+		return fmt.Errorf("version file %s should contain version %q but got %q", path, versionPlain, string(content))
 	}
 	if !shouldBeUpdated && updated {
-		return fmt.Errorf("version file %s should not be updated but contains %q", path, string(content))
+		return fmt.Errorf("version file %s should not be updated but contains version %q", path, versionPlain)
 	}
 	return nil
+}
+
+// containsVersion checks if content references the exact version string.
+// Uses quote-boundary matching to avoid "19.1" matching "19.10".
+// why: pipe writes version in various formats (yaml: version: "X", json: "version": "X",
+// toml: version = "X", plain: X). Quoted formats need boundary-aware match.
+func containsVersion(content []byte, version string) bool {
+	if content == nil {
+		return false
+	}
+	s := string(content)
+	if strings.Contains(s, `"`+version+`"`) || strings.Contains(s, `'`+version+`'`) {
+		return true
+	}
+	if strings.TrimSpace(s) == version {
+		return true
+	}
+	return false
 }
 
 // stripTypePrefix removes the conventional commit type prefix from a string
