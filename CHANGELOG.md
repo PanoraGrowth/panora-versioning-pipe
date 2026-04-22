@@ -657,3 +657,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: 2c0fe7c](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/2c0fe7cd3154fc0cf313d9c5a49ed39198182960)
 
 
+## v1.7 - 2026-04-22
+
+- ⚙️ ci: trigger Go CI on tests/integration-go changes
+  - _CI Pipeline_
+  - [Commit: 129ee22](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/129ee228d8aceb821fe6a6ec3edda0785989dc93)
+
+
