@@ -569,7 +569,7 @@ scenarios:
         groups:
           - name: services
             files:
-              - path: services/version.yaml
+              - "services/version.yaml"
             trigger_paths:
               - "services/**"
     commits:
