@@ -12,6 +12,7 @@ on:
       - ".goreleaser.yaml"
       - ".github/workflows/go-ci.yml"
       - "tests/integration/test_go_*.py"
+      - "tests/integration-go/**"
   push:
     branches:
       - "go/**"
