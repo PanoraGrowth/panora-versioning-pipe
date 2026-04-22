@@ -111,10 +111,10 @@ func buildDriver(platform, repoOverride string) (core.PlatformDriver, error) {
 		}
 		repo := repoOverride
 		if repo == "" {
-			repo = os.Getenv("TEST_REPO")
+			repo = os.Getenv("INTEGRATION_TEST_REPO")
 		}
 		if repo == "" {
-			repo = "PanoraGrowth/panora-versioning-pipe-test"
+			return nil, fmt.Errorf("INTEGRATION_TEST_REPO is required (e.g. your-org/your-test-repo)")
 		}
 		c, err := ghAdapter.NewClient(token, repo)
 		if err != nil {
