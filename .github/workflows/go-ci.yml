@@ -64,7 +64,7 @@ jobs:
         run: go test ./... -race -count=1
 
       - name: Docker build (sanity check)
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           push: false
