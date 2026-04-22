@@ -17,13 +17,17 @@ import (
 func main() {
 	platform := flag.String("platform", "github", "platform: github | bitbucket")
 	filter := flag.String("filter", "", "filter scenarios by name substring")
-	parallel := flag.Int("parallel", 0, "goroutine concurrency (default: min(28, numScenarios))")
+	parallel := flag.Int("parallel", 0, "goroutine concurrency (default: runtime.NumCPU)")
 	timeout := flag.Duration("timeout", 5*time.Minute, "timeout per scenario")
 	failFast := flag.Bool("fail-fast", false, "stop on first failure")
 	runID := flag.String("run-id", "", "override run ID (default: random 8 hex chars)")
 	repo := flag.String("repo", "", "override test repo (e.g. org/repo-fork)")
 	imageTag := flag.String("image-tag", "", "pipe preview image tag for workflow dispatch")
 	flag.Parse()
+
+	// Validate required env vars before doing anything else.
+	// Lists ALL missing vars at once so the user can fix them in one shot.
+	validateEnv(*platform, *repo)
 
 	// Resolve scenarios file path relative to this binary's source dir.
 	// When invoked via `go run ./tests/integration-go/cmd/...` from repo root,
@@ -42,9 +46,6 @@ func main() {
 	p := *parallel
 	if p <= 0 {
 		p = runtime.NumCPU()
-		if p > 28 {
-			p = 28
-		}
 	}
 
 	opts := core.RunOptions{
@@ -102,19 +103,82 @@ func main() {
 	}
 }
 
+// validateEnv checks that all required env vars are set for the chosen platform.
+// Lists every missing variable in one shot before exiting — never cuts at the first error.
+func validateEnv(platform, repoFlag string) {
+	type requirement struct {
+		name string
+		desc string
+		// present returns true when the variable is satisfied (env set or flag override).
+		present func() bool
+	}
+
+	var reqs []requirement
+
+	switch platform {
+	case "github":
+		reqs = []requirement{
+			{
+				name:    "INTEGRATION_TEST_TOKEN",
+				desc:    "GitHub personal access token with repo+workflow scopes",
+				present: func() bool { return os.Getenv("INTEGRATION_TEST_TOKEN") != "" },
+			},
+			{
+				name:    "INTEGRATION_TEST_REPO",
+				desc:    "target test repository (e.g. your-org/your-repo)",
+				present: func() bool { return repoFlag != "" || os.Getenv("INTEGRATION_TEST_REPO") != "" },
+			},
+		}
+	case "bitbucket":
+		reqs = []requirement{
+			{
+				name:    "BB_TOKEN",
+				desc:    "Bitbucket repository access token",
+				present: func() bool { return os.Getenv("BB_TOKEN") != "" },
+			},
+			{
+				name:    "BB_WORKSPACE",
+				desc:    "Bitbucket workspace slug",
+				present: func() bool { return os.Getenv("BB_WORKSPACE") != "" },
+			},
+			{
+				name:    "BB_REPO",
+				desc:    "Bitbucket repository slug",
+				present: func() bool { return os.Getenv("BB_REPO") != "" },
+			},
+		}
+	}
+
+	var missing []requirement
+	for _, r := range reqs {
+		if !r.present() {
+			missing = append(missing, r)
+		}
+	}
+
+	if len(missing) == 0 {
+		return
+	}
+
+	fmt.Fprintln(os.Stderr, "ERROR: missing required environment variables:")
+	for _, r := range missing {
+		fmt.Fprintf(os.Stderr, "  %-30s — %s\n", r.name, r.desc)
+	}
+	fmt.Fprintln(os.Stderr, "")
+	fmt.Fprintln(os.Stderr, "Set these in tests/integration-go/.env.local (gitignored) and run:")
+	fmt.Fprintln(os.Stderr, "  source tests/integration-go/.env.local && go run ./tests/integration-go/cmd/...")
+	fmt.Fprintln(os.Stderr, "")
+	fmt.Fprintln(os.Stderr, "See tests/integration-go/.env.example for the full variable list.")
+	os.Exit(1)
+}
+
 func buildDriver(platform, repoOverride string) (core.PlatformDriver, error) {
 	switch platform {
 	case "github":
 		token := os.Getenv("INTEGRATION_TEST_TOKEN")
-		if token == "" {
-			return nil, fmt.Errorf("INTEGRATION_TEST_TOKEN is required for GitHub platform")
-		}
 		repo := repoOverride
 		if repo == "" {
 			repo = os.Getenv("INTEGRATION_TEST_REPO")
-		}
-		if repo == "" {
-			return nil, fmt.Errorf("INTEGRATION_TEST_REPO is required (e.g. your-org/your-test-repo)")
 		}
 		c, err := ghAdapter.NewClient(token, repo)
 		if err != nil {

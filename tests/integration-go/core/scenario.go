@@ -1,5 +1,7 @@
 package core
 
+import "strconv"
+
 // Scenario represents a single integration test scenario loaded from YAML.
 type Scenario struct {
 	Name              string                 `yaml:"name"`
@@ -102,17 +104,5 @@ func (s Scenario) TagPrefix() string {
 	if m == 0 {
 		return ""
 	}
-	return "v" + itoa(m) + "."
-}
-
-func itoa(n int) string {
-	if n == 0 {
-		return "0"
-	}
-	b := make([]byte, 0, 10)
-	for n > 0 {
-		b = append([]byte{byte('0' + n%10)}, b...)
-		n /= 10
-	}
-	return string(b)
+	return "v" + strconv.Itoa(m) + "."
 }
