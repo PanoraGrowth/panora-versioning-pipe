@@ -2,9 +2,11 @@ package github
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
+	semver "github.com/Masterminds/semver/v3"
 	gh "github.com/google/go-github/v71/github"
 
 	"github.com/PanoraGrowth/panora-versioning-pipe/tests/integration-go/core"
@@ -318,9 +320,23 @@ func (d *Driver) GetLatestTag(prefix string) (*string, error) {
 	if len(refs) == 0 {
 		return nil, nil
 	}
-	// ListMatchingRefs returns in creation order; last = most recent
-	tag := strings.TrimPrefix(refs[len(refs)-1].GetRef(), "refs/tags/")
-	return &tag, nil
+
+	// ListMatchingRefs does not guarantee chronological order.
+	// Sort by semver descending so the first element is always the highest version.
+	names := make([]string, 0, len(refs))
+	for _, r := range refs {
+		names = append(names, strings.TrimPrefix(r.GetRef(), "refs/tags/"))
+	}
+	sort.Slice(names, func(i, j int) bool {
+		vi, ei := semver.NewVersion(names[i])
+		vj, ej := semver.NewVersion(names[j])
+		if ei != nil || ej != nil {
+			// Unparseable tags fall back to lexicographic order
+			return names[i] > names[j]
+		}
+		return vi.GreaterThan(vj)
+	})
+	return &names[0], nil
 }
 
 func (d *Driver) WaitForNewTag(previousTag *string, prefix string, timeout time.Duration) (string, error) {

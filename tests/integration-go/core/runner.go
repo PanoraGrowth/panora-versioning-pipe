@@ -3,6 +3,7 @@ package core
 import (
 	"context"
 	"fmt"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -60,61 +61,23 @@ func (r *Runner) Run(ctx context.Context, scenarios []Scenario) []ScenarioResult
 		return true
 	}
 
-	// Run no-merge scenarios in parallel
+	// Run no-merge scenarios in parallel.
+	// Concurrency: opts.Parallelism (default runtime.NumCPU).
+	// No sandbox needed — scenarios target main and never merge.
 	if len(noMerge) > 0 {
 		p := r.opts.Parallelism
 		if p <= 0 {
-			p = 4
+			p = runtime.NumCPU()
 		}
-		sem := make(chan struct{}, p)
-		var wg sync.WaitGroup
-		stop := false
-		for _, s := range noMerge {
-			if stop {
-				break
-			}
-			wg.Add(1)
-			go func(sc Scenario) {
-				defer wg.Done()
-				sem <- struct{}{}
-				defer func() { <-sem }()
-				res := r.runScenario(ctx, sc)
-				if !collect(res) {
-					stop = true
-				}
-			}(s)
-		}
-		wg.Wait()
+		r.runParallel(ctx, noMerge, p, false, collect)
 	}
 
-	// Run merge scenarios in parallel (one per sandbox)
+	// Run merge scenarios in parallel.
+	// SandboxPool is the sole concurrency control — no additional semaphore.
+	// Each goroutine blocks only if its sandbox is already in use (rare in practice:
+	// each scenario maps to its own sandbox-N).
 	if len(merge) > 0 {
-		p := len(merge)
-		if p > 28 {
-			p = 28
-		}
-		sem := make(chan struct{}, p)
-		var wg sync.WaitGroup
-		stop := false
-		for _, s := range merge {
-			if stop {
-				break
-			}
-			wg.Add(1)
-			go func(sc Scenario) {
-				defer wg.Done()
-				sem <- struct{}{}
-				defer func() { <-sem }()
-				sandbox := sc.EffectiveBase()
-				r.pool.Acquire(sandbox)
-				defer r.pool.Release(sandbox)
-				res := r.runScenario(ctx, sc)
-				if !collect(res) {
-					stop = true
-				}
-			}(s)
-		}
-		wg.Wait()
+		r.runParallel(ctx, merge, len(merge), true, collect)
 	}
 
 	return results
@@ -131,6 +94,35 @@ func (r *Runner) filterScenarios(scenarios []Scenario) []Scenario {
 		}
 	}
 	return out
+}
+
+// runParallel dispatches scenarios into a goroutine pool of size concurrency.
+// If useSandbox is true, each goroutine acquires the SandboxPool before running.
+func (r *Runner) runParallel(ctx context.Context, scenarios []Scenario, concurrency int, useSandbox bool, collect func(ScenarioResult) bool) {
+	sem := make(chan struct{}, concurrency)
+	var wg sync.WaitGroup
+	stop := false
+	for _, s := range scenarios {
+		if stop {
+			break
+		}
+		wg.Add(1)
+		go func(sc Scenario) {
+			defer wg.Done()
+			sem <- struct{}{}
+			defer func() { <-sem }()
+			if useSandbox {
+				sandbox := sc.EffectiveBase()
+				r.pool.Acquire(sandbox)
+				defer r.pool.Release(sandbox)
+			}
+			res := r.runScenario(ctx, sc)
+			if !collect(res) {
+				stop = true
+			}
+		}(s)
+	}
+	wg.Wait()
 }
 
 func (r *Runner) runScenario(ctx context.Context, s Scenario) ScenarioResult {
