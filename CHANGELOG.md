@@ -643,3 +643,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: 833c748](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/833c748ebcfbe5d8e3296f13f67ab10e5b6f69a3)
 
 
+## v1.5 - 2026-04-22
+
+- 🚀 feat(harness): Go integration harness skeleton with GitHub adapter (EPIC001-T2) (#158)
+  - _Agustín Manessi_
+  - [Commit: 9d4815a](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/9d4815a54bda8e79d1991a3d2d9abb9a669ab4d3)
+
+
