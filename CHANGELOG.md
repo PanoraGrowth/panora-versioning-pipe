@@ -664,3 +664,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: 129ee22](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/129ee228d8aceb821fe6a6ec3edda0785989dc93)
 
 
+## v1.8 - 2026-04-22
+
+- 🚀 feat(harness): validate parallelization with smoke scenarios (EPIC001-T4) (#161)
+  - _Agustín Manessi_
+  - [Commit: 0117d93](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/0117d9314f2d4bc1f7aa489704369933cf618fdf)
+
+
