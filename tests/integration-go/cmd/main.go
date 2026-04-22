@@ -81,28 +81,36 @@ func main() {
 	fmt.Println()
 	passed := 0
 	failed := 0
+	skipped := 0
 	for _, r := range results {
-		status := "PASS"
-		if !r.Passed {
+		var status string
+		switch {
+		case r.Skipped:
+			status = "SKIP"
+			skipped++
+		case r.Passed:
+			status = "PASS"
+			passed++
+		default:
 			status = "FAIL"
 			failed++
-		} else {
-			passed++
 		}
 		tag := r.CreatedTag
 		if tag == "" {
 			tag = "-"
 		}
 		detail := ""
-		if r.Error != nil {
+		if r.SkipReason != "" {
+			detail = "  " + r.SkipReason
+		} else if r.Error != nil {
 			detail = "  " + r.Error.Error()
 		}
 		fmt.Printf("%-6s %-45s %-10s %6.1fs   tag=%-15s%s\n",
 			status, r.Scenario, r.Platform, r.Duration.Seconds(), tag, detail)
 	}
 
-	fmt.Printf("\n---\nScenarios: %d total, %d passed, %d failed\n",
-		len(results), passed, failed)
+	fmt.Printf("\n---\nScenarios: %d total, %d passed, %d failed, %d skipped\n",
+		len(results), passed, failed, skipped)
 
 	if failed > 0 {
 		os.Exit(1)

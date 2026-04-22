@@ -127,6 +127,20 @@ func (r *Runner) runParallel(ctx context.Context, scenarios []Scenario, concurre
 
 func (r *Runner) runScenario(ctx context.Context, s Scenario) ScenarioResult {
 	start := time.Now()
+
+	// Skip scenarios explicitly marked for this platform.
+	if r.opts.Platform == "bitbucket" && s.SkipBitbucket {
+		return ScenarioResult{
+			Scenario:   s.Name,
+			Platform:   r.opts.Platform,
+			Passed:     true,
+			Error:      nil,
+			Duration:   time.Since(start),
+			Skipped:    true,
+			SkipReason: "skipped: scenario marked skip_bitbucket=true",
+		}
+	}
+
 	tag, err := r.execScenario(ctx, s)
 	return ScenarioResult{
 		Scenario:   s.Name,

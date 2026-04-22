@@ -17,6 +17,9 @@ type Scenario struct {
 	ConfigOverride    map[string]interface{} `yaml:"config_override"`
 	Commits           []Commit               `yaml:"commits"`
 	Expected          Expected               `yaml:"expected"`
+	// SkipBitbucket marks a scenario as intentionally skipped on Bitbucket.
+	// Use when a scenario depends on a GitHub-only primitive with no Bitbucket equivalent.
+	SkipBitbucket bool `yaml:"skip_bitbucket"`
 }
 
 // Commit describes a single commit to create during setup.
