@@ -1,0 +1,73 @@
+# Smoke scenarios for parallelization validation (EPIC001-T4).
+# 5 synthetic scenarios: 3 merge (feat-minor, tag_created=true) + 2 no-merge (chore, tag_created=false).
+# Each targets a distinct sandbox to exercise the SandboxPool isolation guarantee.
+# NOT intended for the production suite — used only for serial vs parallel timing measurements.
+
+scenarios:
+
+  - name: smoke-feat-minor-1
+    description: "Smoke: feat commit triggers minor bump on sandbox-01 (parallelization validation)"
+    base: sandbox-01
+    config_override:
+      branches:
+        tag_on: sandbox-01
+    commits:
+      - message: "feat: dummy change 1"
+        files:
+          smoke-t4.txt: "smoke-1"
+    expected:
+      pr_check: pass
+      tag_created: true
+      tag_pattern: "^v1\\.\\d+$"
+
+  - name: smoke-feat-minor-2
+    description: "Smoke: feat commit triggers minor bump on sandbox-02 (parallelization validation)"
+    base: sandbox-02
+    config_override:
+      branches:
+        tag_on: sandbox-02
+    commits:
+      - message: "feat: dummy change 2"
+        files:
+          smoke-t4.txt: "smoke-2"
+    expected:
+      pr_check: pass
+      tag_created: true
+      tag_pattern: "^v2\\.\\d+$"
+
+  - name: smoke-feat-minor-3
+    description: "Smoke: feat commit triggers minor bump on sandbox-03 (parallelization validation)"
+    base: sandbox-03
+    config_override:
+      branches:
+        tag_on: sandbox-03
+    commits:
+      - message: "feat: dummy change 3"
+        files:
+          smoke-t4.txt: "smoke-3"
+    expected:
+      pr_check: pass
+      tag_created: true
+      tag_pattern: "^v3\\.\\d+$"
+
+  - name: smoke-chore-nobump-1
+    description: "Smoke: chore commit — PR check passes, no tag created (sandbox-04)"
+    base: sandbox-04
+    commits:
+      - message: "chore: dummy no bump 1"
+        files:
+          smoke-t4.txt: "smoke-4"
+    expected:
+      pr_check: pass
+      tag_created: false
+
+  - name: smoke-chore-nobump-2
+    description: "Smoke: chore commit — PR check passes, no tag created (sandbox-05)"
+    base: sandbox-05
+    commits:
+      - message: "chore: dummy no bump 2"
+        files:
+          smoke-t4.txt: "smoke-5"
+    expected:
+      pr_check: pass
+      tag_created: false

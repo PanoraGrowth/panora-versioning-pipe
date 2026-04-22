@@ -25,6 +25,7 @@ func main() {
 	runID := flag.String("run-id", "", "override run ID (default: random 8 hex chars)")
 	repo := flag.String("repo", "", "override test repo (e.g. org/repo-fork)")
 	imageTag := flag.String("image-tag", "", "pipe preview image tag for workflow dispatch")
+	scenariosFlag := flag.String("scenarios", "", "path to scenarios YAML (overrides SCENARIOS_FILE env var)")
 	flag.Parse()
 
 	// Load .env.local if present — must happen before validateEnv so credentials
@@ -38,7 +39,7 @@ func main() {
 	// Resolve scenarios file path relative to this binary's source dir.
 	// When invoked via `go run ./tests/integration-go/cmd/...` from repo root,
 	// the scenarios YAML lives at tests/integration-go/scenarios/test-scenarios.yml.
-	scenariosPath := scenariosFilePath()
+	scenariosPath := scenariosFilePath(*scenariosFlag)
 
 	scenarios, err := core.LoadScenarios(scenariosPath)
 	if err != nil {
@@ -240,12 +241,13 @@ func buildDriver(platform, repoOverride string) (core.PlatformDriver, error) {
 	}
 }
 
-func scenariosFilePath() string {
-	// Try env override first
+func scenariosFilePath(flagVal string) string {
+	if flagVal != "" {
+		return flagVal
+	}
 	if p := os.Getenv("SCENARIOS_FILE"); p != "" {
 		return p
 	}
-	// Default: relative to working directory (repo root when invoked via make)
 	return filepath.Join("tests", "integration-go", "scenarios", "test-scenarios.yml")
 }
 
