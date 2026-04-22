@@ -650,3 +650,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: 9d4815a](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/9d4815a54bda8e79d1991a3d2d9abb9a669ab4d3)
 
 
+## v1.6 - 2026-04-22
+
+- 🐛 fix(harness): correct tag ordering, concurrency model, env validation, and itoa (#159)
+  - _Agustín Manessi_
+  - [Commit: 2c0fe7c](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/2c0fe7cd3154fc0cf313d9c5a49ed39198182960)
+
+
