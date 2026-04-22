@@ -1,0 +1,167 @@
+package main
+
+import (
+	"context"
+	"flag"
+	"fmt"
+	"os"
+	"path/filepath"
+	"runtime"
+	"time"
+
+	"github.com/PanoraGrowth/panora-versioning-pipe/tests/integration-go/adapters/bitbucket"
+	ghAdapter "github.com/PanoraGrowth/panora-versioning-pipe/tests/integration-go/adapters/github"
+	"github.com/PanoraGrowth/panora-versioning-pipe/tests/integration-go/core"
+)
+
+func main() {
+	platform := flag.String("platform", "github", "platform: github | bitbucket")
+	filter := flag.String("filter", "", "filter scenarios by name substring")
+	parallel := flag.Int("parallel", 0, "goroutine concurrency (default: min(28, numScenarios))")
+	timeout := flag.Duration("timeout", 5*time.Minute, "timeout per scenario")
+	failFast := flag.Bool("fail-fast", false, "stop on first failure")
+	runID := flag.String("run-id", "", "override run ID (default: random 8 hex chars)")
+	repo := flag.String("repo", "", "override test repo (e.g. org/repo-fork)")
+	imageTag := flag.String("image-tag", "", "pipe preview image tag for workflow dispatch")
+	flag.Parse()
+
+	// Resolve scenarios file path relative to this binary's source dir.
+	// When invoked via `go run ./tests/integration-go/cmd/...` from repo root,
+	// the scenarios YAML lives at tests/integration-go/scenarios/test-scenarios.yml.
+	scenariosPath := scenariosFilePath()
+
+	scenarios, err := core.LoadScenarios(scenariosPath)
+	if err != nil {
+		fatalf("load scenarios: %v", err)
+	}
+
+	if *runID == "" {
+		*runID = envOrRandom("TEST_RUN_ID")
+	}
+
+	p := *parallel
+	if p <= 0 {
+		p = runtime.NumCPU()
+		if p > 28 {
+			p = 28
+		}
+	}
+
+	opts := core.RunOptions{
+		Platform:    *platform,
+		Filter:      *filter,
+		Parallelism: p,
+		Timeout:     *timeout,
+		FailFast:    *failFast,
+		RunID:       *runID,
+		ImageTag:    *imageTag,
+	}
+
+	driver, err := buildDriver(*platform, *repo)
+	if err != nil {
+		fatalf("build driver: %v", err)
+	}
+
+	pool := core.NewSandboxPool()
+	runner := core.NewRunner(driver, pool, opts)
+
+	fmt.Printf("Platform: %s | Scenarios: %s | RunID: %s\n",
+		*platform, scenariosPath, *runID)
+
+	results := runner.Run(context.Background(), scenarios)
+
+	// Print results table
+	fmt.Println()
+	passed := 0
+	failed := 0
+	for _, r := range results {
+		status := "PASS"
+		if !r.Passed {
+			status = "FAIL"
+			failed++
+		} else {
+			passed++
+		}
+		tag := r.CreatedTag
+		if tag == "" {
+			tag = "-"
+		}
+		detail := ""
+		if r.Error != nil {
+			detail = "  " + r.Error.Error()
+		}
+		fmt.Printf("%-6s %-45s %-10s %6.1fs   tag=%-15s%s\n",
+			status, r.Scenario, r.Platform, r.Duration.Seconds(), tag, detail)
+	}
+
+	fmt.Printf("\n---\nScenarios: %d total, %d passed, %d failed\n",
+		len(results), passed, failed)
+
+	if failed > 0 {
+		os.Exit(1)
+	}
+}
+
+func buildDriver(platform, repoOverride string) (core.PlatformDriver, error) {
+	switch platform {
+	case "github":
+		token := os.Getenv("INTEGRATION_TEST_TOKEN")
+		if token == "" {
+			return nil, fmt.Errorf("INTEGRATION_TEST_TOKEN is required for GitHub platform")
+		}
+		repo := repoOverride
+		if repo == "" {
+			repo = os.Getenv("TEST_REPO")
+		}
+		if repo == "" {
+			repo = "PanoraGrowth/panora-versioning-pipe-test"
+		}
+		c, err := ghAdapter.NewClient(token, repo)
+		if err != nil {
+			return nil, fmt.Errorf("github client: %w", err)
+		}
+		return ghAdapter.NewDriver(c), nil
+
+	case "bitbucket":
+		token := os.Getenv("BB_TOKEN")
+		workspace := os.Getenv("BB_WORKSPACE")
+		bbRepo := os.Getenv("BB_REPO")
+		c := bitbucket.NewClient(token, workspace, bbRepo)
+		return bitbucket.NewDriver(c), nil
+
+	default:
+		return nil, fmt.Errorf("unknown platform %q (use github or bitbucket)", platform)
+	}
+}
+
+func scenariosFilePath() string {
+	// Try env override first
+	if p := os.Getenv("SCENARIOS_FILE"); p != "" {
+		return p
+	}
+	// Default: relative to working directory (repo root when invoked via make)
+	return filepath.Join("tests", "integration-go", "scenarios", "test-scenarios.yml")
+}
+
+func envOrRandom(key string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return randomHex8()
+}
+
+func randomHex8() string {
+	f, err := os.Open("/dev/urandom")
+	if err != nil {
+		return "deadbeef"
+	}
+	defer func() { _ = f.Close() }()
+	b := make([]byte, 4)
+	_, _ = f.Read(b)
+	return fmt.Sprintf("%02x%02x%02x%02x", b[0], b[1], b[2], b[3])
+}
+
+func fatalf(format string, args ...interface{}) {
+	fmt.Fprintf(os.Stderr, "error: "+format+"\n", args...)
+	os.Exit(1)
+}

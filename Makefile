@@ -10,7 +10,7 @@ GO_LDFLAGS    := -s -w \
   -X github.com/PanoraGrowth/panora-versioning-pipe/internal/util/version.Commit=$(GO_COMMIT) \
   -X github.com/PanoraGrowth/panora-versioning-pipe/internal/util/version.BuiltAt=$(GO_BUILT_AT)
 
-.PHONY: build run help test test-unit test-integration test-integration-bitbucket test-integration-all test-integration-go test-integration-filter test-integration-bitbucket-filter go-build go-test go-lint go-tidy build-preview-image
+.PHONY: build run help test test-unit test-integration test-integration-bitbucket test-integration-all test-integration-go test-integration-filter test-integration-bitbucket-filter go-build go-test go-lint go-tidy build-preview-image test-harness-go test-harness-go-filter test-harness-go-bitbucket
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
@@ -76,5 +76,14 @@ build-preview-image: ## Build and push a preview image to GHCR: make build-previ
 	@test -n "$(TAG)" || { echo "Usage: make build-preview-image TAG=pr-N"; exit 1; }
 	docker build -t ghcr.io/panoragrowth/panora-versioning-pipe:$(TAG) .
 	docker push ghcr.io/panoragrowth/panora-versioning-pipe:$(TAG)
+
+test-harness-go: ## Run Go harness integration tests — GitHub (requires INTEGRATION_TEST_TOKEN)
+	go run ./tests/integration-go/cmd/... -platform github
+
+test-harness-go-filter: ## Run specific Go harness scenario: make test-harness-go-filter F=chore-minor-bump
+	go run ./tests/integration-go/cmd/... -platform github -filter $(F)
+
+test-harness-go-bitbucket: ## Run Go harness integration tests — Bitbucket (T3 — not implemented yet)
+	go run ./tests/integration-go/cmd/... -platform bitbucket
 
 .DEFAULT_GOAL := help
