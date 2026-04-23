@@ -7,6 +7,8 @@ import (
 	"strings"
 
 	"gopkg.in/yaml.v3"
+
+	"github.com/PanoraGrowth/panora-versioning-pipe/internal/hotfix"
 )
 
 const MergedConfigPath = "/tmp/.versioning-merged.yml"
@@ -200,20 +202,25 @@ type Config struct {
 	Notifications       NotificationsConfig           `yaml:"notifications"`
 }
 
-// Load parses the YAML file at path into a Config and applies defaults.
-// Use this when loading a raw .versioning.yml that may be missing fields.
-// For a pre-merged config (already has defaults from config-parse), use Parse.
+// Load parses the YAML file at path into a Config, applies defaults, and
+// validates structural invariants (e.g. hotfix.keyword regex syntax). Returns
+// an error if any invariant is violated — fail-fast at config load is the
+// canonical place to surface bad config to the user (vs silent runtime fallback).
 func Load(path string) (*Config, error) {
 	cfg, err := Parse(path)
 	if err != nil {
 		return nil, err
 	}
 	cfg.Defaults()
+	if err := cfg.Validate(); err != nil {
+		return nil, fmt.Errorf("config.Load %s: %w", path, err)
+	}
 	return cfg, nil
 }
 
-// Parse parses the YAML file at path into a Config without applying defaults.
-// Use this when loading a merged config that already has all values set.
+// Parse parses the YAML file at path into a Config without applying defaults
+// and without validation. Reserved for re-reading a merged config that already
+// went through Load earlier in the pipeline lifecycle. Most callers want Load.
 func Parse(path string) (*Config, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -224,6 +231,19 @@ func Parse(path string) (*Config, error) {
 		return nil, fmt.Errorf("config.Parse unmarshal %s: %w", path, err)
 	}
 	return &cfg, nil
+}
+
+// Validate checks structural invariants that a runtime-correct config must
+// satisfy. Currently:
+//   - hotfix.keyword: every entry must be a valid Go regex (regexp stdlib).
+//
+// Returns the first violation found, identifying the offending field and value
+// so the user can fix their .versioning.yml without trial-and-error.
+func (c *Config) Validate() error {
+	if _, err := hotfix.NewMatcher(c.Hotfix.Keyword.Values); err != nil {
+		return fmt.Errorf("hotfix.keyword: %w", err)
+	}
+	return nil
 }
 
 // Defaults fills zero-values with the documented defaults from defaults.yml.

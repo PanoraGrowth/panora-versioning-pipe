@@ -113,9 +113,10 @@ func (e *PRTitleError) Error() string {
 }
 
 // matchesHotfixKeyword checks if title matches any of the configured hotfix
-// keyword patterns via the unified hotfix.Matcher. Compilation errors are
-// treated as "no match" — the canonical compile-time check belongs in the
-// config loader (single source of error reporting).
+// keyword patterns via the unified hotfix.Matcher. Invariant: cfg has already
+// been validated by config.Load → if NewMatcher returns an error here, the
+// caller bypassed Load (Parse-only path or in-memory cfg in tests). The defensive
+// "no match" return is a safety net, not the user-facing error surface.
 func matchesHotfixKeyword(title string, cfg *config.Config) bool {
 	m, err := hotfix.NewMatcher(cfg.Hotfix.Keyword.Values)
 	if err != nil {

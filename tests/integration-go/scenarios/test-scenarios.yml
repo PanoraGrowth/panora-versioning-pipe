@@ -300,13 +300,6 @@ scenarios:
         components:
           hotfix_counter:
             enabled: true
-      # Blindaje regex Go (ticket 083) — el baseline del sandbox sigue con
-      # bash glob hasta que se ejecute seed-sandboxes.sh post-T5.
-      hotfix:
-        keyword:
-          - "^hotfix(\\(|:)"
-          - "^[Hh]otfix/"
-          - "URGENT-PATCH"
     commits:
       - message: "hotfix: validate extended hotfix_targets with uat"
         files:
@@ -341,12 +334,6 @@ scenarios:
         components:
           hotfix_counter:
             enabled: true
-      # Blindaje regex Go (ticket 083) — ver hotfix-to-main-extended-targets.
-      hotfix:
-        keyword:
-          - "^hotfix(\\(|:)"
-          - "^[Hh]otfix/"
-          - "URGENT-PATCH"
     commits:
       - message: "hotfix: wire-up patch bump integration test"
         files:
@@ -373,12 +360,6 @@ scenarios:
         components:
           hotfix_counter:
             enabled: true
-      # Blindaje regex Go (ticket 083) — ver hotfix-to-main-extended-targets.
-      hotfix:
-        keyword:
-          - "^hotfix(\\(|:)"
-          - "^[Hh]otfix/"
-          - "URGENT-PATCH"
     commits:
       - message: "hotfix(security): patch auth token validation"
         files:
@@ -449,12 +430,6 @@ scenarios:
         components:
           hotfix_counter:
             enabled: true
-      # Blindaje regex Go (ticket 083) — ver hotfix-to-main-extended-targets.
-      hotfix:
-        keyword:
-          - "^hotfix(\\(|:)"
-          - "^[Hh]otfix/"
-          - "URGENT-PATCH"
     commits:
       - message: "hotfix: regression guard for patch bump after remap"
         files:
@@ -485,13 +460,6 @@ scenarios:
         components:
           hotfix_counter:
             enabled: true
-      # Override with regex Go defaults (ticket 083). The sandbox baseline
-      # still ships bash glob patterns until seed-sandboxes.sh is run post-T5.
-      hotfix:
-        keyword:
-          - "^hotfix(\\(|:)"
-          - "^[Hh]otfix/"
-          - "URGENT-PATCH"
     commits:
       - message: "fix: urgent security patch for token leak"
         files:
@@ -782,13 +750,6 @@ scenarios:
     merge_method: squash
     branch_prefix: "hotfix/auto"
     pr_title: "hotfix: sandbox 28 isolation check"
-    config_override:
-      # Blindaje regex Go (ticket 083) — el sandbox baseline aún tiene bash glob.
-      hotfix:
-        keyword:
-          - "^hotfix(\\(|:)"
-          - "^[Hh]otfix/"
-          - "URGENT-PATCH"
     commits:
       - message: "hotfix: sandbox 28 isolation check"
         files:

@@ -98,8 +98,10 @@ func (c Config) isHotfixTarget(branch string) bool {
 }
 
 // matchesHotfixKeyword checks whether subject matches any configured pattern
-// via the unified hotfix.Matcher. Compilation errors are treated as "no match"
-// here — config load is the canonical place to surface invalid regex.
+// via the unified hotfix.Matcher. Invariant: patterns came from a config that
+// passed config.Load (which calls Validate). If NewMatcher returns an error
+// here, the caller skipped Load — the "no match" return is a defensive safety
+// net, not the user-facing error surface.
 func matchesHotfixKeyword(subject string, patterns []string) bool {
 	m, err := hotfix.NewMatcher(patterns)
 	if err != nil {

@@ -1,6 +1,7 @@
 package config_test
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/PanoraGrowth/panora-versioning-pipe/internal/config"
@@ -328,6 +329,22 @@ func TestLoadMalformed(t *testing.T) {
 	_, err := config.Load("testdata/malformed.yml")
 	if err == nil {
 		t.Fatal("expected error for malformed YAML, got nil")
+	}
+}
+
+// TestLoadFailsFastOnInvalidHotfixKeyword verifies that Load surfaces an
+// invalid regex pattern in hotfix.keyword as a config error rather than
+// silently degrading at runtime. Ticket 083 explicitly requires fail-fast.
+func TestLoadFailsFastOnInvalidHotfixKeyword(t *testing.T) {
+	_, err := config.Load("testdata/invalid-hotfix-keyword.yml")
+	if err == nil {
+		t.Fatal("expected error for invalid hotfix.keyword regex, got nil")
+	}
+	if !strings.Contains(err.Error(), "hotfix.keyword") {
+		t.Errorf("error should mention 'hotfix.keyword', got: %v", err)
+	}
+	if !strings.Contains(err.Error(), "hotfix(*") {
+		t.Errorf("error should name the offending pattern 'hotfix(*', got: %v", err)
 	}
 }
 
