@@ -231,7 +231,7 @@ If you DO want hotfix commits to be a no-op (for example, if your repo uses a 3-
 
 **Cause.** As of v0.6.3, the `detect-scenario` subcommand in branch context (post-merge) uses **pure git** to detect a hotfix — no API calls, no platform-specific tools. It looks in two places:
 
-1. **Primary**: the merge commit subject at HEAD starts with `{keyword}:` or `{keyword}(`, where `{keyword}` comes from `hotfix.keyword` in your `.versioning.yml` (default `"hotfix"`).
+1. **Primary**: the merge commit subject at HEAD matches any pattern in `hotfix.keyword` in your `.versioning.yml`. Each pattern is a Go regular expression (regexp stdlib); a literal string without metacharacters works as a substring match. The defaults match `hotfix:`, `hotfix(scope):`, `Hotfix/branch`, and the literal `URGENT-PATCH`.
 2. **Secondary (merge commit style only)**: if HEAD is a merge commit (has 2+ parents), the pipe also inspects the subject of the second parent — the tip of the branch that was merged in. This covers the traditional 3-way merge where HEAD's subject is "Merge pull request #N from ..." and the hotfix signal lives on the branch tip.
 
 With **squash merge** (recommended), the merge commit subject is the PR title. If the PR title does not start with `hotfix:`, the primary detection misses and the pipe falls through to `development_release`.
@@ -244,7 +244,7 @@ With **merge commit** style, the branch-tip subject is inspected automatically (
 
 If you already merged and didn't set the PR title correctly, the release is treated as a normal `development_release`. Roll the fix forward in the next regular release — there is no way to retroactively re-run the scenario detection without a new merge commit.
 
-**Custom keyword.** If your team uses a different convention (e.g. `urgent:`, `critical:`), set `hotfix.keyword` in `.versioning.yml`. The match is a strict prefix — `hotfixed: foo` will NOT match when keyword is `hotfix`, and `urgent: foo` will NOT match when keyword is the default `hotfix`.
+**Custom keyword.** If your team uses a different convention (e.g. `urgent:`, `critical:`), set `hotfix.keyword` in `.versioning.yml`. Each entry is a Go regular expression — anchor with `^` to match a prefix (`^urgent:`), or write a plain literal (`URGENT-PATCH`) to match it as a substring anywhere in the subject. Invalid regex patterns fail at config load with a clear error.
 
 ---
 

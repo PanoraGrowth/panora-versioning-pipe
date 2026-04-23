@@ -25,7 +25,7 @@
 #   25 multi-commit-highest-wins
 #   26 initial-major-isolation-preserved  27 initial-epoch-isolation-preserved
 #   28 initial-hotfix-counter-isolation-preserved
-#   (29 reserved for future guardrail scenarios)
+#   29 hotfix-literal-keyword-match (ticket 083)
 
 scenarios:
 
@@ -442,12 +442,12 @@ scenarios:
       changelog_section_marker: "(Hotfix)"
 
   - name: hotfix-uppercase-branch-prefix
-    description: "Hotfix with uppercase Hotfix/ branch prefix — validates the '[Hh]otfix/*' glob pattern. The commit uses a conventional message to pass PR validation, but merge_subject overrides the squash commit subject to 'Hotfix/...' (simulating repos where GitHub auto-generates the PR title from the branch name)."
+    description: "Hotfix with uppercase Hotfix/ branch prefix — validates the '^[Hh]otfix/' regex pattern. The commit uses a conventional message to pass PR validation, but merge_subject overrides the squash commit subject to 'Hotfix/...' (simulating repos where GitHub auto-generates the PR title from the branch name)."
     base: sandbox-13
     merge_method: squash
     branch_prefix: "Hotfix/auto"
     pr_title: "Hotfix/urgent security patch"
-    # Force the squash merge commit subject to match the [Hh]otfix/* pattern.
+    # Force the squash merge commit subject to match the ^[Hh]otfix/ pattern.
     # Without this, GitHub uses the single commit's message as the subject,
     # which would be "fix: ..." and miss the hotfix detection.
     merge_subject: "Hotfix/urgent security patch"
@@ -460,14 +460,6 @@ scenarios:
         components:
           hotfix_counter:
             enabled: true
-      # The test repo's .versioning.yml has hotfix.keyword as a scalar ("hotfix"),
-      # which auto-expands to only ["hotfix:*", "hotfix(*"] — missing the
-      # [Hh]otfix/* pattern. Override with the full array from defaults.yml.
-      hotfix:
-        keyword:
-          - "hotfix:*"
-          - "hotfix(*"
-          - "[Hh]otfix/*"
     commits:
       - message: "fix: urgent security patch for token leak"
         files:
@@ -767,5 +759,38 @@ scenarios:
       tag_created: true
       tag_pattern: '^v28\.\d+\.1$'
       changelog_contains: "sandbox 28 isolation check"
+
+  # =================================================================
+  # Ticket 083 — hotfix.keyword unificado a regex Go
+  # =================================================================
+
+  - name: hotfix-literal-keyword-match
+    description: "Hotfix triggered by a literal (non-regex) keyword pattern. PR title 'URGENT-PATCH: rollback failing deploy' matches the literal 'URGENT-PATCH' as a substring — confirms users can write plain strings without learning regex syntax. Validates ticket 083 end-to-end."
+    base: sandbox-29
+    merge_method: squash
+    branch_prefix: "hotfix/auto"
+    pr_title: "URGENT-PATCH: rollback failing deploy"
+    config_override:
+      branches:
+        tag_on: sandbox-29
+        hotfix_targets:
+          - "sandbox-29"
+      version:
+        components:
+          hotfix_counter:
+            enabled: true
+      hotfix:
+        keyword:
+          - "URGENT-PATCH"
+    commits:
+      - message: "URGENT-PATCH: rollback failing deploy"
+        files:
+          test-artifact.txt: "literal keyword match test"
+    expected:
+      pr_check: pass
+      tag_created: true
+      tag_pattern: '^v29\.\d+\.1$'
+      changelog_contains: "rollback failing deploy"
+      changelog_section_marker: "(Hotfix)"
 
   # =================================================================

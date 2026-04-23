@@ -1,0 +1,5 @@
+commits:
+  format: conventional
+hotfix:
+  keyword:
+    - "hotfix(*"

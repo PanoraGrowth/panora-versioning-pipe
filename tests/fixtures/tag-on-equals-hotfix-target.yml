@@ -24,6 +24,6 @@ branches:
 
 hotfix:
   keyword:
-    - "hotfix:*"
-    - "hotfix(*"
-    - "[Hh]otfix/*"
+    - "^hotfix(\\(|:)"
+    - "^[Hh]otfix/"
+    - "URGENT-PATCH"

@@ -140,7 +140,7 @@ func TestValidatePRTitle(t *testing.T) {
 				},
 				Hotfix: config.HotfixConfig{
 					Keyword: config.HotfixKeywordList{
-						Values: []string{"Hotfix/*", "hotfix/*"},
+						Values: []string{`^[Hh]otfix/`},
 					},
 				},
 			},
@@ -162,7 +162,7 @@ func TestValidatePRTitle(t *testing.T) {
 				},
 				Hotfix: config.HotfixConfig{
 					Keyword: config.HotfixKeywordList{
-						Values: []string{"Hotfix/*", "hotfix/*"},
+						Values: []string{`^[Hh]otfix/`},
 					},
 				},
 			},
@@ -192,34 +192,53 @@ func TestValidatePRTitle(t *testing.T) {
 	}
 }
 
-func TestSimpleGlobMatch(t *testing.T) {
-	tests := []struct {
-		s       string
-		pattern string
-		want    bool
-	}{
-		{"Hotfix/something", "Hotfix/*", true},
-		{"hotfix/something", "hotfix/*", true},
-		{"hotfix/fix for critical", "hotfix/*", true},
-		{"other/something", "Hotfix/*", false},
-		{"Hotfix", "Hotfix/*", false},
-		{"exactmatch", "exactmatch", true},
-		{"exactmatch", "exact", false},
-		{"a", "?", true},
-		{"ab", "?", false},
-		{"abc", "a?c", true},
-		{"ac", "a?c", false},
-		{"anything", "a*g", true},
-		{"ag", "a*g", true},
-		{"", "a*g", false},
+// TestMatchesHotfixKeywordIntegration covers the wrapper matchesHotfixKeyword
+// against the canonical default patterns. Full Matcher coverage lives in
+// internal/hotfix/keyword_test.go.
+func TestMatchesHotfixKeywordIntegration(t *testing.T) {
+	cfg := &config.Config{
+		Hotfix: config.HotfixConfig{
+			Keyword: config.HotfixKeywordList{
+				Values: []string{
+					`^hotfix(\(|:)`,
+					`^[Hh]otfix/`,
+					`URGENT-PATCH`,
+				},
+			},
+		},
 	}
+	cases := []struct {
+		title string
+		want  bool
+	}{
+		{"hotfix: foo", true},
+		{"hotfix(scope): foo", true},
+		{"Hotfix/branch-from-pr", true},
+		{"hotfix/branch-from-pr", true},
+		{"URGENT-PATCH: emergency rollback", true},
+		{"contains URGENT-PATCH inline", true},
+		{"feat: nothing here", false},
+		{"", false},
+	}
+	for _, tc := range cases {
+		if got := matchesHotfixKeyword(tc.title, cfg); got != tc.want {
+			t.Errorf("matchesHotfixKeyword(%q) = %v, want %v", tc.title, got, tc.want)
+		}
+	}
+}
 
-	for _, tt := range tests {
-		t.Run(tt.s+"_"+tt.pattern, func(t *testing.T) {
-			if got := simpleGlobMatch(tt.s, tt.pattern); got != tt.want {
-				t.Errorf("simpleGlobMatch(%q, %q) = %v, want %v",
-					tt.s, tt.pattern, got, tt.want)
-			}
-		})
+// TestMatchesHotfixKeywordInvalidRegexNoMatch verifies that an invalid regex
+// in config makes the wrapper return false (no match) rather than panic. The
+// canonical fail-fast for invalid patterns belongs in config load, not here.
+func TestMatchesHotfixKeywordInvalidRegexNoMatch(t *testing.T) {
+	cfg := &config.Config{
+		Hotfix: config.HotfixConfig{
+			Keyword: config.HotfixKeywordList{
+				Values: []string{`hotfix(*`},
+			},
+		},
+	}
+	if matchesHotfixKeyword("hotfix(scope): x", cfg) {
+		t.Error("invalid regex must yield no match in the wrapper")
 	}
 }

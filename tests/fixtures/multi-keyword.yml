@@ -1,4 +1,4 @@
-# Fixture: hotfix.keyword as a list of glob patterns (v0.7.0+)
+# Fixture: hotfix.keyword as a list of Go regex patterns
 commits:
   format: "conventional"
 version:
@@ -13,6 +13,6 @@ version:
       enabled: false
 hotfix:
   keyword:
-    - "hotfix:*"
-    - "hotfix(*"
-    - "[Hh]otfix/*"
+    - "^hotfix(\\(|:)"
+    - "^[Hh]otfix/"
+    - "URGENT-PATCH"

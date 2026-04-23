@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/PanoraGrowth/panora-versioning-pipe/internal/config"
+	"github.com/PanoraGrowth/panora-versioning-pipe/internal/hotfix"
 )
 
 // Kind is the detected pipeline scenario.
@@ -80,27 +81,10 @@ type DetectContext struct {
 
 // Config holds the fields detect-scenario.sh reads from the merged YAML.
 type Config struct {
-	TagBranch      string
-	HotfixTargets  []string
-	HotfixKeywords []string // glob patterns, e.g. ["hotfix:*", "hotfix(*"]
-}
-
-// HotfixBranchPrefix derives the branch prefix from the first keyword pattern,
-// stripping trailing glob characters. E.g. "hotfix:*" → "hotfix", "hotfix(*" → "hotfix".
-// Result is appended with "/" to form the branch prefix (e.g. "hotfix/").
-func (c Config) HotfixBranchPrefix() string {
-	if len(c.HotfixKeywords) == 0 {
-		return "hotfix/"
-	}
-	first := c.HotfixKeywords[0]
-	// Strip trailing glob chars: :, *, (, [, anything after those
-	base := first
-	for _, ch := range []string{":", "*", "(", "["} {
-		if idx := strings.IndexAny(base, ch); idx >= 0 {
-			base = base[:idx]
-		}
-	}
-	return base + "/"
+	TagBranch          string
+	HotfixTargets      []string
+	HotfixKeywords     []string // Go regex patterns (regexp stdlib).
+	HotfixBranchPrefix string   // Branch prefix used to detect hotfix sources, e.g. "hotfix/".
 }
 
 // isHotfixTarget returns true when branch is in the hotfix_targets list.
@@ -113,15 +97,17 @@ func (c Config) isHotfixTarget(branch string) bool {
 	return false
 }
 
-// matchesHotfixKeyword checks whether subject matches any hotfix keyword glob
-// pattern. Uses the same shell case-pattern matching semantics as the bash.
+// matchesHotfixKeyword checks whether subject matches any configured pattern
+// via the unified hotfix.Matcher. Invariant: patterns came from a config that
+// passed config.Load (which calls Validate). If NewMatcher returns an error
+// here, the caller skipped Load — the "no match" return is a defensive safety
+// net, not the user-facing error surface.
 func matchesHotfixKeyword(subject string, patterns []string) bool {
-	for _, pat := range patterns {
-		if shellMatch(pat, subject) {
-			return true
-		}
+	m, err := hotfix.NewMatcher(patterns)
+	if err != nil {
+		return false
 	}
-	return false
+	return m.Matches(subject)
 }
 
 // matchesHotfixBranch checks whether branch starts with the hotfix branch prefix.
@@ -187,7 +173,10 @@ func parentSubject(workDir, hash string) string {
 // TargetBranch is empty, PR context otherwise.
 func Detect(ctx DetectContext) (Scenario, error) {
 	cfg := ctx.Config
-	hotfixPrefix := cfg.HotfixBranchPrefix()
+	hotfixPrefix := cfg.HotfixBranchPrefix
+	if hotfixPrefix == "" {
+		hotfixPrefix = "hotfix/"
+	}
 	commit := ctx.Commit
 	if commit == "" {
 		commit = "HEAD"
@@ -259,9 +248,10 @@ func LoadConfig(path string) (Config, error) {
 		return Config{}, fmt.Errorf("detection.LoadConfig %s: %w", path, err)
 	}
 	return Config{
-		TagBranch:      cfg.Branches.TagOn,
-		HotfixTargets:  cfg.Branches.HotfixTargets,
-		HotfixKeywords: cfg.Hotfix.Keyword.Values,
+		TagBranch:          cfg.Branches.TagOn,
+		HotfixTargets:      cfg.Branches.HotfixTargets,
+		HotfixKeywords:     cfg.Hotfix.Keyword.Values,
+		HotfixBranchPrefix: cfg.Hotfix.BranchPrefix,
 	}, nil
 }
 
@@ -278,79 +268,4 @@ func FindConfig(workDir string) (string, error) {
 		return local, nil
 	}
 	return "", fmt.Errorf("detection.FindConfig: no config found (tried %s and %s)", merged, local)
-}
-
-// shellMatch implements POSIX shell glob pattern matching (case ... in).
-// Supported meta-chars: * (any sequence), ? (any single char), [chars].
-// This mirrors the bash `case "$subject" in $pattern)` semantics.
-func shellMatch(pattern, str string) bool {
-	return globMatch(pattern, str)
-}
-
-// globMatch is a recursive shell-glob matcher.
-func globMatch(pattern, str string) bool {
-	for len(pattern) > 0 {
-		switch pattern[0] {
-		case '*':
-			// * matches zero or more characters.
-			if len(pattern) == 1 {
-				return true
-			}
-			for i := 0; i <= len(str); i++ {
-				if globMatch(pattern[1:], str[i:]) {
-					return true
-				}
-			}
-			return false
-		case '?':
-			if len(str) == 0 {
-				return false
-			}
-			str = str[1:]
-			pattern = pattern[1:]
-		case '[':
-			if len(str) == 0 {
-				return false
-			}
-			end := strings.IndexByte(pattern[1:], ']')
-			if end < 0 {
-				// Malformed bracket — treat [ as literal.
-				if str[0] != pattern[0] {
-					return false
-				}
-				str = str[1:]
-				pattern = pattern[1:]
-				continue
-			}
-			charClass := pattern[1 : end+1]
-			pattern = pattern[end+2:]
-			if !matchCharClass(charClass, str[0]) {
-				return false
-			}
-			str = str[1:]
-		default:
-			if len(str) == 0 || str[0] != pattern[0] {
-				return false
-			}
-			str = str[1:]
-			pattern = pattern[1:]
-		}
-	}
-	return len(str) == 0
-}
-
-// matchCharClass returns true when ch is in the bracket expression chars.
-// Supports ranges like a-z.
-func matchCharClass(chars string, ch byte) bool {
-	for i := 0; i < len(chars); i++ {
-		if i+2 < len(chars) && chars[i+1] == '-' {
-			if ch >= chars[i] && ch <= chars[i+2] {
-				return true
-			}
-			i += 2
-		} else if chars[i] == ch {
-			return true
-		}
-	}
-	return false
 }

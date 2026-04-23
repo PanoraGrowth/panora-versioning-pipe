@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/PanoraGrowth/panora-versioning-pipe/internal/config"
+	"github.com/PanoraGrowth/panora-versioning-pipe/internal/hotfix"
 )
 
 // Issue describes one commit validation violation.
@@ -111,52 +112,17 @@ func (e *PRTitleError) Error() string {
 	return buf.String()
 }
 
-// matchesHotfixKeyword checks if the title matches any of the configured
-// hotfix keywords. Keywords are shell glob patterns (e.g. "[Hh]otfix/*").
-// For simplicity, we use case-sensitive exact string matching on the pattern
-// after normalizing common hotfix prefixes.
+// matchesHotfixKeyword checks if title matches any of the configured hotfix
+// keyword patterns via the unified hotfix.Matcher. Invariant: cfg has already
+// been validated by config.Load → if NewMatcher returns an error here, the
+// caller bypassed Load (Parse-only path or in-memory cfg in tests). The defensive
+// "no match" return is a safety net, not the user-facing error surface.
 func matchesHotfixKeyword(title string, cfg *config.Config) bool {
-	if len(cfg.Hotfix.Keyword.Values) == 0 {
+	m, err := hotfix.NewMatcher(cfg.Hotfix.Keyword.Values)
+	if err != nil {
 		return false
 	}
-
-	for _, kw := range cfg.Hotfix.Keyword.Values {
-		if kw == "" {
-			continue
-		}
-		if simpleGlobMatch(title, kw) {
-			return true
-		}
-	}
-	return false
-}
-
-// simpleGlobMatch does simple glob matching for * and ? wildcards.
-// This mirrors the shell case pattern logic used in the bash validator.
-func simpleGlobMatch(s, pattern string) bool {
-	// No wildcards — exact match
-	if !strings.ContainsAny(pattern, "*?") {
-		return s == pattern
-	}
-
-	// * matches any sequence of characters (including empty)
-	// ? matches exactly one character
-	// Convert glob to regex for simplicity
-	regexPattern := strings.NewReplacer(
-		".", "\\.",
-		"*", ".*",
-		"?", ".",
-		"[", "\\[",
-		"]", "\\]",
-		"(", "\\(",
-		")", "\\)",
-		"+", "\\+",
-		"^", "\\^",
-		"$", "\\$",
-	).Replace(pattern)
-
-	re := regexp.MustCompile("^" + regexPattern + "$")
-	return re.MatchString(s)
+	return m.Matches(title)
 }
 
 // ValidateCommits checks commits against the rules in cfg and returns all
