@@ -685,3 +685,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: 094e03d](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/094e03d5f61f2cac4e16a89204752819866af00d)
 
 
+## v1.11 - 2026-04-23
+
+- 🐛 fix(hotfix): unify keyword matcher across validation and detection (Go regex) (#164)
+  - _Agustín Manessi_
+  - [Commit: 3a6dbd7](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/3a6dbd74b66ea99881ebfc3254760bdfe5a2d44e)
+
+
