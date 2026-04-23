@@ -143,9 +143,9 @@ branches:
   - sandbox-$(printf '%02d' "$n")
 hotfix:
   keyword:
-  - hotfix:*
-  - hotfix(*
-  - '[Hh]otfix/*'
+  - "^hotfix(\\(|:)"
+  - "^[Hh]otfix/"
+  - "URGENT-PATCH"
 changelog:
   mode: full
   commit_url: https://github.com/PanoraGrowth/panora-versioning-pipe-test/commit
@@ -190,9 +190,9 @@ branches:
   - sandbox-16
 hotfix:
   keyword:
-  - hotfix:*
-  - hotfix(*
-  - '[Hh]otfix/*'
+  - "^hotfix(\\(|:)"
+  - "^[Hh]otfix/"
+  - "URGENT-PATCH"
 changelog:
   mode: full
   commit_url: https://github.com/PanoraGrowth/panora-versioning-pipe-test/commit
@@ -235,9 +235,9 @@ branches:
   - sandbox-17
 hotfix:
   keyword:
-  - hotfix:*
-  - hotfix(*
-  - '[Hh]otfix/*'
+  - "^hotfix(\\(|:)"
+  - "^[Hh]otfix/"
+  - "URGENT-PATCH"
 changelog:
   mode: full
   commit_url: https://github.com/PanoraGrowth/panora-versioning-pipe-test/commit
@@ -281,9 +281,9 @@ branches:
   - sandbox-18
 hotfix:
   keyword:
-  - hotfix:*
-  - hotfix(*
-  - '[Hh]otfix/*'
+  - "^hotfix(\\(|:)"
+  - "^[Hh]otfix/"
+  - "URGENT-PATCH"
 changelog:
   mode: full
   commit_url: https://github.com/PanoraGrowth/panora-versioning-pipe-test/commit
@@ -327,9 +327,9 @@ branches:
   - sandbox-19
 hotfix:
   keyword:
-  - hotfix:*
-  - hotfix(*
-  - '[Hh]otfix/*'
+  - "^hotfix(\\(|:)"
+  - "^[Hh]otfix/"
+  - "URGENT-PATCH"
 changelog:
   mode: full
   commit_url: https://github.com/PanoraGrowth/panora-versioning-pipe-test/commit
@@ -376,9 +376,9 @@ branches:
   - sandbox-20
 hotfix:
   keyword:
-  - hotfix:*
-  - hotfix(*
-  - '[Hh]otfix/*'
+  - "^hotfix(\\(|:)"
+  - "^[Hh]otfix/"
+  - "URGENT-PATCH"
 changelog:
   mode: full
   commit_url: https://github.com/PanoraGrowth/panora-versioning-pipe-test/commit
@@ -425,9 +425,9 @@ branches:
   - sandbox-26
 hotfix:
   keyword:
-  - hotfix:*
-  - hotfix(*
-  - '[Hh]otfix/*'
+  - "^hotfix(\\(|:)"
+  - "^[Hh]otfix/"
+  - "URGENT-PATCH"
 changelog:
   mode: full
   commit_url: https://github.com/PanoraGrowth/panora-versioning-pipe-test/commit
@@ -466,9 +466,9 @@ branches:
   - sandbox-27
 hotfix:
   keyword:
-  - hotfix:*
-  - hotfix(*
-  - '[Hh]otfix/*'
+  - "^hotfix(\\(|:)"
+  - "^[Hh]otfix/"
+  - "URGENT-PATCH"
 changelog:
   mode: full
   commit_url: https://github.com/PanoraGrowth/panora-versioning-pipe-test/commit
@@ -507,9 +507,9 @@ branches:
   - sandbox-29
 hotfix:
   keyword:
-  - hotfix:*
-  - hotfix(*
-  - '[Hh]otfix/*'
+  - "^hotfix(\\(|:)"
+  - "^[Hh]otfix/"
+  - "URGENT-PATCH"
 changelog:
   mode: full
   commit_url: https://github.com/PanoraGrowth/panora-versioning-pipe-test/commit
@@ -548,9 +548,9 @@ branches:
   - sandbox-28
 hotfix:
   keyword:
-  - hotfix:*
-  - hotfix(*
-  - '[Hh]otfix/*'
+  - "^hotfix(\\(|:)"
+  - "^[Hh]otfix/"
+  - "URGENT-PATCH"
 changelog:
   mode: full
   commit_url: https://github.com/PanoraGrowth/panora-versioning-pipe-test/commit

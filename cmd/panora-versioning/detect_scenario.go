@@ -58,7 +58,7 @@ func runDetectScenario(_ *cobra.Command, _ []string) error {
 		os.Exit(1)
 	}
 
-	ulog.Info("Hotfix branch prefix: " + cfg.HotfixBranchPrefix())
+	ulog.Info("Hotfix branch prefix: " + cfg.HotfixBranchPrefix)
 
 	ctx := detection.DetectContext{
 		SourceBranch: sourceBranch,

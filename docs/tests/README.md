@@ -44,7 +44,7 @@ Unit tests and integration tests validated before every release.
 - Hotfix → production = hotfix changelog
 - Unknown target branch = no action
 - Custom branch names (dev, staging, master, emergency/)
-- **Branch context** (post-merge, no PR target): pure-git hotfix detection via commit subject glob patterns (`hotfix:*`, `hotfix(*`, `[Hh]otfix/*`) — platform-agnostic, no API calls
+- **Branch context** (post-merge, no PR target): pure-git hotfix detection via commit subject regex patterns (defaults: `^hotfix(\(|:)`, `^[Hh]otfix/`, literal `URGENT-PATCH`) — platform-agnostic, no API calls
 
 ### Platform Detection
 
@@ -83,8 +83,9 @@ These tests run against real repositories, creating actual PRs, merging, and ver
 - **Invalid commit format → PR validation fails**: non-conventional commit is rejected
 - **Hotfix from production branch → PR check only**: validates the `hotfix` commit type through PR validation without merging (no tag created)
 - **Hotfix to main with PATCH bump → full end-to-end**: merges a `hotfix:` commit squash-style from a `hotfix/auto-*` branch, verifies tag ends in `.1` and CHANGELOG header carries `(Hotfix)` marker
-- **Hotfix with scope → PATCH bump**: `hotfix(security):` commit via squash merge validates the `hotfix(*` glob pattern produces patch bump and `(Hotfix)` marker
-- **Hotfix uppercase branch prefix → PATCH bump**: `Hotfix/` branch prefix with PR title `Hotfix/description` validates the `[Hh]otfix/*` glob pattern — covers the real-world case where GitHub auto-generates the PR title from the branch name
+- **Hotfix with scope → PATCH bump**: `hotfix(security):` commit via squash merge validates the `^hotfix(\(|:)` regex produces patch bump and `(Hotfix)` marker
+- **Hotfix uppercase branch prefix → PATCH bump**: `Hotfix/` branch prefix with PR title `Hotfix/description` validates the `^[Hh]otfix/` regex — covers the real-world case where GitHub auto-generates the PR title from the branch name
+- **Hotfix literal keyword (no regex) → PATCH bump**: PR title `URGENT-PATCH: rollback failing deploy` matches the literal pattern `URGENT-PATCH` as substring — confirms users who don't want regex can write plain strings
 - **Hotfix custom hotfix_targets → PR check**: validates PR check passes for a `hotfix/` branch when `config_override` sets a custom `branches.hotfix_targets` list — confirms new branch model routes correctly (PR-only, no merge)
 - **tag_on=main + 3-entry hotfix_targets → development_release**: `feature/` branch merges to `main` with extended `hotfix_targets` config (`main`, `pre-production`, `uat`) — confirms `development_release` scenario fires and creates a regular tag (not hotfix)
 - **hotfix + 3-entry hotfix_targets → hotfix tag**: `hotfix/` branch merges to `main` with same extended config — confirms `hotfix` scenario fires and creates tag with hotfix_counter bump (`.1` suffix)

@@ -168,7 +168,8 @@ func (h HotfixKeywordList) MarshalYAML() (interface{}, error) {
 
 // HotfixConfig holds the hotfix section.
 type HotfixConfig struct {
-	Keyword HotfixKeywordList `yaml:"keyword"`
+	Keyword      HotfixKeywordList `yaml:"keyword"`
+	BranchPrefix string            `yaml:"branch_prefix"`
 }
 
 // TeamsNotificationConfig holds the notifications.teams section.
@@ -306,9 +307,17 @@ func (c *Config) Defaults() {
 		c.Branches.HotfixTargets = []string{"main", "pre-production"}
 	}
 
-	// Hotfix keyword defaults
+	// Hotfix keyword defaults — Go regex syntax (regexp stdlib).
+	// Literals without regex metacharacters work as substring match.
 	if len(c.Hotfix.Keyword.Values) == 0 {
-		c.Hotfix.Keyword.Values = []string{"hotfix:*", "hotfix(*", "[Hh]otfix/*"}
+		c.Hotfix.Keyword.Values = []string{
+			`^hotfix(\(|:)`,
+			`^[Hh]otfix/`,
+			`URGENT-PATCH`,
+		}
+	}
+	if c.Hotfix.BranchPrefix == "" {
+		c.Hotfix.BranchPrefix = "hotfix/"
 	}
 
 	// Notifications defaults
