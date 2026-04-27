@@ -303,13 +303,13 @@ func (r *Runner) execScenario(ctx context.Context, s Scenario) (createdTag strin
 	prHandle = nil // merged, no need to close
 
 	// 10. Wait for post-merge workflow
-	newRunID, err := r.driver.WaitForNewWorkflowRun(base, prevRunID, 45*time.Second)
+	newRunID, err := r.driver.WaitForNewWorkflowRun(base, prevRunID, 120*time.Second)
 	if err != nil || newRunID == nil {
 		// fallback: dispatch manually
 		if dispErr := r.driver.DispatchWorkflow(base, r.opts.ImageTag); dispErr != nil {
 			return "", fmt.Errorf("dispatch workflow fallback: %w", dispErr)
 		}
-		newRunID, err = r.driver.WaitForNewWorkflowRun(base, prevRunID, 30*time.Second)
+		newRunID, err = r.driver.WaitForNewWorkflowRun(base, prevRunID, 60*time.Second)
 		if err != nil || newRunID == nil {
 			return "", fmt.Errorf("workflow run never appeared")
 		}
