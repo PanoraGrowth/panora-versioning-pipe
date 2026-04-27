@@ -692,3 +692,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - [Commit: 3a6dbd7](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/3a6dbd74b66ea99881ebfc3254760bdfe5a2d44e)
 
 
+## v1.12 - 2026-04-27
+
+- 🐛 fix(harness): assign dedicated sandboxes to orphan PR-only scenarios (#165)
+  - _Agustín Manessi_
+  - [Commit: 2a4c7e5](https://github.com/PanoraGrowth/panora-versioning-pipe/commit/2a4c7e54e730b6ceb3f458cefaaf666251ae721d)
+
+
