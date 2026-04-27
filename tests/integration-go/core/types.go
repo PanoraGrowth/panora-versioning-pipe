@@ -64,12 +64,15 @@ const (
 
 // ScenarioResult holds the outcome of a single scenario execution.
 type ScenarioResult struct {
-	Scenario   string
-	Platform   string
-	Passed     bool
-	Error      error
-	Duration   time.Duration
-	CreatedTag string
-	Skipped    bool
-	SkipReason string
+	Scenario    string
+	Platform    string
+	Passed      bool
+	Error       error
+	Duration    time.Duration
+	CreatedTag  string
+	Skipped     bool
+	SkipReason  string
+	Xfail       bool   // scenario marked xfail and failed as expected
+	Xpass       bool   // scenario marked xfail but passed unexpectedly
+	XfailReason string // reason string from the scenario YAML (for output)
 }

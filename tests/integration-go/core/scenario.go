@@ -20,6 +20,10 @@ type Scenario struct {
 	// SkipBitbucket marks a scenario as intentionally skipped on Bitbucket.
 	// Use when a scenario depends on a GitHub-only primitive with no Bitbucket equivalent.
 	SkipBitbucket bool `yaml:"skip_bitbucket"`
+	// Xfail marks a scenario as expected to fail due to a known bug with an open ticket.
+	// XfailReason is mandatory when Xfail=true — use format "ticket NNN — description".
+	Xfail       bool   `yaml:"xfail"`
+	XfailReason string `yaml:"xfail_reason"`
 }
 
 // Commit describes a single commit to create during setup.

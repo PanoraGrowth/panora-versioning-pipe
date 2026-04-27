@@ -83,12 +83,20 @@ func main() {
 	passed := 0
 	failed := 0
 	skipped := 0
+	xfailCount := 0
+	xpassCount := 0
 	for _, r := range results {
 		var status string
 		switch {
 		case r.Skipped:
 			status = "SKIP"
 			skipped++
+		case r.Xpass:
+			status = "XPASS"
+			xpassCount++
+		case r.Xfail:
+			status = "XFAIL"
+			xfailCount++
 		case r.Passed:
 			status = "PASS"
 			passed++
@@ -101,19 +109,24 @@ func main() {
 			tag = "-"
 		}
 		detail := ""
-		if r.SkipReason != "" {
+		switch {
+		case r.SkipReason != "":
 			detail = "  " + r.SkipReason
-		} else if r.Error != nil {
+		case r.Xpass:
+			detail = "  SCENARIO MARKED XFAIL BUT PASSED — remove xfail and update ticket"
+		case r.Xfail:
+			detail = "  " + r.XfailReason
+		case r.Error != nil:
 			detail = "  " + r.Error.Error()
 		}
 		fmt.Printf("%-6s %-45s %-10s %6.1fs   tag=%-15s%s\n",
 			status, r.Scenario, r.Platform, r.Duration.Seconds(), tag, detail)
 	}
 
-	fmt.Printf("\n---\nScenarios: %d total, %d passed, %d failed, %d skipped\n",
-		len(results), passed, failed, skipped)
+	fmt.Printf("\n---\nScenarios: %d total, %d passed, %d failed, %d skipped, %d xfail, %d xpass\n",
+		len(results), passed, failed, skipped, xfailCount, xpassCount)
 
-	if failed > 0 {
+	if failed > 0 || xpassCount > 0 {
 		os.Exit(1)
 	}
 }

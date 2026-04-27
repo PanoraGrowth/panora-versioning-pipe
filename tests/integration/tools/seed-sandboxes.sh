@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# seed-sandboxes.sh — idempotent creation/update of sandbox-01..sandbox-28 branches
+# seed-sandboxes.sh — idempotent creation/update of sandbox-01..sandbox-34 branches
 #                     in PanoraGrowth/panora-versioning-pipe-test
 #
 # Usage:
@@ -114,7 +114,7 @@ commit_file() {
 # hotfix sandboxes (09-13) also get hotfix-compatible branches config.
 # ---------------------------------------------------------------------------
 build_versioning_yml() {
-    sandbox_num="$1"  # 1..28 (no leading zero)
+    sandbox_num="$1"  # 1..34 (no leading zero)
     n="$sandbox_num"
 
     cat <<YAML
@@ -143,9 +143,9 @@ branches:
   - sandbox-$(printf '%02d' "$n")
 hotfix:
   keyword:
-  - "^hotfix(\\(|:)"
-  - "^[Hh]otfix/"
-  - "URGENT-PATCH"
+  - '^hotfix(\(|:)'
+  - '^[Hh]otfix/'
+  - 'URGENT-PATCH'
 changelog:
   mode: full
   commit_url: https://github.com/PanoraGrowth/panora-versioning-pipe-test/commit
@@ -235,9 +235,9 @@ branches:
   - sandbox-17
 hotfix:
   keyword:
-  - "^hotfix(\\(|:)"
-  - "^[Hh]otfix/"
-  - "URGENT-PATCH"
+  - '^hotfix(\(|:)'
+  - '^[Hh]otfix/'
+  - 'URGENT-PATCH'
 changelog:
   mode: full
   commit_url: https://github.com/PanoraGrowth/panora-versioning-pipe-test/commit
@@ -281,9 +281,9 @@ branches:
   - sandbox-18
 hotfix:
   keyword:
-  - "^hotfix(\\(|:)"
-  - "^[Hh]otfix/"
-  - "URGENT-PATCH"
+  - '^hotfix(\(|:)'
+  - '^[Hh]otfix/'
+  - 'URGENT-PATCH'
 changelog:
   mode: full
   commit_url: https://github.com/PanoraGrowth/panora-versioning-pipe-test/commit
@@ -566,7 +566,7 @@ YAML
 # Seed a single sandbox
 # ---------------------------------------------------------------------------
 seed_sandbox() {
-    n="$1"  # 1..28 (numeric, no leading zero)
+    n="$1"  # 1..34 (numeric, no leading zero)
     branch="sandbox-$(printf '%02d' "$n")"
     log "Processing ${branch}..."
 
@@ -611,7 +611,7 @@ seed_sandbox() {
         18) seed_sandbox_18 "$branch" ;;
         19) seed_sandbox_19 "$branch" ;;
         20) seed_sandbox_20 "$branch" ;;
-        26|27|28|29) ;; # no additional fixtures needed
+        26|27|28|29|30|31|32|33|34) ;; # no additional fixtures needed
     esac
 
     log "  ${branch} done."
@@ -739,13 +739,13 @@ Stub directory for sandbox-20 version-file-groups no-match tests.
 main() {
     if [ -n "$SINGLE_SANDBOX" ]; then
         n=$((10#$SINGLE_SANDBOX))   # strip leading zero
-        if [ "$n" -lt 1 ] || [ "$n" -gt 29 ]; then
-            die "Sandbox number must be between 1 and 29, got: ${SINGLE_SANDBOX}"
+        if [ "$n" -lt 1 ] || [ "$n" -gt 34 ]; then
+            die "Sandbox number must be between 1 and 34, got: ${SINGLE_SANDBOX}"
         fi
         seed_sandbox "$n"
     else
         i=1
-        while [ "$i" -le 29 ]; do
+        while [ "$i" -le 34 ]; do
             seed_sandbox "$i"
             i=$((i + 1))
         done
