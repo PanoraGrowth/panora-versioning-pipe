@@ -26,6 +26,8 @@
 #   26 initial-major-isolation-preserved  27 initial-epoch-isolation-preserved
 #   28 initial-hotfix-counter-isolation-preserved
 #   29 hotfix-literal-keyword-match (ticket 083)
+#   30 hotfix-from-production-branch  31 hotfix-custom-target-pr-check
+#   32 chore-minor-bump  33 refactor-no-bump  34 pr-title-validation-disabled
 
 scenarios:
 
@@ -65,6 +67,7 @@ scenarios:
 
   - name: chore-minor-bump
     description: "chore commit produces no version bump (SemVer-aligned: chore → none)"
+    base: sandbox-32
     commits:
       - message: "chore: automated test maintenance"
         files:
@@ -232,6 +235,7 @@ scenarios:
 
   - name: hotfix-from-production-branch
     description: "hotfix-typed commit targeting main — PR check validates the 'hotfix' commit type without merging. tag_created:false routes this to the PR-only test path (NO_MERGE_SCENARIOS)."
+    base: sandbox-30
     commits:
       - message: "hotfix(security): patch critical auth bug"
         files:
@@ -242,6 +246,7 @@ scenarios:
 
   - name: hotfix-custom-target-pr-check
     description: "Validates PR check passes for a hotfix/ branch when config_override sets a custom hotfix_targets list. Tests that the new hotfix_targets model correctly routes the PR validation (PR-only, no merge — harness always targets main)."
+    base: sandbox-31
     branch_prefix: "hotfix/auto"
     pr_title: "hotfix: validate custom hotfix_targets routing"
     config_override:
@@ -407,6 +412,7 @@ scenarios:
 
   - name: refactor-no-bump
     description: "refactor commit produces no numeric version bump (bump: none — PR validates but no tag is created)"
+    base: sandbox-33
     commits:
       - message: "refactor: clean up internal module structure"
         files:
@@ -647,6 +653,7 @@ scenarios:
 
   - name: pr-title-validation-disabled
     description: "require_commit_types: false + non-conventional PR title → PR pipeline passes. When validation is disabled, neither commits nor PR title are validated."
+    base: sandbox-34
     pr_title: "Development (#17)"
     config_override:
       validation:
