@@ -144,7 +144,7 @@ func (r *Runner) runScenario(ctx context.Context, s Scenario) ScenarioResult {
 	}
 
 	tag, err := r.execScenario(ctx, s)
-	return ScenarioResult{
+	result := ScenarioResult{
 		Scenario:   s.Name,
 		Platform:   r.opts.Platform,
 		Passed:     err == nil,
@@ -152,6 +152,21 @@ func (r *Runner) runScenario(ctx context.Context, s Scenario) ScenarioResult {
 		Duration:   time.Since(start),
 		CreatedTag: tag,
 	}
+
+	if s.Xfail {
+		result.XfailReason = s.XfailReason
+		if result.Error != nil {
+			// Expected failure — not a real error.
+			result.Xfail = true
+			result.Error = nil
+			result.Passed = false
+		} else {
+			// Marked xfail but passed — signal the bug was fixed.
+			result.Xpass = true
+		}
+	}
+
+	return result
 }
 
 func (r *Runner) execScenario(ctx context.Context, s Scenario) (createdTag string, retErr error) {

@@ -21,5 +21,10 @@ func LoadScenarios(path string) ([]Scenario, error) {
 	if err := yaml.Unmarshal(data, &f); err != nil {
 		return nil, fmt.Errorf("parse scenarios YAML: %w", err)
 	}
+	for _, s := range f.Scenarios {
+		if s.Xfail && s.XfailReason == "" {
+			return nil, fmt.Errorf("scenario %q: xfail=true requires xfail_reason (include ticket number)", s.Name)
+		}
+	}
 	return f.Scenarios, nil
 }

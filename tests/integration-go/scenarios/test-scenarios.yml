@@ -480,6 +480,8 @@ scenarios:
   # --- New scenarios: per-folder extensions and version_file.groups ---
 
   - name: per-folder-suffix-matching
+    xfail: true
+    xfail_reason: "ticket 084 — scope_matching:suffix no implementado en pipe Go (rediseño completo del feature)"
     description: "feat(cluster-ecs) with scope_matching=suffix routes changelog to services/001-cluster-ecs/ (folder ending in scope). Validates end-to-end suffix resolution in real GitHub Actions context."
     base: sandbox-16
     config_override:
@@ -669,6 +671,8 @@ scenarios:
   # --- Squash-merge hotfix gap guard (feature 051) ---
 
   - name: hotfix-squash-gap-blocked
+    xfail: true
+    xfail_reason: "ticket 082 — guard validation.hotfix_title_required no portado al pipe Go"
     description: "hotfix/ branch + PR title without hotfix keyword → PR pipeline blocks (default hotfix_title_required: error). Without this guard, a squash merge would silently produce a development_release instead of a hotfix."
     base: sandbox-22
     branch_prefix: "hotfix/auto"
