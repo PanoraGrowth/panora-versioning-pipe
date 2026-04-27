@@ -776,7 +776,7 @@ scenarios:
     base: sandbox-29
     merge_method: squash
     branch_prefix: "hotfix/auto"
-    pr_title: "URGENT-PATCH: rollback failing deploy"
+    pr_title: "fix: URGENT-PATCH rollback failing deploy"
     config_override:
       branches:
         tag_on: sandbox-29
@@ -790,7 +790,7 @@ scenarios:
         keyword:
           - "URGENT-PATCH"
     commits:
-      - message: "URGENT-PATCH: rollback failing deploy"
+      - message: "fix: URGENT-PATCH rollback failing deploy"
         files:
           test-artifact.txt: "literal keyword match test"
     expected:
